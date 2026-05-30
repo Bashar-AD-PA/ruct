@@ -4,45 +4,67 @@ import {
     MapPin, 
     Users, 
     Settings, 
-    Video, 
-    FileText,
-    MessageSquare,
-    Wrench,
+    Megaphone,
     CreditCard,
-    Bell
+    Shield, 
+    Layers, 
+    Clock, 
+    DollarSign,
+    Wallet
 } from 'lucide-react';
+import { ROLES } from '../../hooks/usePermission';
 
 /**
  * Centralized Navigation Configuration
- * Defines menu items based on user roles.
- * Roles: 1 (Admin), 2 (Advertiser), 3 (Screen Owner), 4 (Employee), 5 (Maintenance)
  */
-export const navigationConfig = {
-    // Admin/SuperAdmin: صلاحيات كاملة لإدارة المواقع والسياسات
-    'SuperAdmin': [
-        { id: 'overview', label: 'نظرة عامة', path: '/dashboard', icon: LayoutDashboard },
-        { id: 'screens', label: 'إدارة الشاشات', path: '/dashboard/screens', icon: Monitor },
-        { id: 'locations', label: 'المواقع الجغرافية', path: '/dashboard/locations', icon: MapPin },
-        { id: 'users', label: 'المستخدمين', path: '/dashboard/users', icon: Users },
-        { id: 'settings', label: 'إعدادات النظام', path: '/dashboard/settings', icon: Settings },
-    ],
-    // Advertiser: يركز على الحملات الإعلانية والرفع
-    'Advertiser': [
-        { id: 'overview', label: 'لوحة التحكم', path: '/dashboard', icon: LayoutDashboard },
-        { id: 'ads', label: 'إعلاناتي', path: '/dashboard/ads', icon: Video },
-        { id: 'media', label: 'الوسائط', path: '/dashboard/media', icon: FileText },
-        { id: 'finance', label: 'الفواتير', path: '/dashboard/finance', icon: CreditCard },
-        { id: 'support', label: 'الدعم الفني', path: '/dashboard/support', icon: MessageSquare },
-    ],
-    // Screen Owner: يراقب أداء شاشاته وأرباحه
-    'ScreenOwner': [
-        { id: 'overview', label: 'إحصائياتي', path: '/dashboard', icon: LayoutDashboard },
-        { id: 'my-screens', label: 'شاشاتي', path: '/dashboard/screens', icon: Monitor },
-        { id: 'earnings', label: 'العوائد المالية', path: '/dashboard/earnings', icon: CreditCard },
-    ],
-    // Maintenance: إدارة الأعطال والتذاكر
-    'Maintenance': [
-        { id: 'tasks', label: 'المهام الحالية', path: '/dashboard', icon: Wrench },
-        { id: 'tickets', label: 'بلاغات الأعطال', path: '/dashboard/tickets', icon: Bell },
-    ]
+export const getNavItems = (roleName) => {
+    switch (roleName) {
+        case ROLES.SUPER_ADMIN:
+        case ROLES.ADMIN:
+            return [
+                { path: '/dashboard', icon: LayoutDashboard, label: 'لوحة التحكم' },
+                { path: '/dashboard/ads', icon: Megaphone, label: 'الإعلانات' },
+                { path: '/dashboard/screens', icon: Monitor, label: 'الشاشات' },
+                { path: '/dashboard/financial', icon: Wallet, label: 'المالية' },
+                { path: '/dashboard/users', icon: Users, label: 'المستخدمون' },
+                { path: '/dashboard/roles', icon: Shield, label: 'الصلاحيات' },
+                { path: '/dashboard/locations', icon: MapPin, label: 'المواقع' },
+                { path: '/dashboard/categories', icon: Layers, label: 'تصنيفات' },
+                { path: '/dashboard/peak-hours', icon: Clock, label: 'أوقات الذروة' },
+                { path: '/dashboard/payment-methods', icon: CreditCard, label: 'طرق الدفع' },
+                { path: '/dashboard/payment-ops', icon: DollarSign, label: 'عمليات الدفع' },
+                { path: '/dashboard/settings', icon: Settings, label: 'الإعدادات' },
+            ];
+        case ROLES.ADVERTISER:
+            return [
+                { path: '/dashboard', icon: LayoutDashboard, label: 'لوحة التحكم' },
+                { path: '/dashboard/ads', icon: Megaphone, label: 'الإعلانات' },
+                { path: '/dashboard/my-financials', icon: CreditCard, label: 'السجل المالي' },
+                { path: '/dashboard/settings', icon: Settings, label: 'الإعدادات' },
+            ];
+        case ROLES.SCREEN_OWNER:
+            return [
+                { path: '/dashboard', icon: LayoutDashboard, label: 'لوحة التحكم' },
+                { path: '/dashboard/screens', icon: Monitor, label: 'الشاشات' },
+                { path: '/dashboard/earnings', icon: Wallet, label: 'العوائد المالية' },
+                { path: '/dashboard/settings', icon: Settings, label: 'الإعدادات' },
+            ];
+        case ROLES.SECRETARY:
+             return [
+                { path: '/dashboard', icon: LayoutDashboard, label: 'لوحة التحكم' },
+                { path: '/dashboard/ads', icon: Megaphone, label: 'الإعلانات' },
+                { path: '/dashboard/payment-ops', icon: DollarSign, label: 'عمليات الدفع' },
+                { path: '/dashboard/settings', icon: Settings, label: 'الإعدادات' },
+             ];
+        case ROLES.MAINTENANCE:
+             return [
+                { path: '/dashboard', icon: LayoutDashboard, label: 'لوحة التحكم' },
+                { path: '/dashboard/screens', icon: Monitor, label: 'الشاشات' },
+                { path: '/dashboard/settings', icon: Settings, label: 'الإعدادات' },
+             ];
+        default:
+            return [
+                { path: '/dashboard', icon: LayoutDashboard, label: 'لوحة التحكم' },
+            ];
+    }
 };

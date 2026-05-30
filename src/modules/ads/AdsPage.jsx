@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Megaphone, Plus, CheckCircle, XCircle, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import axiosClient from '../../core/api/axiosClient';
+import { ENDPOINTS } from '../../core/api/endpoints';
 import DataTable from '../../shared/components/DataTable';
 import StatusBadge from '../../shared/components/StatusBadge';
 import Modal from '../../shared/components/Modal';
@@ -25,7 +26,7 @@ const AdsPage = () => {
 
     const fetchAds = async () => {
         try {
-            const res = await axiosClient.get('/ads');
+            const res = await axiosClient.get(ENDPOINTS.ADS.ALL);
             setAds(res.data.data || []);
         } catch (e) { console.error(e); }
         finally { setLoading(false); }
@@ -36,7 +37,7 @@ const AdsPage = () => {
     const handleStatusChange = async () => {
         const { ad, action } = approveModal;
         try {
-            await axiosClient.put(`/ads/${ad.ad_id}/status`, {
+            await axiosClient.put(ENDPOINTS.ADS.STATUS(ad.ad_id), {
                 status: action,
                 reason: action === 'Rejected' ? rejectReason : null,
             });
@@ -51,7 +52,7 @@ const AdsPage = () => {
 
     const handleDelete = async () => {
         try {
-            await axiosClient.delete(`/ads/${deleteTarget}`);
+            await axiosClient.delete(ENDPOINTS.ADS.DELETE(deleteTarget));
             addToast('تم حذف الإعلان بنجاح', 'success');
             setDeleteTarget(null);
             fetchAds();
@@ -63,7 +64,7 @@ const AdsPage = () => {
         { key: 'advertiser.full_name', header: 'المعلن', render: (row) => row.advertiser?.full_name || '—' },
         { key: 'status', header: 'الحالة', render: (row) => <StatusBadge status={row.status} /> },
         { key: 'total_cost', header: 'التكلفة', render: (row) => `$${row.total_cost || 0}` },
-        { key: 'daily_frequency', header: 'التكرار اليومي', accessorKey: 'daily_frequency' },
+        { key: 'daily_frequency', header: 'معدل التكرار (دقائق)', accessorKey: 'daily_frequency' },
         { key: 'start_date', header: 'من', render: (row) => row.start_date || '—' },
         { key: 'end_date', header: 'إلى', render: (row) => row.end_date || '—' },
         {

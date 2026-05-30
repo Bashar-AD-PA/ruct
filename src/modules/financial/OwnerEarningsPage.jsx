@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Banknote, DollarSign, ArrowDownCircle } from 'lucide-react';
 import axiosClient from '../../core/api/axiosClient';
+import { ENDPOINTS } from '../../core/api/endpoints';
 
 const OwnerEarningsPage = () => {
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const fetch = async () => { try { const r = await axiosClient.get('/financial/my-earnings'); setData(r.data.data); } catch(e){} finally { setLoading(false); } };
+        const fetch = async () => { try { const r = await axiosClient.get(ENDPOINTS.FINANCIAL.MY_EARNINGS); setData(r.data.data); } catch(e){} finally { setLoading(false); } };
         fetch();
     }, []);
 

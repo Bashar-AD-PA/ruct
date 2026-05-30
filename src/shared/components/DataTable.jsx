@@ -24,7 +24,7 @@ const DataTable = ({ columns, data, loading, onRowClick, emptyMessage = 'لا ت
                     <tr className="border-b border-gray-300">
                         {columns.map((col, index) => (
                             <th 
-                                key={index} 
+                                key={col.accessorKey || index} 
                                 className="py-3 px-2 text-[11px] md:text-sm font-black text-gray-800"
                             >
                                 {col.header}
@@ -35,13 +35,13 @@ const DataTable = ({ columns, data, loading, onRowClick, emptyMessage = 'لا ت
                 <tbody>
                     {data.map((row, rowIndex) => (
                         <tr 
-                            key={rowIndex} 
+                            key={row.id || row._id || rowIndex} 
                             onClick={() => onRowClick && onRowClick(row)}
                             className={`border-b border-gray-100 last:border-0 transition-colors ${onRowClick ? 'cursor-pointer hover:bg-gray-50' : ''}`}
                         >
                             {columns.map((col, colIndex) => (
                                 <td 
-                                    key={colIndex} 
+                                    key={col.accessorKey || colIndex} 
                                     className="py-3 px-2 text-[11px] md:text-sm font-bold text-gray-800"
                                 >
                                     {col.cell ? col.cell(row) : row[col.accessorKey]}

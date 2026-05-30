@@ -2,9 +2,12 @@ import React, { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Megaphone, Monitor, Wallet, Users, Settings, Bell, User as UserIcon, LogOut, Menu, Layers, Shield, DollarSign, CreditCard, Clock } from 'lucide-react';
 import useAuthStore from '../../store/useAuthStore';
+import usePermission from '../../hooks/usePermission';
+import { getNavItems } from '../../core/routes/navigation';
 
 const DashboardLayout = () => {
-    const { user, logout, isAdvertiser, isAdmin } = useAuthStore();
+    const { user, logout } = useAuthStore();
+    const { roleName } = usePermission();
     const navigate = useNavigate();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -13,21 +16,8 @@ const DashboardLayout = () => {
         navigate('/login');
     };
 
-    // Define navigation items based on roles
-    const navItems = [
-        { path: '/dashboard', icon: LayoutDashboard, label: 'لوحة التحكم', allowed: true },
-        { path: '/dashboard/ads', icon: Megaphone, label: 'الإعلانات', allowed: true },
-        { path: '/dashboard/screens', icon: Monitor, label: 'الشاشات', allowed: !isAdvertiser() },
-        { path: '/dashboard/financial', icon: Wallet, label: 'المالية', allowed: true },
-        { path: '/dashboard/users', icon: Users, label: 'المستخدمون', allowed: isAdmin() },
-        { path: '/dashboard/roles', icon: Shield, label: 'الصلاحيات', allowed: isAdmin() },
-        { path: '/dashboard/locations', icon: Monitor, label: 'المواقع', allowed: isAdmin() },
-        { path: '/dashboard/categories', icon: Layers, label: 'تصنيفات الإعلانات', allowed: isAdmin() },
-        { path: '/dashboard/peak-hours', icon: Clock, label: 'أوقات الذروة', allowed: isAdmin() },
-        { path: '/dashboard/payment-methods', icon: CreditCard, label: 'طرق الدفع', allowed: isAdmin() },
-        { path: '/dashboard/payment-ops', icon: DollarSign, label: 'عمليات الدفع', allowed: isAdmin() },
-        { path: '/dashboard/settings', icon: Settings, label: 'الإعدادات', allowed: true },
-    ].filter(item => item.allowed);
+    // Use centralized navigation configuration
+    const navItems = getNavItems(roleName);
 
     return (
         <div className="min-h-screen bg-[var(--color-bg-light)] text-gray-800 flex flex-col font-sans" dir="rtl">
@@ -55,9 +45,13 @@ const DashboardLayout = () => {
                     {/* Left Side Actions */}
                     <div className="flex items-center gap-4 w-[100px] justify-end">
                         {/* Notifications */}
-                        <div className="relative cursor-pointer">
-                            <Bell className="w-[26px] h-[26px] text-white" />
-                            <div className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full border border-[var(--color-dark-turquoise)]"></div>
+                        <div 
+                            className="relative cursor-pointer hover:bg-white/10 p-1.5 rounded-full transition-colors"
+                            onClick={() => navigate('/dashboard/notifications')}
+                            title="الإشعارات"
+                        >
+                            <Bell className="w-6 h-6 text-white" />
+                            <div className="absolute top-1.5 right-2 w-2 h-2 bg-red-500 rounded-full border border-[var(--color-dark-turquoise)]"></div>
                         </div>
 
                         {/* Profile/Logout */}

@@ -11,7 +11,16 @@ import useToastStore from '../../store/useToastStore';
  * - Network Exception & Timeout Handling
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://laravel-production-969f.up.railway.app/api';
+let API_BASE_URL = import.meta.env.VITE_API_URL;
+
+if (!API_BASE_URL) {
+    if (import.meta.env.DEV) {
+        API_BASE_URL = 'http://127.0.0.1:8000/api';
+        console.warn('⚠️ No VITE_API_URL found. Defaulting to local development URL.');
+    } else {
+        API_BASE_URL = 'https://laravel-production-969f.up.railway.app/api';
+    }
+}
 
 const axiosClient = axios.create({
     baseURL: API_BASE_URL,

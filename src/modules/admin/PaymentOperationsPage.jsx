@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { DollarSign, CheckCircle, Image as ImageIcon, X } from 'lucide-react';
 import axiosClient from '../../core/api/axiosClient';
+import { ENDPOINTS } from '../../core/api/endpoints';
 import useToastStore from '../../store/useToastStore';
 import PageHeader from '../../shared/components/PageHeader';
 import Modal from '../../shared/components/Modal';
@@ -19,7 +20,7 @@ const PaymentOperationsPage = () => {
     const fetchPayments = async () => {
         setIsLoading(true);
         try {
-            const res = await axiosClient.get('/financial/ledger');
+            const res = await axiosClient.get(ENDPOINTS.FINANCIAL.LEDGER);
             if (res.data.success) {
                 const ledger = res.data.data || [];
                 
@@ -48,7 +49,7 @@ const PaymentOperationsPage = () => {
         if (!window.confirm('هل أنت متأكد من اعتماد هذه الدفعة وتفعيل الإعلان؟')) return;
         
         try {
-            await axiosClient.post(`/financial/approve-payment/${ledgerId}`);
+            await axiosClient.post(ENDPOINTS.FINANCIAL.APPROVE(ledgerId));
             addToast('تم اعتماد الدفعة بنجاح', 'success');
             fetchPayments();
         } catch (error) {

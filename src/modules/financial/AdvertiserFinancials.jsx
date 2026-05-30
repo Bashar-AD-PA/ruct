@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Wallet, ArrowDownRight, ArrowUpRight } from 'lucide-react';
 import axiosClient from '../../core/api/axiosClient';
+import { ENDPOINTS } from '../../core/api/endpoints';
 import PageHeader from '../../shared/components/PageHeader';
 import DataTable from '../../shared/components/DataTable';
 
@@ -11,7 +12,7 @@ const AdvertiserFinancials = () => {
     useEffect(() => {
         const fetchFinancials = async () => {
             try {
-                const res = await axiosClient.get('/advertiser/financials');
+                const res = await axiosClient.get(ENDPOINTS.ADVERTISER.FINANCIALS);
                 setData(res.data.data);
             } catch (error) {
                 console.error(error);

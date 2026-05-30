@@ -20,6 +20,7 @@ import {
     RotateCcw
 } from 'lucide-react';
 import axiosClient from '../../core/api/axiosClient';
+import { ENDPOINTS } from '../../core/api/endpoints';
 import useAuthStore from '../../store/useAuthStore';
 
 // Animation variants
@@ -73,7 +74,7 @@ const AdvertiserDashboard = () => {
     useEffect(() => {
         const fetchDashboard = async () => {
             try {
-                const res = await axiosClient.get('/advertiser/dashboard');
+                const res = await axiosClient.get(ENDPOINTS.ADVERTISER.DASHBOARD);
                 setData(res.data.data || res.data);
             } catch (error) {
                 console.error('Error fetching dashboard', error);

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { User, Mail, Phone, Edit, Lock, LogOut, ShieldCheck } from 'lucide-react';
 import useAuthStore from '../../store/useAuthStore';
 import axiosClient from '../../core/api/axiosClient';
-
+import { ENDPOINTS } from '../../core/api/endpoints';
 const AdminProfilePage = () => {
     const navigate = useNavigate();
     const { user, logout } = useAuthStore();
@@ -11,7 +11,7 @@ const AdminProfilePage = () => {
     const handleLogout = async () => {
         if (window.confirm('هل أنت متأكد أنك تريد الخروج من التطبيق؟')) {
             try {
-                await axiosClient.post('/logout');
+                await axiosClient.post(ENDPOINTS.AUTH.LOGOUT);
             } catch (e) {
                 console.error('Logout API failed', e);
             } finally {

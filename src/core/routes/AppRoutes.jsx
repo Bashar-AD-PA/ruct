@@ -25,6 +25,7 @@ import FinancialPage from '../../modules/financial/FinancialPage';
 import OwnerEarningsPage from '../../modules/financial/OwnerEarningsPage';
 import AdvertiserFinancials from '../../modules/financial/AdvertiserFinancials';
 import SettingsPage from '../../modules/settings/SettingsPage';
+import NotificationsPage from '../../modules/notifications/NotificationsPage';
 
 // Admin Modules
 import CategoriesPage from '../../modules/admin/CategoriesPage';
@@ -158,6 +159,9 @@ const AppRoutes = () => {
 
                 {/* Settings */}
                 <Route path="settings" element={<SettingsPage />} />
+
+                {/* Notifications */}
+                <Route path="notifications" element={<NotificationsPage />} />
             </Route>
 
             {/* Default Redirects */}

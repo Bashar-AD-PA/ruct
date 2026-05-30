@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { MapPin, Plus, Trash2, Edit2, Globe } from 'lucide-react';
 import axiosClient from '../../core/api/axiosClient';
+import { ENDPOINTS } from '../../core/api/endpoints';
 import Modal from '../../shared/components/Modal';
 import ConfirmDialog from '../../shared/components/ConfirmDialog';
 import useToastStore from '../../store/useToastStore';
@@ -25,19 +26,19 @@ const LocationsPage = () => {
     useEffect(() => { if (selectedGov) fetchRegions(selectedGov); else setRegions([]); }, [selectedGov]);
     useEffect(() => { if (selectedRegion) fetchStreets(selectedRegion); else setStreets([]); }, [selectedRegion]);
 
-    const fetchGovs = async () => { try { const r = await axiosClient.get('/lookups/governorates'); setGovs(r.data); } catch(e){} finally { setLoading(false); } };
-    const fetchRegions = async (govId) => { try { const r = await axiosClient.get(`/lookups/governorates/${govId}/regions`); setRegions(r.data); } catch(e){} };
-    const fetchStreets = async (regionId) => { try { const r = await axiosClient.get(`/lookups/regions/${regionId}/streets`); setStreets(r.data); } catch(e){} };
+    const fetchGovs = async () => { try { const r = await axiosClient.get(ENDPOINTS.LOOKUPS.GOVERNORATES); setGovs(r.data); } catch(e){} finally { setLoading(false); } };
+    const fetchRegions = async (govId) => { try { const r = await axiosClient.get(ENDPOINTS.LOOKUPS.REGIONS_BY_GOV(govId)); setRegions(r.data); } catch(e){} };
+    const fetchStreets = async (regionId) => { try { const r = await axiosClient.get(ENDPOINTS.LOOKUPS.STREETS_BY_REGION(regionId)); setStreets(r.data); } catch(e){} };
 
     const handleSave = async () => {
         const { type, data } = modal;
         try {
-            if (type === 'add-gov') { await axiosClient.post('/lookups/governorates', { name: formName }); fetchGovs(); }
-            else if (type === 'edit-gov') { await axiosClient.put(`/lookups/governorates/${data.gov_id}`, { name: formName }); fetchGovs(); }
-            else if (type === 'add-region') { await axiosClient.post('/lookups/regions', { name: formName, gov_id: selectedGov }); fetchRegions(selectedGov); }
-            else if (type === 'edit-region') { await axiosClient.put(`/lookups/regions/${data.region_id}`, { name: formName, gov_id: selectedGov }); fetchRegions(selectedGov); }
-            else if (type === 'add-street') { await axiosClient.post('/lookups/streets', { name: formName, region_id: selectedRegion }); fetchStreets(selectedRegion); }
-            else if (type === 'edit-street') { await axiosClient.put(`/lookups/streets/${data.street_id}`, { name: formName, region_id: selectedRegion }); fetchStreets(selectedRegion); }
+            if (type === 'add-gov') { await axiosClient.post(ENDPOINTS.LOOKUPS.GOVERNORATES, { name: formName }); fetchGovs(); }
+            else if (type === 'edit-gov') { await axiosClient.put(ENDPOINTS.LOOKUPS.GOVERNORATE(data.gov_id), { name: formName }); fetchGovs(); }
+            else if (type === 'add-region') { await axiosClient.post(ENDPOINTS.LOOKUPS.REGIONS, { name: formName, gov_id: selectedGov }); fetchRegions(selectedGov); }
+            else if (type === 'edit-region') { await axiosClient.put(ENDPOINTS.LOOKUPS.REGION(data.region_id), { name: formName, gov_id: selectedGov }); fetchRegions(selectedGov); }
+            else if (type === 'add-street') { await axiosClient.post(ENDPOINTS.LOOKUPS.STREETS, { name: formName, region_id: selectedRegion }); fetchStreets(selectedRegion); }
+            else if (type === 'edit-street') { await axiosClient.put(ENDPOINTS.LOOKUPS.STREET(data.street_id), { name: formName, region_id: selectedRegion }); fetchStreets(selectedRegion); }
             addToast('تمت العملية بنجاح', 'success');
             setModal({ type: '', open: false, data: null }); setFormName('');
         } catch (e) { addToast('فشلت العملية', 'error'); }
@@ -46,9 +47,9 @@ const LocationsPage = () => {
     const handleDelete = async () => {
         const { type, id } = deleteDialog;
         try {
-            if (type === 'gov') { await axiosClient.delete(`/lookups/governorates/${id}`); fetchGovs(); setSelectedGov(null); }
-            else if (type === 'region') { await axiosClient.delete(`/lookups/regions/${id}`); fetchRegions(selectedGov); setSelectedRegion(null); }
-            else if (type === 'street') { await axiosClient.delete(`/lookups/streets/${id}`); fetchStreets(selectedRegion); }
+            if (type === 'gov') { await axiosClient.delete(ENDPOINTS.LOOKUPS.GOVERNORATE(id)); fetchGovs(); setSelectedGov(null); }
+            else if (type === 'region') { await axiosClient.delete(ENDPOINTS.LOOKUPS.REGION(id)); fetchRegions(selectedGov); setSelectedRegion(null); }
+            else if (type === 'street') { await axiosClient.delete(ENDPOINTS.LOOKUPS.STREET(id)); fetchStreets(selectedRegion); }
             addToast('تم الحذف بنجاح', 'success');
         } catch (e) { addToast('فشل الحذف', 'error'); }
         setDeleteDialog({ open: false, type: '', id: null });

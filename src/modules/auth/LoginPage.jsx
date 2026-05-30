@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { User, Lock, Eye, EyeOff, MonitorPlay, Zap, BarChart3 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import axiosClient from '../../core/api/axiosClient';
+import { ENDPOINTS } from '../../core/api/endpoints';
 import useAuthStore from '../../store/useAuthStore';
 import useToastStore from '../../store/useToastStore';
 
@@ -69,7 +70,7 @@ const LoginPage = () => {
 
         setIsLoading(true);
         try {
-            const res = await axiosClient.post('/login', {
+            const res = await axiosClient.post(ENDPOINTS.AUTH.LOGIN, {
                 login_id: loginId.trim(),
                 password: password,
                 device_name: 'Web Browser'

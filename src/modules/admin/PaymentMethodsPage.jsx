@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { CreditCard, Plus, Edit2, Trash2 } from 'lucide-react';
 import axiosClient from '../../core/api/axiosClient';
+import { ENDPOINTS } from '../../core/api/endpoints';
 import useToastStore from '../../store/useToastStore';
 import PageHeader from '../../shared/components/PageHeader';
 import DataTable from '../../shared/components/DataTable';
@@ -25,7 +26,7 @@ const PaymentMethodsPage = () => {
     const fetchMethods = async () => {
         setIsLoading(true);
         try {
-            const res = await axiosClient.get('/payment-methods');
+            const res = await axiosClient.get(ENDPOINTS.PAYMENT.METHODS);
             if (res.data.success) {
                 setMethods(res.data.data || []);
             } else {
@@ -80,10 +81,10 @@ const PaymentMethodsPage = () => {
 
             if (editingMethod) {
                 const id = editingMethod.method_id || editingMethod.id;
-                await axiosClient.put(`/payment-methods/${id}`, payload);
+                await axiosClient.put(ENDPOINTS.PAYMENT.METHOD(id), payload);
                 addToast('تم تعديل وسيلة الدفع بنجاح', 'success');
             } else {
-                await axiosClient.post('/payment-methods', payload);
+                await axiosClient.post(ENDPOINTS.PAYMENT.METHODS, payload);
                 addToast('تم إضافة وسيلة الدفع بنجاح', 'success');
             }
             closeModal();
@@ -98,7 +99,7 @@ const PaymentMethodsPage = () => {
     const handleDelete = async (id) => {
         if (window.confirm('هل أنت متأكد من حذف وسيلة الدفع هذه؟')) {
             try {
-                await axiosClient.delete(`/payment-methods/${id}`);
+                await axiosClient.delete(ENDPOINTS.PAYMENT.METHOD(id));
                 addToast('تم حذف وسيلة الدفع بنجاح', 'success');
                 fetchMethods();
             } catch (error) {

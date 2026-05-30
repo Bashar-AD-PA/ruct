@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Wallet, Search } from 'lucide-react';
 import axiosClient from '../../core/api/axiosClient';
+import { ENDPOINTS } from '../../core/api/endpoints';
 import PageHeader from '../../shared/components/PageHeader';
 import DataTable from '../../shared/components/DataTable';
 
@@ -11,7 +12,7 @@ const FinancialPage = () => {
     useEffect(() => {
         const fetchFinancials = async () => {
             try {
-                const res = await axiosClient.get('/financial/ledger');
+                const res = await axiosClient.get(ENDPOINTS.FINANCIAL.LEDGER);
                 setData(res.data?.data || res.data || { total_payments: 0, transactions: [] });
             } catch (error) {
                 console.error(error);
@@ -24,17 +25,17 @@ const FinancialPage = () => {
     }, []);
 
     const columns = [
-        { key: 'date', header: 'التاريخ', accessorKey: 'date' },
-        { key: 'advertiser', header: 'المعلن', accessorKey: 'advertiser' },
-        { key: 'method', header: 'طريقة الدفع', accessorKey: 'method' },
-        { key: 'ref', header: 'المرجع', accessorKey: 'ref' },
-        { key: 'amount', header: 'المبلغ', render: (row) => `$${row.amount}` },
+        { key: 'created_at', header: 'التاريخ', cell: (row) => new Date(row.created_at).toLocaleDateString('ar-EG') },
+        { key: 'user.full_name', header: 'المعلن', cell: (row) => row.user?.full_name || '—' },
+        { key: 'payment_method', header: 'طريقة الدفع', accessorKey: 'payment_method' },
+        { key: 'reference_number', header: 'المرجع', accessorKey: 'reference_number' },
+        { key: 'amount', header: 'المبلغ', cell: (row) => `$${row.amount}` },
         { key: 'status', header: 'الحالة', cell: (row) => (
             <span className={`px-2 py-1 rounded-full text-[10px] font-bold text-white ${
-                row.status === 'معتمدة' ? 'bg-[#2E7D32]' : 
-                row.status === 'مرفوضة' ? 'bg-red-600' : 'bg-[var(--color-gold)]'
+                row.status === 'completed' ? 'bg-[#2E7D32]' : 
+                row.status === 'rejected' ? 'bg-red-600' : 'bg-[var(--color-gold)]'
             }`}>
-                {row.status}
+                {row.status === 'completed' ? 'معتمدة' : row.status === 'rejected' ? 'مرفوضة' : 'قيد المراجعة'}
             </span>
         )},
     ];

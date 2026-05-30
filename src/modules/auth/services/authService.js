@@ -1,4 +1,5 @@
 import axiosClient from '../../../core/api/axiosClient';
+import { ENDPOINTS } from '../../../core/api/endpoints';
 
 /**
  * Auth Module API Services
@@ -6,7 +7,7 @@ import axiosClient from '../../../core/api/axiosClient';
 
 export const loginUserApi = async (login_id, password) => {
     try {
-        const response = await axiosClient.post('/login', { login_id, password });
+        const response = await axiosClient.post(ENDPOINTS.AUTH.LOGIN, { login_id, password });
         return response.data;
     } catch (error) {
         throw error; // الخطأ يتم معالجته في axiosClient
@@ -15,7 +16,7 @@ export const loginUserApi = async (login_id, password) => {
 
 export const registerUserApi = async (userData) => {
     try {
-        const response = await axiosClient.post('/register', userData);
+        const response = await axiosClient.post(ENDPOINTS.AUTH.REGISTER, userData);
         return response.data;
     } catch (error) {
         throw error;

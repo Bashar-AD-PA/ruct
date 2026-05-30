@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Layers, Plus, Edit2, Trash2 } from 'lucide-react';
 import axiosClient from '../../core/api/axiosClient';
+import { ENDPOINTS } from '../../core/api/endpoints';
 import useToastStore from '../../store/useToastStore';
 import PageHeader from '../../shared/components/PageHeader';
 import DataTable from '../../shared/components/DataTable';
@@ -24,7 +25,7 @@ const CategoriesPage = () => {
     const fetchCategories = async () => {
         setIsLoading(true);
         try {
-            const res = await axiosClient.get('/lookups/categories');
+            const res = await axiosClient.get(ENDPOINTS.LOOKUPS.CATEGORIES);
             if (res.data.success) {
                 setCategories(Array.isArray(res.data.data) ? res.data.data : res.data.data.data || []);
             } else {
@@ -73,10 +74,10 @@ const CategoriesPage = () => {
         try {
             if (editingCategory) {
                 const id = editingCategory.category_id || editingCategory.id;
-                await axiosClient.put(`/lookups/categories/${id}`, form);
+                await axiosClient.put(ENDPOINTS.LOOKUPS.CATEGORY(id), form);
                 addToast('تم تعديل التصنيف بنجاح', 'success');
             } else {
-                await axiosClient.post('/lookups/categories', form);
+                await axiosClient.post(ENDPOINTS.LOOKUPS.CATEGORIES, form);
                 addToast('تم إضافة التصنيف بنجاح', 'success');
             }
             closeModal();
@@ -91,7 +92,7 @@ const CategoriesPage = () => {
     const handleDelete = async (id) => {
         if (window.confirm('هل أنت متأكد من حذف هذا التصنيف؟ سيؤثر هذا على الإعلانات المرتبطة به.')) {
             try {
-                await axiosClient.delete(`/lookups/categories/${id}`);
+                await axiosClient.delete(ENDPOINTS.LOOKUPS.CATEGORY(id));
                 addToast('تم حذف التصنيف بنجاح', 'success');
                 fetchCategories();
             } catch (error) {

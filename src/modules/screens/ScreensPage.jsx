@@ -1,18 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { Monitor, Plus, Trash2 } from 'lucide-react';
+import { Monitor, Plus, Trash2, TerminalSquare } from 'lucide-react';
 import axiosClient from '../../core/api/axiosClient';
+import { ENDPOINTS } from '../../core/api/endpoints';
 import DataTable from '../../shared/components/DataTable';
 import StatusBadge from '../../shared/components/StatusBadge';
 import Modal from '../../shared/components/Modal';
 import ConfirmDialog from '../../shared/components/ConfirmDialog';
 import PageHeader from '../../shared/components/PageHeader';
 import useToastStore from '../../store/useToastStore';
+import ScreenCommandModal from './components/ScreenCommandModal';
 
 const ScreensPage = () => {
     const [screens, setScreens] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showAddModal, setShowAddModal] = useState(false);
     const [deleteTarget, setDeleteTarget] = useState(null);
+    const [commandTarget, setCommandTarget] = useState(null);
     const [lookups, setLookups] = useState({ types: [], streets: [], owners: [] });
     const addToast = useToastStore(state => state.addToast);
 
@@ -26,7 +29,7 @@ const ScreensPage = () => {
 
     const fetchScreens = async () => {
         try {
-            const res = await axiosClient.get('/screens');
+            const res = await axiosClient.get(ENDPOINTS.SCREENS.ALL);
             setScreens(res.data);
         } catch (e) { console.error(e); }
         finally { setLoading(false); }
@@ -35,9 +38,9 @@ const ScreensPage = () => {
     const fetchLookups = async () => {
         try {
             const [types, streets, owners] = await Promise.all([
-                axiosClient.get('/lookups/screen-types'),
-                axiosClient.get('/lookups/streets'),
-                axiosClient.get('/lookups/users-by-role/ScreenOwner'),
+                axiosClient.get(ENDPOINTS.LOOKUPS.SCREEN_TYPES),
+                axiosClient.get(ENDPOINTS.LOOKUPS.STREETS),
+                axiosClient.get(ENDPOINTS.LOOKUPS.USERS_BY_ROLE('ScreenOwner')),
             ]);
             setLookups({ types: types.data, streets: streets.data, owners: owners.data });
         } catch (e) { console.error(e); }
@@ -49,7 +52,7 @@ const ScreensPage = () => {
         Object.entries(form).forEach(([key, val]) => { if (val) formData.append(key, val); });
 
         try {
-            await axiosClient.post('/screens', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+            await axiosClient.post(ENDPOINTS.SCREENS.ALL, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
             addToast('تم إضافة الشاشة بنجاح', 'success');
             setShowAddModal(false);
             setForm({ screen_name: '', mac_address: '', type_id: '', street_id: '', owner_id: '', photo: null });
@@ -61,7 +64,7 @@ const ScreensPage = () => {
 
     const handleDelete = async () => {
         try {
-            await axiosClient.delete(`/screens/${deleteTarget}`);
+            await axiosClient.delete(ENDPOINTS.SCREENS.DELETE(deleteTarget));
             addToast('تم حذف الشاشة بنجاح', 'success');
             setDeleteTarget(null);
             fetchScreens();
@@ -86,7 +89,10 @@ const ScreensPage = () => {
         {
             key: 'actions', header: 'إجراءات', cell: (row) => (
                 <div className="flex items-center justify-center gap-1">
-                    <button onClick={(e) => { e.stopPropagation(); setDeleteTarget(row.screen_id) }} className="text-gray-500 hover:text-red-500 p-1.5 rounded-lg hover:bg-gray-100 transition-all">
+                    <button onClick={(e) => { e.stopPropagation(); setCommandTarget(row) }} className="text-gray-500 hover:text-[var(--color-dark-turquoise)] p-1.5 rounded-lg hover:bg-gray-100 transition-all shadow-sm" title="التحكم بالشاشة">
+                        <TerminalSquare className="w-5 h-5" />
+                    </button>
+                    <button onClick={(e) => { e.stopPropagation(); setDeleteTarget(row.screen_id) }} className="text-gray-500 hover:text-red-500 p-1.5 rounded-lg hover:bg-gray-100 transition-all shadow-sm" title="حذف الشاشة">
                         <Trash2 className="w-5 h-5" />
                     </button>
                 </div>
@@ -171,6 +177,12 @@ const ScreensPage = () => {
                 title="حذف الشاشة"
                 message="هل أنت متأكد من حذف هذه الشاشة؟"
                 confirmText="نعم، احذف"
+            />
+
+            <ScreenCommandModal 
+                isOpen={!!commandTarget} 
+                onClose={() => setCommandTarget(null)} 
+                screen={commandTarget} 
             />
         </div>
     );

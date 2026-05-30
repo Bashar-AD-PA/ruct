@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Mail, Phone, MapPin, Lock, Eye, EyeOff } from 'lucide-react';
 import axiosClient from '../../core/api/axiosClient';
+import { ENDPOINTS } from '../../core/api/endpoints';
 import useToastStore from '../../store/useToastStore';
 
 const DualLanguageInput = ({ icon: Icon, englishLabel, arabicLabel, type = "text", value, onChange, isPassword, isObscure, onToggleObscure }) => {
@@ -61,7 +62,7 @@ const RegisterPage = () => {
 
         setIsLoading(true);
         try {
-            const res = await axiosClient.post('/register', form);
+            const res = await axiosClient.post(ENDPOINTS.AUTH.REGISTER, form);
             if (res.data.success || res.status === 201) {
                 addToast('تم إنشاء الحساب بنجاح! يمكنك الآن تسجيل الدخول.', 'success');
                 navigate('/login');

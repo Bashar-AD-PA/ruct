@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Shield, Plus, Edit2, Trash2 } from 'lucide-react';
 import axiosClient from '../../core/api/axiosClient';
+import { ENDPOINTS } from '../../core/api/endpoints';
 import useToastStore from '../../store/useToastStore';
 import PageHeader from '../../shared/components/PageHeader';
 import DataTable from '../../shared/components/DataTable';
@@ -23,7 +24,7 @@ const RolesPage = () => {
     const fetchRoles = async () => {
         setIsLoading(true);
         try {
-            const res = await axiosClient.get('/lookups/roles');
+            const res = await axiosClient.get(ENDPOINTS.LOOKUPS.ROLES);
             if (res.data.success) {
                 setRoles(res.data.data || []);
             } else {
@@ -67,10 +68,10 @@ const RolesPage = () => {
         try {
             if (editingRole) {
                 const id = editingRole.role_id || editingRole.id;
-                await axiosClient.put(`/lookups/roles/${id}`, form);
+                await axiosClient.put(ENDPOINTS.LOOKUPS.ROLE(id), form);
                 addToast('تم تعديل الدور بنجاح', 'success');
             } else {
-                await axiosClient.post('/lookups/roles', form);
+                await axiosClient.post(ENDPOINTS.LOOKUPS.ROLES, form);
                 addToast('تم إضافة الدور بنجاح', 'success');
             }
             closeModal();
@@ -85,7 +86,7 @@ const RolesPage = () => {
     const handleDelete = async (id) => {
         if (window.confirm('هل أنت متأكد من حذف هذا الدور؟ قد يسبب هذا مشاكل إذا كان هناك مستخدمون مرتبطون به.')) {
             try {
-                await axiosClient.delete(`/lookups/roles/${id}`);
+                await axiosClient.delete(ENDPOINTS.LOOKUPS.ROLE(id));
                 addToast('تم حذف الدور بنجاح', 'success');
                 fetchRoles();
             } catch (error) {

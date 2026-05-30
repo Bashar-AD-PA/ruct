@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Monitor, PlayCircle, Clock, Settings, Search } from 'lucide-react';
 import axiosClient from '../../core/api/axiosClient';
+import { ENDPOINTS } from '../../core/api/endpoints';
 
 const StatCard = ({ title, value, icon: Icon }) => (
     <div className="flex flex-col items-center justify-center p-3 h-[105px] bg-white rounded-lg border-[2.5px] border-[var(--color-dark-turquoise)]">
@@ -40,7 +41,7 @@ const Dashboard = () => {
     useEffect(() => {
         const fetchDashboard = async () => {
             try {
-                const res = await axiosClient.get('/dashboard/overview');
+                const res = await axiosClient.get(ENDPOINTS.DASHBOARD.OVERVIEW);
                 setData(res.data.data || res.data);
             } catch (error) {
                 console.error(error);
@@ -65,63 +66,24 @@ const Dashboard = () => {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
                 <StatCard 
                     title="الشاشات النشطة" 
-                    value={data?.active_screens_count || '0'} 
+                    value={data?.kpis?.active_screens || '0'} 
                     icon={Monitor} 
                 />
                 <StatCard 
-                    title={<>الإعلانات<br />المعروضة حالياً</>} 
-                    value={data?.active_ads_count || '0'} 
-                    icon={PlayCircle} 
+                    title={<>إجمالي<br />الشاشات</>} 
+                    value={data?.kpis?.total_screens || '0'} 
+                    icon={Monitor} 
                 />
                 <StatCard 
-                    title={<>معدل التشغيل<br />اليومي</>} 
-                    value={data?.total_daily_plays || '0'} 
-                    icon={Clock} 
+                    title={<>الإعلانات<br />المعلقة</>} 
+                    value={data?.kpis?.pending_ads || '0'} 
+                    icon={PlayCircle} 
                 />
                 <HealthCard 
-                    title="صحة الشبكة" 
-                    value="ممتاز" 
+                    title="المستخدمين النشطين" 
+                    value={data?.kpis?.active_users || '0'} 
                     icon={Settings} 
                 />
-            </div>
-
-            {/* Recent Campaigns Table (Flutter style) */}
-            <div>
-                <SectionHeader title="أداء الحملات الإعلانية النشطة" />
-                <div className="bg-white border-[2.5px] border-t-0 border-[var(--color-dark-turquoise)] rounded-b-lg overflow-x-auto">
-                    <table className="w-full text-center">
-                        <thead>
-                            <tr className="border-b border-gray-300">
-                                <th className="py-2 px-1 text-[10px] md:text-xs font-black text-gray-800">اسم الحملة</th>
-                                <th className="py-2 px-1 text-[10px] md:text-xs font-black text-gray-800">المعلن</th>
-                                <th className="py-2 px-1 text-[10px] md:text-xs font-black text-gray-800">التكلفة</th>
-                                <th className="py-2 px-1 text-[10px] md:text-xs font-black text-gray-800">الحالة</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {data?.recent_campaigns?.map((campaign, idx) => (
-                                <tr key={idx}>
-                                    <td className="py-3 px-1 text-[10px] md:text-xs font-bold text-gray-800">{campaign.title || 'حملة بدون عنوان'}</td>
-                                    <td className="py-3 px-1 text-[10px] md:text-xs font-bold text-gray-800">{campaign.user?.full_name || '—'}</td>
-                                    <td className="py-3 px-1 text-[10px] md:text-xs font-bold text-gray-800">${campaign.total_cost || '0'}</td>
-                                    <td className="py-3 px-1">
-                                        <span className={`text-white text-[9px] md:text-[10px] font-bold px-2 py-1 rounded ${
-                                            campaign.status === 'Active' ? 'bg-[#2E7D32]' : 
-                                            campaign.status === 'Pending' ? 'bg-[var(--color-gold)]' : 'bg-gray-500'
-                                        }`}>
-                                            {campaign.status === 'Active' ? 'أخضر نشط' : campaign.status === 'Pending' ? 'أصفر مراجعة' : campaign.status}
-                                        </span>
-                                    </td>
-                                </tr>
-                            ))}
-                            {!data?.recent_campaigns?.length && (
-                                <tr>
-                                    <td colSpan="4" className="py-6 text-xs text-gray-500 font-bold">لا يوجد حملات حالية</td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
             </div>
 
             {/* Recent Logs (Flutter style screens table) */}
@@ -134,17 +96,17 @@ const Dashboard = () => {
                                 <th className="py-2 px-1 text-[10px] md:text-xs font-black text-gray-800">الشاشة/الموقع</th>
                                 <th className="py-2 px-1 text-[10px] md:text-xs font-black text-gray-800">آخر نشاط</th>
                                 <th className="py-2 px-1 text-[10px] md:text-xs font-black text-gray-800">الإعلان</th>
-                                <th className="py-2 px-1 text-[10px] md:text-xs font-black text-gray-800">الحالة</th>
+                                <th className="py-2 px-1 text-[10px] md:text-xs font-black text-gray-800">المدة</th>
                             </tr>
                         </thead>
                         <tbody>
                             {data?.recent_logs?.map((log, idx) => (
                                 <tr key={idx} className="border-b border-gray-100 last:border-0">
-                                    <td className="py-3 px-1 text-[10px] md:text-xs font-bold text-gray-800">{log.screen?.screen_name || '—'}</td>
-                                    <td className="py-3 px-1 text-[10px] md:text-xs font-bold text-gray-800">{log.played_at}</td>
-                                    <td className="py-3 px-1 text-[10px] md:text-xs font-bold text-gray-800 truncate max-w-[100px]">{log.advertisement?.title || '—'}</td>
+                                    <td className="py-3 px-1 text-[10px] md:text-xs font-bold text-gray-800">{log.screen_name || '—'}</td>
+                                    <td className="py-3 px-1 text-[10px] md:text-xs font-bold text-gray-800">{log.playback_timestamp ? new Date(log.playback_timestamp).toLocaleTimeString('ar-EG') : '—'}</td>
+                                    <td className="py-3 px-1 text-[10px] md:text-xs font-bold text-gray-800 truncate max-w-[100px]">{log.ad_name || '—'}</td>
                                     <td className="py-3 px-1">
-                                        <span className="bg-[#2E7D32] text-white text-[9px] md:text-[10px] font-bold px-2 py-1 rounded">أخضر نشط</span>
+                                        <span className="bg-[#2E7D32] text-white text-[9px] md:text-[10px] font-bold px-2 py-1 rounded">{log.duration} ثانية</span>
                                     </td>
                                 </tr>
                             ))}
