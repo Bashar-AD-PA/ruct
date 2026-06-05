@@ -16,6 +16,7 @@ import {
 import axiosClient from '../../core/api/axiosClient';
 import { ENDPOINTS } from '../../core/api/endpoints';
 import useAuthStore from '../../store/useAuthStore';
+import useToastStore from '../../store/useToastStore';
 
 // Animation variants
 const containerVariants = {
@@ -38,6 +39,7 @@ const AdvertiserDashboard = () => {
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
+    const addToast = useToastStore(state => state.addToast);
 
     useEffect(() => {
         const fetchDashboard = async () => {
@@ -46,6 +48,7 @@ const AdvertiserDashboard = () => {
                 setData(res.data.data || res.data);
             } catch (error) {
                 console.error('Error fetching dashboard', error);
+                addToast('لم نتمكن من جلب إحصائيات لوحة التحكم', 'error');
                 setData({});
             } finally {
                 setLoading(false);

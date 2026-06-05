@@ -31,13 +31,19 @@ const axiosClient = axios.create({
     }
 });
 
-// Request Interceptor: Attach Token automatically
+// Request Interceptor: Attach Token + Handle FormData automatically
 axiosClient.interceptors.request.use(
     (config) => {
         const token = TokenManager.getToken();
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
+
+        // Auto-detect FormData: let the browser set Content-Type with correct boundary
+        if (config.data instanceof FormData) {
+            delete config.headers['Content-Type'];
+        }
+
         return config;
     },
     (error) => {

@@ -81,37 +81,37 @@ const AdsPage = () => {
         {
             key: 'actions', header: 'إجراءات', render: (row) => (
                 <div className="flex items-center justify-center gap-1">
-                    <button onClick={(e) => { e.stopPropagation(); setDetailsModal({ open: true, ad: row })}} className="text-gray-500 hover:text-[var(--color-dark-turquoise)] p-1.5 rounded-lg hover:bg-gray-100 transition-all" title="التفاصيل">
+                    <button onClick={(e) => { e.stopPropagation(); setDetailsModal({ open: true, ad: row }) }} className="text-gray-500 hover:text-[var(--color-dark-turquoise)] p-1.5 rounded-lg hover:bg-gray-100 transition-all" title="التفاصيل">
                         <Eye className="w-5 h-5" />
                     </button>
                     {can('approve_ads') && row.status === 'Pending' && (
                         <>
-                            <button onClick={(e) => { e.stopPropagation(); setApproveModal({ open: true, ad: row, action: 'Active' })}}
+                            <button onClick={(e) => { e.stopPropagation(); setApproveModal({ open: true, ad: row, action: 'Active' }) }}
                                 className="text-[#2E7D32] hover:bg-[#2E7D32]/10 p-1.5 rounded-lg transition-all" title="قبول">
                                 <CheckCircle className="w-5 h-5" />
                             </button>
-                            <button onClick={(e) => { e.stopPropagation(); setApproveModal({ open: true, ad: row, action: 'Rejected' })}}
+                            <button onClick={(e) => { e.stopPropagation(); setApproveModal({ open: true, ad: row, action: 'Rejected' }) }}
                                 className="text-red-500 hover:bg-red-500/10 p-1.5 rounded-lg transition-all" title="رفض">
                                 <XCircle className="w-5 h-5" />
                             </button>
                         </>
                     )}
                     {(can('approve_ads') || can('manage_all')) && row.status === 'Active' && (
-                        <button onClick={(e) => { e.stopPropagation(); setApproveModal({ open: true, ad: row, action: 'Paused' })}} className="text-yellow-500 hover:bg-yellow-500/10 p-1.5 rounded-lg transition-all" title="إيقاف مؤقت">
+                        <button onClick={(e) => { e.stopPropagation(); setApproveModal({ open: true, ad: row, action: 'Paused' }) }} className="text-yellow-500 hover:bg-yellow-500/10 p-1.5 rounded-lg transition-all" title="إيقاف مؤقت">
                             <PauseCircle className="w-5 h-5" />
                         </button>
                     )}
                     {(can('approve_ads') || can('manage_all')) && row.status === 'Paused' && (
-                        <button onClick={(e) => { e.stopPropagation(); setApproveModal({ open: true, ad: row, action: 'Active' })}} className="text-[#2E7D32] hover:bg-[#2E7D32]/10 p-1.5 rounded-lg transition-all" title="استئناف">
+                        <button onClick={(e) => { e.stopPropagation(); setApproveModal({ open: true, ad: row, action: 'Active' }) }} className="text-[#2E7D32] hover:bg-[#2E7D32]/10 p-1.5 rounded-lg transition-all" title="استئناف">
                             <PlayCircle className="w-5 h-5" />
                         </button>
                     )}
                     {(isAdvertiser || isAdmin) && row.status === 'waiting_payment' && (
-                        <button onClick={(e) => { e.stopPropagation(); setStripeModal({ open: true, ad: row })}} className="text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-all border border-blue-100" title="الدفع الإلكتروني (Stripe)">
+                        <button onClick={(e) => { e.stopPropagation(); setStripeModal({ open: true, ad: row }) }} className="text-blue-500 hover:bg-blue-50 p-1.5 rounded-lg transition-all border border-blue-100" title="الدفع الإلكتروني (Stripe)">
                             <CreditCard className="w-5 h-5" />
                         </button>
                     )}
-                    <button onClick={(e) => { e.stopPropagation(); setDeleteTarget(row.ad_id)}} className="text-gray-500 hover:text-red-500 p-1.5 rounded-lg hover:bg-gray-100 transition-all">
+                    <button onClick={(e) => { e.stopPropagation(); setDeleteTarget(row.ad_id) }} className="text-gray-500 hover:text-red-500 p-1.5 rounded-lg hover:bg-gray-100 transition-all">
                         <Trash2 className="w-5 h-5" />
                     </button>
                 </div>
@@ -141,7 +141,7 @@ const AdsPage = () => {
 
     return (
         <div className="space-y-6" dir="rtl">
-            <PageHeader 
+            <PageHeader
                 title={
                     <span className="flex items-center gap-3">
                         <Megaphone className="w-7 h-7 text-[var(--color-dark-turquoise)]" /> إدارة الإعلانات
@@ -166,9 +166,9 @@ const AdsPage = () => {
                         {tab.label}
                     </button>
                 ))}
-                
+
                 <div className="mx-2 h-6 w-px bg-gray-300"></div>
-                
+
                 <span className="text-xs font-bold text-gray-500 whitespace-nowrap px-2">التصنيف:</span>
                 <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} className="px-4 py-2 bg-white text-gray-600 border border-gray-300 rounded-full text-xs font-bold focus:outline-none focus:border-[var(--color-dark-turquoise)]">
                     <option value="all">كل التصنيفات</option>
@@ -249,7 +249,7 @@ const AdsPage = () => {
             <ConfirmDialog isOpen={!!deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={handleDelete}
                 title="حذف الإعلان" message="هل أنت متأكد من حذف هذا الإعلان نهائياً؟" confirmText="نعم، احذف" />
 
-            <StripePaymentModal 
+            <StripePaymentModal
                 isOpen={stripeModal.open}
                 onClose={() => setStripeModal({ open: false, ad: null })}
                 advertisement={stripeModal.ad}

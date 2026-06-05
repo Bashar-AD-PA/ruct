@@ -63,18 +63,18 @@ const UsersPage = () => {
 
     const handleOpenModal = (type, user = null) => {
         if (type === 'edit-role') {
-            setForm({ 
+            setForm({
                 role_id: user.role_id || user.role?.role_id || '',
-                bank_name: '', 
-                account_name: '', 
-                account_number: '' 
+                bank_name: '',
+                account_name: '',
+                account_number: ''
             });
         } else {
-            setForm({ 
-                full_name: '', 
-                email: '', 
-                phone: '', 
-                password: '', 
+            setForm({
+                full_name: '',
+                email: '',
+                phone: '',
+                password: '',
                 role_id: '',
                 location: '',
                 bank_name: '',
@@ -93,7 +93,7 @@ const UsersPage = () => {
                 await axiosClient.post(ENDPOINTS.USERS.ALL, form);
                 addToast('تم إضافة المستخدم بنجاح', 'success');
             } else if (modalConfig.type === 'edit-role') {
-                await axiosClient.put(ENDPOINTS.USERS.UPDATE_ROLE(modalConfig.user.user_id), { 
+                await axiosClient.put(ENDPOINTS.USERS.UPDATE_ROLE(modalConfig.user.user_id), {
                     role_id: form.role_id,
                     bank_name: form.bank_name,
                     account_name: form.account_name,
@@ -113,12 +113,14 @@ const UsersPage = () => {
     const columns = [
         { key: 'full_name', header: 'الاسم', accessorKey: 'full_name' },
         { key: 'email', header: 'البريد الإلكتروني', accessorKey: 'email' },
-        { key: 'role.role_name', header: 'الصلاحية', cell: (row) => (
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] md:text-xs font-bold bg-[var(--color-dark-turquoise)]/10 text-[var(--color-dark-turquoise)] border border-[var(--color-dark-turquoise)]/20">
-                <Shield className="w-3 h-3 mr-1" />
-                {row.role?.role_name || '—'}
-            </span>
-        )},
+        {
+            key: 'role.role_name', header: 'الصلاحية', cell: (row) => (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] md:text-xs font-bold bg-[var(--color-dark-turquoise)]/10 text-[var(--color-dark-turquoise)] border border-[var(--color-dark-turquoise)]/20">
+                    <Shield className="w-3 h-3 mr-1" />
+                    {row.role?.role_name || '—'}
+                </span>
+            )
+        },
         { key: 'phone', header: 'رقم الهاتف', cell: (row) => <span dir="ltr">{row.phone || '—'}</span> },
         { key: 'location', header: 'الموقع', cell: (row) => row.location || '—' },
         { key: 'account_status', header: 'حالة الحساب', cell: (row) => <StatusBadge status={row.account_status || 'Active'} /> },
@@ -126,10 +128,10 @@ const UsersPage = () => {
         {
             key: 'actions', header: 'إجراءات', cell: (row) => (
                 <div className="flex items-center justify-center gap-1">
-                    <button onClick={(e) => { e.stopPropagation(); handleOpenModal('edit-role', row)}} className="text-blue-500 hover:text-blue-700 p-1.5 rounded-lg hover:bg-blue-100 transition-all">
+                    <button onClick={(e) => { e.stopPropagation(); handleOpenModal('edit-role', row) }} className="text-blue-500 hover:text-blue-700 p-1.5 rounded-lg hover:bg-blue-100 transition-all">
                         <Edit2 className="w-5 h-5" />
                     </button>
-                    <button onClick={(e) => { e.stopPropagation(); setDeleteTarget(row.user_id)}} className="text-gray-500 hover:text-red-500 p-1.5 rounded-lg hover:bg-gray-100 transition-all">
+                    <button onClick={(e) => { e.stopPropagation(); setDeleteTarget(row.user_id) }} className="text-gray-500 hover:text-red-500 p-1.5 rounded-lg hover:bg-gray-100 transition-all">
                         <Trash2 className="w-5 h-5" />
                     </button>
                 </div>
@@ -142,7 +144,7 @@ const UsersPage = () => {
 
     return (
         <div className="space-y-6" dir="rtl">
-            <PageHeader 
+            <PageHeader
                 title={
                     <span className="flex items-center gap-3">
                         <Users className="w-7 h-7 text-[var(--color-dark-turquoise)]" /> إدارة المستخدمين
@@ -165,29 +167,29 @@ const UsersPage = () => {
                         <>
                             <div>
                                 <label className={labelClass}>الاسم الكامل *</label>
-                                <input type="text" required value={form.full_name} onChange={e => setForm({...form, full_name: e.target.value})} className={inputClass} />
+                                <input type="text" required value={form.full_name} onChange={e => setForm({ ...form, full_name: e.target.value })} className={inputClass} />
                             </div>
                             <div>
                                 <label className={labelClass}>البريد الإلكتروني *</label>
-                                <input type="email" required value={form.email} onChange={e => setForm({...form, email: e.target.value})} className={inputClass} dir="ltr" />
+                                <input type="email" required value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} className={inputClass} dir="ltr" />
                             </div>
                             <div>
                                 <label className={labelClass}>رقم الهاتف</label>
-                                <input type="tel" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} className={inputClass} dir="ltr" />
+                                <input type="tel" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} className={inputClass} dir="ltr" />
                             </div>
                             <div>
                                 <label className={labelClass}>كلمة المرور *</label>
-                                <input type="password" required minLength={6} value={form.password} onChange={e => setForm({...form, password: e.target.value})} className={inputClass} />
+                                <input type="password" required minLength={6} value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} className={inputClass} />
                             </div>
                             <div>
                                 <label className={labelClass}>الموقع / المحافظة</label>
-                                <input type="text" value={form.location} onChange={e => setForm({...form, location: e.target.value})} className={inputClass} />
+                                <input type="text" value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} className={inputClass} />
                             </div>
                         </>
                     )}
                     <div>
                         <label className={labelClass}>الصلاحية *</label>
-                        <select required value={form.role_id} onChange={e => setForm({...form, role_id: e.target.value})} className={inputClass}>
+                        <select required value={form.role_id} onChange={e => setForm({ ...form, role_id: e.target.value })} className={inputClass}>
                             <option value="">اختر صلاحية</option>
                             {roles.map(r => <option key={r.role_id || r.id} value={r.role_id || r.id}>{r.role_name}</option>)}
                         </select>
@@ -198,16 +200,16 @@ const UsersPage = () => {
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className={labelClass}>اسم البنك</label>
-                                    <input type="text" value={form.bank_name} onChange={e => setForm({...form, bank_name: e.target.value})} className={inputClass} />
+                                    <input type="text" value={form.bank_name} onChange={e => setForm({ ...form, bank_name: e.target.value })} className={inputClass} />
                                 </div>
                                 <div>
                                     <label className={labelClass}>اسم الحساب</label>
-                                    <input type="text" value={form.account_name} onChange={e => setForm({...form, account_name: e.target.value})} className={inputClass} placeholder="افتراضياً: نفس الاسم الكامل" />
+                                    <input type="text" value={form.account_name} onChange={e => setForm({ ...form, account_name: e.target.value })} className={inputClass} placeholder="افتراضياً: نفس الاسم الكامل" />
                                 </div>
                             </div>
                             <div>
                                 <label className={labelClass}>رقم الحساب البنكي / الآيبان</label>
-                                <input type="text" value={form.account_number} onChange={e => setForm({...form, account_number: e.target.value})} className={inputClass} dir="ltr" />
+                                <input type="text" value={form.account_number} onChange={e => setForm({ ...form, account_number: e.target.value })} className={inputClass} dir="ltr" />
                             </div>
                         </div>
                     )}

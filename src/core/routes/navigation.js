@@ -1,14 +1,14 @@
-import { 
-    LayoutDashboard, 
-    Monitor, 
-    MapPin, 
-    Users, 
-    Settings, 
+import {
+    LayoutDashboard,
+    Monitor,
+    MapPin,
+    Users,
+    Settings,
     Megaphone,
     CreditCard,
-    Shield, 
-    Layers, 
-    Clock, 
+    Shield,
+    Layers,
+    Clock,
     DollarSign,
     Wallet,
     Repeat
@@ -52,18 +52,18 @@ export const getNavItems = (roleName) => {
                 { path: '/dashboard/settings', icon: Settings, label: 'الإعدادات' },
             ];
         case ROLES.SECRETARY:
-             return [
+            return [
                 { path: '/dashboard', icon: LayoutDashboard, label: 'لوحة التحكم' },
                 { path: '/dashboard/ads', icon: Megaphone, label: 'الإعلانات' },
                 { path: '/dashboard/payment-ops', icon: DollarSign, label: 'عمليات الدفع' },
                 { path: '/dashboard/settings', icon: Settings, label: 'الإعدادات' },
-             ];
+            ];
         case ROLES.MAINTENANCE:
-             return [
+            return [
                 { path: '/dashboard', icon: LayoutDashboard, label: 'لوحة التحكم' },
                 { path: '/dashboard/screens', icon: Monitor, label: 'الشاشات' },
                 { path: '/dashboard/settings', icon: Settings, label: 'الإعدادات' },
-             ];
+            ];
         default:
             return [
                 { path: '/dashboard', icon: LayoutDashboard, label: 'لوحة التحكم' },

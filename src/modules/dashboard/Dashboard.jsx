@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Monitor, PlayCircle, Clock, Settings, Search, DollarSign } from 'lucide-react';
 import axiosClient from '../../core/api/axiosClient';
 import { ENDPOINTS } from '../../core/api/endpoints';
+import useToastStore from '../../store/useToastStore';
 
 const StatCard = ({ title, value, icon: Icon }) => (
     <div className="flex flex-col items-center justify-center p-3 h-[105px] bg-white rounded-lg border-[2.5px] border-[var(--color-dark-turquoise)]">
@@ -37,6 +38,7 @@ const SectionHeader = ({ title }) => (
 const Dashboard = () => {
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
+    const addToast = useToastStore(state => state.addToast);
 
     useEffect(() => {
         const fetchDashboard = async () => {
@@ -44,7 +46,9 @@ const Dashboard = () => {
                 const res = await axiosClient.get(ENDPOINTS.DASHBOARD.OVERVIEW);
                 setData(res.data.data || res.data);
             } catch (error) {
+                addToast('لم نتمكن من جلب بيانات لوحة التحكم، يرجى المحاولة لاحقاً', 'error');
                 console.error(error);
+                setData(null);
             } finally {
                 setLoading(false);
             }

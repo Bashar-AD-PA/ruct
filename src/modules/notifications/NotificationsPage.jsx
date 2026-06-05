@@ -17,8 +17,14 @@ const NotificationsPage = () => {
         try {
             const res = await axiosClient.get(ENDPOINTS.NOTIFICATIONS.ALL);
             if (res.data?.success || (res.status >= 200 && res.status < 300)) {
-                setNotifications(res.data.data || res.data || []);
-                setUnreadCount(res.data.unread_count || 0);
+                const fetchedNotifications = res.data.data || res.data || [];
+                setNotifications(fetchedNotifications);
+                
+                const count = res.data.unread_count !== undefined 
+                    ? res.data.unread_count 
+                    : fetchedNotifications.filter(n => n.read_at === null || n.is_read === false || n.is_read === 'false').length;
+                
+                setUnreadCount(count);
             }
         } catch (error) {
             addToast('حدث خطأ أثناء جلب الإشعارات', 'error');
@@ -34,7 +40,7 @@ const NotificationsPage = () => {
     const markAsRead = async (id) => {
         try {
             await axiosClient.put(ENDPOINTS.NOTIFICATIONS.MARK_READ(id));
-            setNotifications(prev => prev.map(n => n.notification_id === id ? { ...n, is_read: 'true' } : n));
+            setNotifications(prev => prev.map(n => n.notification_id === id ? { ...n, is_read: 'true', read_at: new Date().toISOString() } : n));
             setUnreadCount(prev => Math.max(0, prev - 1));
         } catch (error) {
             addToast('تعذر تحديث حالة الإشعار', 'error');
@@ -44,7 +50,7 @@ const NotificationsPage = () => {
     const markAllAsRead = async () => {
         try {
             await axiosClient.put(ENDPOINTS.NOTIFICATIONS.MARK_ALL_READ);
-            setNotifications(prev => prev.map(n => ({ ...n, is_read: 'true' })));
+            setNotifications(prev => prev.map(n => ({ ...n, is_read: 'true', read_at: new Date().toISOString() })));
             setUnreadCount(0);
             addToast('تم تحديد جميع الإشعارات كمقروءة', 'success');
         } catch (error) {
@@ -57,7 +63,7 @@ const NotificationsPage = () => {
             await axiosClient.delete(ENDPOINTS.NOTIFICATIONS.DELETE(id));
             setNotifications(prev => {
                 const target = prev.find(n => n.notification_id === id);
-                if (target && target.is_read === 'false') {
+                if (target && (target.read_at === null || target.is_read === false || target.is_read === 'false')) {
                     setUnreadCount(count => Math.max(0, count - 1));
                 }
                 return prev.filter(n => n.notification_id !== id);

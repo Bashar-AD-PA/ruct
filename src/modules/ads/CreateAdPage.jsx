@@ -47,7 +47,7 @@ const CreateAdPage = () => {
             } catch (e) { console.error(e); }
         };
         fetchData();
-        
+
         return () => {
             if (previewUrl) URL.revokeObjectURL(previewUrl);
         };
@@ -113,16 +113,20 @@ const CreateAdPage = () => {
 
         setLoading(true);
         const formData = new FormData();
-        Object.entries(form).forEach(([key, val]) => { 
-            if (val !== '' && val !== null) formData.append(key, val); 
+        Object.entries(form).forEach(([key, val]) => {
+            if (val !== '' && val !== null) {
+                // نرسل الملف الفعلي كما هو مطلوب في الكود المحدث
+                formData.append(key, val);
+            }
         });
         selectedScreens.forEach(id => formData.append('screen_ids[]', id));
 
         try {
-            await axiosClient.post(ENDPOINTS.ADS.CREATE, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+            await axiosClient.post(ENDPOINTS.ADS.CREATE, formData);
             addToast('تم رفع الإعلان بنجاح!', 'success');
             navigate('/dashboard/ads');
         } catch (e) {
+            console.error('تفاصيل الخطأ القادم من الباك إند:', e.response?.data);
             addToast(e.response?.data?.message || 'فشل رفع الإعلان', 'error');
         } finally { setLoading(false); }
     };
@@ -220,7 +224,7 @@ const CreateAdPage = () => {
                                 <span className="font-bold text-[var(--color-dark-turquoise)]">التكلفة الإجمالية المقدرة:</span>
                                 <span className="font-black text-2xl text-[var(--color-gold)]">${calculatedCost.toFixed(2)}</span>
                             </div>
-                            
+
                             <div className="grid grid-cols-3 gap-3 text-sm">
                                 <div className="bg-white p-2 rounded-lg text-center border border-gray-100 shadow-sm">
                                     <span className="block text-[10px] text-gray-500 font-bold">السعر الأساسي</span>
@@ -235,7 +239,7 @@ const CreateAdPage = () => {
                                     <span className="font-bold text-gray-800">{costDetails.screens?.length} شاشة</span>
                                 </div>
                             </div>
-                            
+
                             {costDetails.screens && costDetails.screens.length > 0 && (
                                 <div className="pt-2 border-t border-[var(--color-dark-turquoise)]/20">
                                     <span className="block text-xs font-bold text-gray-600 mb-2">تفصيل التكلفة لكل شاشة:</span>
@@ -264,7 +268,7 @@ const CreateAdPage = () => {
                                     className="w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-5 file:rounded-xl file:border-[1.5px] file:border-[var(--color-dark-turquoise)] file:text-sm file:font-bold file:bg-[var(--color-dark-turquoise)]/10 file:text-[var(--color-dark-turquoise)] hover:file:bg-[var(--color-dark-turquoise)]/20 cursor-pointer" />
                                 <p className="text-[10px] text-gray-500 mt-1">يدعم: MP4, MOV, AVI, JPEG, PNG (حد أقصى 50MB)</p>
                             </div>
-                            
+
                             <div>
                                 <label className={labelClass}>إيصال الدفع (اختياري)</label>
                                 <input type="file" accept="image/*,.pdf" onChange={(e) => setForm(p => ({ ...p, receipt: e.target.files[0] }))}
@@ -292,12 +296,12 @@ const CreateAdPage = () => {
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-64 overflow-y-auto custom-scrollbar pl-2">
                         {screens.map((screen) => (
-                            <div 
-                                key={screen.screen_id} 
+                            <div
+                                key={screen.screen_id}
                                 onClick={() => toggleScreen(screen.screen_id)}
                                 className={`flex items-center justify-between p-3 rounded-xl border-[1.5px] text-right transition-all cursor-pointer ${selectedScreens.includes(screen.screen_id)
-                                        ? 'border-[var(--color-dark-turquoise)] bg-[var(--color-dark-turquoise)]/10'
-                                        : 'border-gray-200 bg-gray-50 hover:border-[var(--color-dark-turquoise)]/50'
+                                    ? 'border-[var(--color-dark-turquoise)] bg-[var(--color-dark-turquoise)]/10'
+                                    : 'border-gray-200 bg-gray-50 hover:border-[var(--color-dark-turquoise)]/50'
                                     }`}>
                                 <div className="flex items-center gap-3 min-w-0 flex-1">
                                     <CheckSquare className={`w-5 h-5 shrink-0 ${selectedScreens.includes(screen.screen_id) ? 'text-[var(--color-dark-turquoise)]' : 'text-gray-400'}`} />
@@ -326,10 +330,10 @@ const CreateAdPage = () => {
                 </button>
             </form>
 
-            <ScreenAvailabilityModal 
-                isOpen={!!availabilityScreen} 
-                onClose={() => setAvailabilityScreen(null)} 
-                screen={availabilityScreen} 
+            <ScreenAvailabilityModal
+                isOpen={!!availabilityScreen}
+                onClose={() => setAvailabilityScreen(null)}
+                screen={availabilityScreen}
                 selectedDate={form.start_date}
             />
         </div>
