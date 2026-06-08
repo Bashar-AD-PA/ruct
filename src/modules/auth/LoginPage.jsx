@@ -1,52 +1,53 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { User, Lock, Eye, EyeOff, MonitorPlay, Zap, BarChart3 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { useNavigate, Link } from 'react-router-dom';
+import { User, Lock, Eye, EyeOff, MonitorPlay, Zap, BarChart3, Check } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import axiosClient from '../../core/api/axiosClient';
 import { ENDPOINTS } from '../../core/api/endpoints';
 import useAuthStore from '../../store/useAuthStore';
 import useToastStore from '../../store/useToastStore';
 
-const DualLanguageInput = ({ icon: Icon, englishLabel, arabicLabel, type = "text", value, onChange, isPassword, isObscure, onToggleObscure }) => {
+const PremiumInput = ({ icon: Icon, englishLabel, arabicLabel, type = "text", value, onChange, isPassword, isObscure, onToggleObscure }) => {
     const [isFocused, setIsFocused] = useState(false);
 
     return (
-        <div 
-            className={`flex items-center w-full bg-white/60 backdrop-blur-sm border-2 rounded-2xl overflow-hidden transition-all duration-300 ${
-                isFocused ? 'border-[var(--color-dark-turquoise)] shadow-[0_0_15px_rgba(33,181,179,0.2)] bg-white' : 'border-gray-200 hover:border-gray-300'
-            }`}
-        >
-            {/* English / Left Side */}
-            <div className={`flex items-center pl-4 pr-3 py-3.5 gap-3 border-r transition-colors ${isFocused ? 'border-[var(--color-dark-turquoise)]/20' : 'border-gray-100'}`}>
-                <Icon className={`w-5 h-5 transition-colors ${isFocused ? 'text-[var(--color-dark-turquoise)]' : 'text-[var(--color-gold)]'}`} />
-                <span className={`text-xs font-bold whitespace-nowrap transition-colors ${isFocused ? 'text-[var(--color-dark-turquoise)]' : 'text-gray-400'}`}>
-                    {englishLabel}
-                </span>
+        <div className="flex flex-col gap-1.5 w-full">
+            <div className="flex justify-between items-end px-1">
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{englishLabel}</span>
+                <span className="text-sm font-bold text-gray-700">{arabicLabel}</span>
             </div>
-            
-            {/* Input Field (Arabic placeholder) */}
-            <input
-                type={isPassword ? (isObscure ? 'password' : 'text') : type}
-                value={value}
-                onChange={onChange}
-                onFocus={() => setIsFocused(true)}
-                onBlur={() => setIsFocused(false)}
-                placeholder={arabicLabel}
-                className="flex-1 bg-transparent border-none outline-none text-right px-4 text-sm font-bold text-gray-800 placeholder-gray-400 w-full"
-                dir="rtl"
-                required
-            />
+            <div 
+                className={`flex items-center w-full bg-white/70 backdrop-blur-md border-[1.5px] rounded-xl overflow-hidden transition-all duration-300 ${
+                    isFocused ? 'border-[var(--color-dark-turquoise)] shadow-[0_0_0_4px_rgba(20,93,106,0.1)] bg-white' : 'border-gray-200 hover:border-gray-300 hover:bg-white'
+                }`}
+            >
+                <div className={`p-3.5 flex items-center justify-center transition-colors ${isFocused ? 'text-[var(--color-dark-turquoise)]' : 'text-gray-400'}`}>
+                    <Icon className="w-5 h-5" />
+                </div>
+                
+                <input
+                    type={isPassword ? (isObscure ? 'password' : 'text') : type}
+                    value={value}
+                    onChange={onChange}
+                    onFocus={() => setIsFocused(true)}
+                    onBlur={() => setIsFocused(false)}
+                    placeholder={arabicLabel}
+                    className="flex-1 bg-transparent border-none outline-none text-right px-2 py-3.5 text-sm font-bold text-gray-800 placeholder-gray-300 w-full"
+                    dir="rtl"
+                    required
+                />
 
-            {/* Password Toggle */}
-            {isPassword && (
-                <button 
-                    type="button" 
-                    onClick={onToggleObscure} 
-                    className="pr-4 pl-2 text-gray-400 hover:text-[var(--color-dark-turquoise)] transition-colors"
-                >
-                    {isObscure ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
-            )}
+                {isPassword && (
+                    <button 
+                        type="button" 
+                        onClick={onToggleObscure} 
+                        tabIndex="-1"
+                        className="p-3.5 text-gray-400 hover:text-[var(--color-dark-turquoise)] transition-colors focus:outline-none"
+                    >
+                        {isObscure ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
+                )}
+            </div>
         </div>
     );
 };
@@ -60,6 +61,7 @@ const LoginPage = () => {
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [isObscure, setIsObscure] = useState(true);
+    const [rememberMe, setRememberMe] = useState(false);
 
     const handleLogin = async (e) => {
         e.preventDefault();
@@ -92,219 +94,271 @@ const LoginPage = () => {
     };
 
     return (
-        <div className="min-h-screen flex bg-gray-50 font-sans overflow-hidden">
-            
-            {/* Right Side: Login Form (100% on mobile, 50% on desktop) */}
-            <div className="w-full lg:w-1/2 flex flex-col items-center justify-center p-6 relative z-10 bg-white shadow-[0_0_40px_rgba(0,0,0,0.05)]">
+        <div className="min-h-screen flex bg-gray-50 relative overflow-hidden font-sans">
+            {/* Ambient Background Glows */}
+            <div className="absolute top-[-10%] right-[-5%] w-[600px] h-[600px] bg-[var(--color-dark-turquoise)]/10 rounded-full blur-[100px] mix-blend-multiply pointer-events-none"></div>
+            <div className="absolute bottom-[-10%] left-[-5%] w-[600px] h-[600px] bg-[var(--color-gold)]/10 rounded-full blur-[100px] mix-blend-multiply pointer-events-none"></div>
+
+            {/* Main Content Container */}
+            <div className="w-full flex-1 flex flex-col lg:flex-row relative z-10 p-4 md:p-8 lg:p-12 items-center justify-center lg:items-stretch lg:justify-between gap-8 max-w-[1600px] mx-auto">
                 
-                {/* Decorative floating blurred elements */}
-                <div className="absolute top-0 right-0 w-64 h-64 bg-[var(--color-dark-turquoise)]/5 rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none"></div>
-                <div className="absolute bottom-0 left-0 w-64 h-64 bg-[var(--color-gold)]/5 rounded-full blur-3xl -ml-32 -mb-32 pointer-events-none"></div>
-
+                {/* Right Side: Auth Form (Will appear on right in LTR, but RTL shifts it appropriately. Handled with Flex row vs flex-col) */}
                 <motion.div 
-                    initial={{ opacity: 0, y: 30 }}
-                    animate={{ opacity: 1, y: 0 }}
+                    initial={{ opacity: 0, x: 30 }}
+                    animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.6, ease: "easeOut" }}
-                    className="w-full max-w-[420px] flex flex-col items-stretch relative"
+                    className="w-full lg:w-[45%] xl:w-[40%] flex justify-center items-center"
                 >
-                    {/* Logo for mobile only (Hidden on Desktop because it's on the left side) */}
-                    <div className="flex lg:hidden justify-center mb-6">
-                        <img src="/src/assets/images/Main_app_logo.png" alt="SabaPost Logo" className="w-[120px] h-auto object-contain" />
-                    </div>
+                    <div className="w-full max-w-[440px] bg-white/60 backdrop-blur-xl border border-white/80 p-8 md:p-10 rounded-3xl shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] relative overflow-hidden">
+                        
+                        {/* Decorative line top */}
+                        <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-[var(--color-dark-turquoise)] to-transparent opacity-50"></div>
 
-                    {/* Welcome Texts */}
-                    <div className="text-center mb-8">
-                        <h1 className="text-3xl font-black text-gray-900 mb-2 tracking-tight">
-                            مرحباً بك في <span className="text-[var(--color-dark-turquoise)]">سبأ بوست</span>
-                        </h1>
-                        <p className="text-sm font-bold text-gray-400 tracking-wide uppercase">
-                            Welcome Back to SabaPost
-                        </p>
-                    </div>
+                        {/* Mobile Logo Logo */}
+                        <div className="flex lg:hidden justify-center mb-8">
+                            <img src="/src/assets/images/Main_app_logo.png" alt="SabaPost Logo" className="w-[120px] h-auto object-contain" />
+                        </div>
 
-                    <form onSubmit={handleLogin} className="flex flex-col gap-5">
-                        {/* Username/Email */}
-                        <motion.div
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: 0.2 }}
+                        {/* Welcome Texts */}
+                        <div className="text-center md:text-right mb-8">
+                            <h1 className="text-2xl md:text-3xl font-black text-gray-900 mb-2 tracking-tight" dir="rtl">
+                                تسجيل الدخول
+                            </h1>
+                            <p className="text-sm font-bold text-gray-500 tracking-wide" dir="rtl">
+                                مرحباً بك مجدداً في منصة سبأ بوست
+                            </p>
+                        </div>
+
+                        <form onSubmit={handleLogin} className="flex flex-col gap-5 relative z-10">
+                            {/* Inputs */}
+                            <motion.div
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.2 }}
+                            >
+                                <PremiumInput 
+                                    icon={User}
+                                    englishLabel="Email or Phone"
+                                    arabicLabel="البريد الإلكتروني أو رقم الهاتف"
+                                    value={loginId}
+                                    onChange={(e) => setLoginId(e.target.value)}
+                                />
+                            </motion.div>
+
+                            <motion.div
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.3 }}
+                            >
+                                <PremiumInput 
+                                    icon={Lock}
+                                    englishLabel="Password"
+                                    arabicLabel="كلمة المرور"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    isPassword={true}
+                                    isObscure={isObscure}
+                                    onToggleObscure={() => setIsObscure(!isObscure)}
+                                />
+                            </motion.div>
+
+                            {/* Helpers: Remember Me & Forgot Password */}
+                            <motion.div 
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ delay: 0.4 }}
+                                className="flex justify-between items-center px-1"
+                                dir="rtl"
+                            >
+                                <label className="flex items-center gap-2 cursor-pointer group">
+                                    <div className={`w-5 h-5 rounded flex items-center justify-center border transition-all ${
+                                        rememberMe ? 'bg-[var(--color-dark-turquoise)] border-[var(--color-dark-turquoise)] text-white' : 'bg-transparent border-gray-300 group-hover:border-[var(--color-dark-turquoise)] text-transparent'
+                                    }`}>
+                                        <Check className="w-3.5 h-3.5" />
+                                    </div>
+                                    <input 
+                                        type="checkbox" 
+                                        className="hidden" 
+                                        checked={rememberMe} 
+                                        onChange={() => setRememberMe(!rememberMe)} 
+                                    />
+                                    <span className="text-xs font-bold text-gray-600 group-hover:text-gray-900 transition-colors">تذكرني</span>
+                                </label>
+
+                                <Link to="/forgot-password" className="text-xs font-bold text-[var(--color-dark-turquoise)] hover:text-[#007b8f] hover:underline transition-all">
+                                    هل نسيت كلمة المرور؟
+                                </Link>
+                            </motion.div>
+
+                            {/* Submit Auth Button */}
+                            <motion.button 
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.5 }}
+                                type="submit" 
+                                disabled={isLoading}
+                                className="mt-4 w-full bg-[var(--color-dark-turquoise)] hover:bg-[#104d58] text-white py-4 rounded-xl text-base font-black flex justify-center items-center gap-2 transition-all disabled:opacity-75 relative overflow-hidden group shadow-[0_8px_16px_rgba(20,93,106,0.2)] hover:shadow-[0_12px_24px_rgba(20,93,106,0.3)] hover:-translate-y-0.5 disabled:hover:translate-y-0 disabled:hover:shadow-[0_8px_16px_rgba(20,93,106,0.2)]"
+                            >
+                                <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-shine" />
+                                
+                                <AnimatePresence mode="wait">
+                                    {isLoading ? (
+                                        <motion.div 
+                                            key="loading"
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 1 }}
+                                            exit={{ opacity: 0 }}
+                                            className="flex items-center gap-2"
+                                            dir="rtl"
+                                        >
+                                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                            <span>جاري المصادقة...</span>
+                                        </motion.div>
+                                    ) : (
+                                        <motion.span 
+                                            key="active"
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 1 }}
+                                            exit={{ opacity: 0 }}
+                                        >
+                                            تسجيل الدخول
+                                        </motion.span>
+                                    )}
+                                </AnimatePresence>
+                            </motion.button>
+                        </form>
+
+                        {/* Divider */}
+                        <motion.div 
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 0.6 }}
+                            className="flex items-center my-6"
                         >
-                            <DualLanguageInput 
-                                icon={User}
-                                englishLabel="Email or Phone"
-                                arabicLabel="البريد الإلكتروني أو رقم الهاتف"
-                                value={loginId}
-                                onChange={(e) => setLoginId(e.target.value)}
-                            />
+                            <div className="flex-1 border-t border-gray-200"></div>
+                            <div className="px-4 text-center">
+                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/50 px-2 rounded">أو عبر</span>
+                            </div>
+                            <div className="flex-1 border-t border-gray-200"></div>
                         </motion.div>
 
-                        {/* Password */}
-                        <motion.div
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: 0.3 }}
+                        {/* Dummy Social Logins - Coming Soon */}
+                        <motion.div 
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.7 }}
+                            className="flex flex-col gap-3 relative group/social"
                         >
-                            <DualLanguageInput 
-                                icon={Lock}
-                                englishLabel="Password"
-                                arabicLabel="كلمة المرور"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                isPassword={true}
-                                isObscure={isObscure}
-                                onToggleObscure={() => setIsObscure(!isObscure)}
-                            />
+                            {/* Coming Soon Overlay */}
+                            <div className="absolute inset-0 z-10 bg-white/40 backdrop-blur-[1px] flex items-center justify-center opacity-0 group-hover/social:opacity-100 transition-opacity rounded-xl">
+                                <span className="bg-gray-900 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-lg">قريباً (Coming Soon)</span>
+                            </div>
+
+                            <div className="flex justify-center gap-3">
+                                <button type="button" className="flex-1 bg-white border border-gray-200 py-3 rounded-xl flex items-center justify-center gap-2 font-bold text-gray-600 shadow-sm opacity-60">
+                                    <span className="font-serif font-bold text-[18px] text-gray-800">G</span> Google
+                                </button>
+                                <button type="button" className="flex-1 bg-gray-900 border border-gray-900 py-3 rounded-xl flex items-center justify-center gap-2 font-bold text-white shadow-sm opacity-60">
+                                    <span className="text-[20px] pb-1"></span> Apple
+                                </button>
+                            </div>
                         </motion.div>
 
-                        {/* Login Button */}
-                        <motion.button 
+                        {/* Sign Up Link */}
+                        <motion.div 
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 0.8 }}
+                            className="mt-8 text-center"
+                        >
+                            <p className="text-sm font-bold text-gray-500 flex justify-center items-center gap-1.5 flex-row-reverse">
+                                <span>ليس لديك حساب؟</span>
+                                <Link to="/register" className="text-[var(--color-dark-turquoise)] hover:text-[#007b8f] hover:underline transition-all">
+                                    أنشئ حساباً جديداً
+                                </Link>
+                            </p>
+                        </motion.div>
+                    </div>
+                </motion.div>
+
+                {/* Left Side: Modern SaaS Visuals (Hidden on Mobile) */}
+                <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.8 }}
+                    className="hidden lg:flex w-[55%] xl:w-[60%] bg-[var(--color-dark-turquoise)] rounded-[2.5rem] relative flex-col items-center justify-center p-12 overflow-hidden shadow-2xl"
+                >
+                    {/* Background Pattern / Shapes inside card */}
+                    <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white via-transparent to-transparent"></div>
+                    <div className="absolute -top-[20%] -left-[10%] w-[80%] h-[80%] bg-white/5 rounded-full blur-3xl pointer-events-none"></div>
+                    <div className="absolute -bottom-[20%] -right-[10%] w-[80%] h-[80%] bg-[var(--color-gold)]/10 rounded-full blur-3xl pointer-events-none"></div>
+
+                    {/* Logo Section */}
+                    <div className="absolute top-12 left-12 right-12 z-10 flex justify-between items-start" dir="rtl">
+                        <img src="/src/assets/images/Main_app_logo.png" alt="SabaPost Logo" className="w-[180px] h-auto object-contain brightness-0 invert" />
+                        <div className="bg-white/10 backdrop-blur-md px-4 py-2 rounded-full border border-white/20">
+                            <span className="text-white text-xs font-bold tracking-widest shadow-sm">ENTERPRISE V2.0</span>
+                        </div>
+                    </div>
+
+                    {/* Central Animated Graphic */}
+                    <div className="relative z-10 flex flex-col items-center justify-center space-y-12 w-full max-w-xl">
+                        
+                        <motion.div 
+                            initial={{ scale: 0.8, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            transition={{ delay: 0.2, duration: 0.8 }}
+                            className="relative w-72 h-72"
+                        >
+                            {/* Inner Glowing Orb */}
+                            <div className="absolute inset-4 rounded-full bg-white/5 backdrop-blur-3xl border border-white/10 flex items-center justify-center shadow-[0_0_80px_rgba(255,255,255,0.1)]">
+                                <MonitorPlay className="w-24 h-24 text-white drop-shadow-2xl" strokeWidth={1.5} />
+                            </div>
+                            
+                            {/* Orbiting Dashboard Rings */}
+                            <div className="absolute inset-0 border-[1.5px] border-white/10 rounded-full animate-[spin_12s_linear_infinite]">
+                                <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-8 h-8 bg-[var(--color-gold)] rounded-xl rotate-45 shadow-[0_0_20px_rgba(196,160,82,0.4)] flex items-center justify-center">
+                                    <div className="w-full h-full -rotate-45 flex items-center justify-center">
+                                        <Zap className="w-4 h-4 text-white drop-shadow-md" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="absolute -inset-8 border border-white/5 rounded-full animate-[spin_18s_linear_infinite_reverse]">
+                                <div className="absolute bottom-6 right-6 w-10 h-10 bg-white rounded-full shadow-[0_0_25px_rgba(255,255,255,0.4)] flex items-center justify-center">
+                                    <BarChart3 className="w-5 h-5 text-[var(--color-dark-turquoise)]" />
+                                </div>
+                            </div>
+                        </motion.div>
+
+                        <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.4 }}
-                            type="submit" 
-                            disabled={isLoading}
-                            className="mt-4 w-full bg-gradient-to-r from-[var(--color-dark-turquoise)] to-[#007b8f] text-white py-4 rounded-2xl text-[18px] font-black flex justify-center items-center hover:shadow-lg hover:-translate-y-0.5 transition-all disabled:opacity-70 disabled:hover:translate-y-0 shadow-[0_8px_20px_rgba(33,181,179,0.3)] group overflow-hidden relative"
+                            className="text-center space-y-5"
+                            dir="rtl"
                         >
-                            {/* Shine effect */}
-                            <div className="absolute top-0 -inset-full h-full w-1/2 z-5 block transform -skew-x-12 bg-gradient-to-r from-transparent to-white opacity-20 group-hover:animate-shine" />
-                            
-                            {isLoading ? (
-                                <div className="flex items-center gap-2">
-                                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                    <span className="text-sm">جاري الدخول...</span>
-                                </div>
-                            ) : (
-                                'تسجيل الدخول'
-                            )}
-                        </motion.button>
-                    </form>
+                            <h2 className="text-4xl md:text-5xl font-black text-white leading-tight drop-shadow-md">
+                                أدر شاشاتك الذكية <br />
+                                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--color-gold)] to-yellow-200">بكل احترافية</span>
+                            </h2>
+                            <p className="text-white/80 text-base leading-relaxed max-w-lg mx-auto font-medium">
+                                نظام السبورة الذكية (Digital Signage) الأول. راقب أداء حملاتك، وتحكم بالمحتوى، وتفاعل مع عملائك في الوقت الفعلي بأمان وسرعة.
+                            </p>
+                        </motion.div>
+                    </div>
 
-                    {/* Forgot Password */}
-                    <motion.div 
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 0.5 }}
-                        className="flex justify-between items-center mt-6 px-2"
-                    >
-                        <button className="text-[12px] font-bold text-gray-400 hover:text-[var(--color-dark-turquoise)] transition-colors">
-                            Forgot Password?
-                        </button>
-                        <button className="text-[13px] font-black text-gray-500 hover:text-[var(--color-dark-turquoise)] transition-colors">
-                            هل نسيت كلمة المرور؟
-                        </button>
-                    </motion.div>
-
-                    {/* Divider */}
-                    <motion.div 
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 0.6 }}
-                        className="flex items-center my-8 opacity-60"
-                    >
-                        <div className="flex-1 border-t border-gray-200"></div>
-                        <div className="px-4 text-center">
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">أو عبر</p>
+                    {/* Footer Links */}
+                    <div className="absolute bottom-12 inset-x-12 z-10 flex justify-between items-center text-white/50 text-xs font-bold" dir="rtl">
+                        <div className="flex gap-6">
+                            <span className="hover:text-white cursor-pointer transition-colors hover:underline">سياسة الخصوصية</span>
+                            <span className="hover:text-white cursor-pointer transition-colors hover:underline">شروط الاستخدام</span>
                         </div>
-                        <div className="flex-1 border-t border-gray-200"></div>
-                    </motion.div>
-
-                    {/* Social Buttons */}
-                    <motion.div 
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.7 }}
-                        className="flex justify-center gap-4 mb-8"
-                    >
-                        <button className="flex-1 bg-white border border-gray-200 py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-gray-50 hover:border-gray-300 transition-all font-bold text-gray-600 shadow-sm">
-                            <span className="text-[20px]">G</span> Google
-                        </button>
-                        <button className="flex-1 bg-gray-900 border border-gray-900 py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-gray-800 transition-all font-bold text-white shadow-sm">
-                            <span className="text-[20px] pb-1"></span> Apple
-                        </button>
-                    </motion.div>
-
-                    {/* Sign Up */}
-                    <motion.div 
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 0.8 }}
-                        className="text-center p-4 bg-gray-50 rounded-2xl cursor-pointer hover:bg-[var(--color-dark-turquoise)]/5 transition-colors border border-dashed border-gray-200 hover:border-[var(--color-dark-turquoise)]/30 group"
-                        onClick={() => navigate('/register')}
-                    >
-                        <p className="text-[14px] font-black text-gray-700 group-hover:text-[var(--color-dark-turquoise)] transition-colors mb-0.5">
-                            ليس لديك حساب؟ أنشئ حساباً جديداً الآن
-                        </p>
-                        <p className="text-[11px] font-bold text-gray-400">
-                            No account? Create one today
-                        </p>
-                    </motion.div>
-
+                        <p className="tracking-wider">© {new Date().getFullYear()} SABAPOST SECURE</p>
+                    </div>
                 </motion.div>
+
             </div>
-
-            {/* Left Side: Modern Graphic & Info (Hidden on mobile, 50% on desktop) */}
-            <div className="hidden lg:flex w-1/2 bg-[var(--color-dark-turquoise)] relative flex-col items-center justify-between p-12 overflow-hidden">
-                {/* Background Pattern / Shapes */}
-                <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white via-transparent to-transparent"></div>
-                <div className="absolute -top-40 -left-40 w-[500px] h-[500px] bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
-                <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-[var(--color-gold)]/20 rounded-full blur-3xl pointer-events-none"></div>
-
-                <div className="relative z-10 w-full flex justify-between items-start">
-                    <img src="/src/assets/images/Main_app_logo.png" alt="SabaPost Logo" className="w-[160px] h-auto object-contain brightness-0 invert" />
-                    <div className="bg-white/10 backdrop-blur-md px-4 py-2 rounded-full border border-white/20">
-                        <span className="text-white text-xs font-bold tracking-widest">SaaS PLATFORM V2.0</span>
-                    </div>
-                </div>
-
-                <div className="relative z-10 text-center space-y-8 w-full max-w-lg">
-                    <motion.div 
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: 0.2, duration: 0.8 }}
-                        className="relative mx-auto w-64 h-64 bg-white/5 backdrop-blur-xl border border-white/10 rounded-full flex items-center justify-center shadow-2xl"
-                    >
-                        {/* Glowing core */}
-                        <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-[var(--color-dark-turquoise)] to-[var(--color-gold)] opacity-50 blur-xl animate-pulse"></div>
-                        <MonitorPlay className="w-24 h-24 text-white drop-shadow-lg relative z-10" />
-                        
-                        {/* Orbiting elements */}
-                        <div className="absolute inset-0 border border-white/20 rounded-full animate-[spin_10s_linear_infinite]">
-                            <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-6 h-6 bg-[var(--color-gold)] rounded-full shadow-[0_0_15px_rgba(255,215,0,0.5)] flex items-center justify-center">
-                                <Zap className="w-3 h-3 text-white" />
-                            </div>
-                        </div>
-                        <div className="absolute -inset-8 border border-white/10 rounded-full animate-[spin_15s_linear_infinite_reverse]">
-                            <div className="absolute bottom-4 right-4 w-8 h-8 bg-white rounded-full shadow-[0_0_20px_rgba(255,255,255,0.5)] flex items-center justify-center">
-                                <BarChart3 className="w-4 h-4 text-[var(--color-dark-turquoise)]" />
-                            </div>
-                        </div>
-                    </motion.div>
-
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.5 }}
-                        className="space-y-4"
-                    >
-                        <h2 className="text-4xl font-black text-white leading-tight">
-                            أدر إعلاناتك بذكاء<br />
-                            <span className="text-[var(--color-gold)]">في كل مكان</span>
-                        </h2>
-                        <p className="text-white/80 text-sm leading-relaxed max-w-md mx-auto font-medium">
-                            المنصة الأولى للتحكم الذكي بالشاشات الإعلانية. راقب أداء حملاتك، وتحكم بالمحتوى، وتفاعل مع عملائك في الوقت الفعلي عبر شبكة واسعة من الشاشات.
-                        </p>
-                    </motion.div>
-                </div>
-
-                <div className="relative z-10 w-full flex justify-between items-center text-white/50 text-xs font-bold">
-                    <p>© {new Date().getFullYear()} SabaPost. All rights reserved.</p>
-                    <div className="flex gap-4">
-                        <span className="hover:text-white cursor-pointer transition-colors">سياسة الخصوصية</span>
-                        <span className="hover:text-white cursor-pointer transition-colors">شروط الاستخدام</span>
-                    </div>
-                </div>
-            </div>
-
         </div>
     );
 };

@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Plus, Trash2, Edit2, Globe } from 'lucide-react';
+import { MapPin, Plus, Trash2, Edit2, Globe, Map, Navigation, ShieldCheck } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import axiosClient from '../../core/api/axiosClient';
 import { ENDPOINTS } from '../../core/api/endpoints';
 import Modal from '../../shared/components/Modal';
 import ConfirmDialog from '../../shared/components/ConfirmDialog';
 import useToastStore from '../../store/useToastStore';
+import PageHeader from '../../shared/components/PageHeader';
 
 /**
  * Locations Management Page
@@ -31,6 +33,10 @@ const LocationsPage = () => {
     const fetchStreets = async (regionId) => { try { const r = await axiosClient.get(ENDPOINTS.LOOKUPS.STREETS_BY_REGION(regionId)); setStreets(r.data); } catch(e){} };
 
     const handleSave = async () => {
+        if (!formName.trim()) {
+            addToast('يرجى إدخال اسم صحيح', 'warning');
+            return;
+        }
         const { type, data } = modal;
         try {
             if (type === 'add-gov') { await axiosClient.post(ENDPOINTS.LOOKUPS.GOVERNORATES, { name: formName }); fetchGovs(); }
@@ -41,7 +47,7 @@ const LocationsPage = () => {
             else if (type === 'edit-street') { await axiosClient.put(ENDPOINTS.LOOKUPS.STREET(data.street_id), { name: formName, region_id: selectedRegion }); fetchStreets(selectedRegion); }
             addToast('تمت العملية بنجاح', 'success');
             setModal({ type: '', open: false, data: null }); setFormName('');
-        } catch (e) { addToast('فشلت العملية', 'error'); }
+        } catch (e) { addToast('فشلت العملية، تأكد من صحة البيانات', 'error'); }
     };
 
     const handleDelete = async () => {
@@ -51,98 +57,253 @@ const LocationsPage = () => {
             else if (type === 'region') { await axiosClient.delete(ENDPOINTS.LOOKUPS.REGION(id)); fetchRegions(selectedGov); setSelectedRegion(null); }
             else if (type === 'street') { await axiosClient.delete(ENDPOINTS.LOOKUPS.STREET(id)); fetchStreets(selectedRegion); }
             addToast('تم الحذف بنجاح', 'success');
-        } catch (e) { addToast('فشل الحذف', 'error'); }
+        } catch (e) { addToast('فشل الحذف، قد يكون العنصر مرتبطاً ببيانات أخرى', 'error'); }
         setDeleteDialog({ open: false, type: '', id: null });
     };
 
     const ListItem = ({ name, isSelected, onClick, onEdit, onDelete }) => (
-        <div onClick={onClick}
-            className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all group ${
-                isSelected ? 'border-indigo-500/30 bg-indigo-500/10' : 'border-white/5 hover:border-white/10 hover:bg-white/[0.02]'}`}>
-            <span className={`text-sm font-bold ${isSelected ? 'text-indigo-400' : 'text-gray-400'}`}>{name}</span>
-            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button onClick={(e) => { e.stopPropagation(); onEdit(); }} className="text-gray-600 hover:text-white p-1 rounded"><Edit2 className="w-3.5 h-3.5" /></button>
-                <button onClick={(e) => { e.stopPropagation(); onDelete(); }} className="text-gray-600 hover:text-red-400 p-1 rounded"><Trash2 className="w-3.5 h-3.5" /></button>
+        <motion.div 
+            layout
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            onClick={onClick}
+            className={`flex items-center justify-between p-4 rounded-xl border-2 cursor-pointer transition-all group ${
+                isSelected 
+                ? 'border-[var(--color-dark-turquoise)] bg-[var(--color-dark-turquoise)]/5 shadow-md shadow-[var(--color-dark-turquoise)]/10' 
+                : 'border-slate-100 bg-white hover:border-[var(--color-dark-turquoise)]/30 hover:bg-slate-50'
+            }`}
+        >
+            <span className={`text-sm font-black transition-colors ${isSelected ? 'text-[var(--color-dark-turquoise)]' : 'text-slate-700'}`}>{name}</span>
+            <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                <button 
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); onEdit(); }} 
+                    className="text-slate-400 hover:text-[var(--color-dark-turquoise)] p-1.5 rounded-lg hover:bg-white border border-transparent hover:border-slate-200 transition-colors shadow-sm"
+                    title="تعديل"
+                >
+                    <Edit2 className="w-4 h-4" />
+                </button>
+                <button 
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); onDelete(); }} 
+                    className="text-slate-400 hover:text-red-500 p-1.5 rounded-lg hover:bg-red-50 border border-transparent hover:border-red-100 transition-colors shadow-sm"
+                    title="حذف"
+                >
+                    <Trash2 className="w-4 h-4" />
+                </button>
+            </div>
+        </motion.div>
+    );
+
+    const SummaryCard = ({ title, value, icon: Icon, colorClass, borderClass, bgClass }) => (
+        <div className={`bg-white rounded-3xl p-6 border ${borderClass} shadow-[0_8px_30px_-4px_rgba(0,0,0,0.03)] flex items-center justify-between overflow-hidden relative group`}>
+            <div className={`absolute top-0 left-0 w-16 h-16 rounded-br-[40px] opacity-20 ${bgClass}`}></div>
+            <div className="relative z-10">
+                <p className="text-[11px] uppercase font-black text-slate-400 mb-1 tracking-wider">{title}</p>
+                {loading ? (
+                    <div className="h-8 w-16 bg-slate-100 animate-pulse rounded my-1"></div>
+                ) : (
+                    <h4 className="text-3xl font-black text-slate-800">{value}</h4>
+                )}
+            </div>
+            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-sm relative z-10 transition-transform group-hover:scale-110 ${bgClass} ${colorClass}`}>
+                <Icon className="w-7 h-7" />
             </div>
         </div>
     );
 
-    const inputClass = "w-full bg-black/40 border border-white/5 rounded-xl py-3 px-4 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 text-right";
+    const inputClass = "w-full bg-slate-50 border-2 border-slate-200 rounded-xl py-3 px-4 text-sm font-bold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-0 focus:border-[var(--color-dark-turquoise)] transition-colors text-right";
 
     return (
-        <div className="space-y-6" dir="rtl">
-            <div>
-                <h1 className="text-2xl font-black text-white tracking-tight flex items-center gap-3"><MapPin className="w-7 h-7 text-indigo-400" /> إدارة المواقع</h1>
-                <p className="text-sm text-gray-500 font-bold mt-1">إدارة المحافظات والمناطق والشوارع</p>
+        <div className="space-y-8 max-w-[1400px] mx-auto pb-20 font-sans" dir="rtl">
+            <div className="sticky top-0 bg-[#f8fafc]/90 z-20 pt-6 pb-4 border-b border-slate-200/50 mb-8 backdrop-blur-xl">
+                <PageHeader 
+                    title={
+                        <span className="flex items-center gap-3">
+                            <span className="bg-gradient-to-br from-[var(--color-dark-turquoise)] to-[#0c4c58] text-white p-2.5 rounded-xl shadow-lg ring-4 ring-[var(--color-dark-turquoise)]/10">
+                                <Globe className="w-6 h-6 shrink-0" />
+                            </span>
+                            <span className="text-3xl font-black tracking-tight text-slate-900">هيكلة المواقع الجغرافية</span>
+                        </span>
+                    }
+                    description="إدارة التقسيم الإداري للشاشات، بدءاً من المحافظات وحتى نقاط العرض الدقيقة."
+                />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Governorates */}
-                <div className="bg-[#121215]/60 backdrop-blur-xl border border-white/5 rounded-3xl p-5">
-                    <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-sm font-black text-white flex items-center gap-2"><Globe className="w-4 h-4 text-purple-400" /> المحافظات</h3>
-                        <button onClick={() => { setModal({ type: 'add-gov', open: true, data: null }); setFormName(''); }}
-                            className="bg-indigo-500/10 text-indigo-400 p-1.5 rounded-lg hover:bg-indigo-500/20 transition-all"><Plus className="w-4 h-4" /></button>
-                    </div>
-                    <div className="space-y-2 max-h-80 overflow-y-auto">
-                        {govs.map(g => (
-                            <ListItem key={g.gov_id} name={g.name} isSelected={selectedGov === g.gov_id}
-                                onClick={() => { setSelectedGov(g.gov_id); setSelectedRegion(null); }}
-                                onEdit={() => { setModal({ type: 'edit-gov', open: true, data: g }); setFormName(g.name); }}
-                                onDelete={() => setDeleteDialog({ open: true, type: 'gov', id: g.gov_id })} />
-                        ))}
-                        {govs.length === 0 && <p className="text-center text-gray-600 text-xs py-8">لا توجد محافظات</p>}
-                    </div>
-                </div>
+            {/* DASHBOARD SUMMARY CARDS */}
+            <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <SummaryCard title="إجمالي المحافظات" value={govs.length} icon={Globe} colorClass="text-blue-600" borderClass="border-blue-100" bgClass="bg-blue-50" />
+                <SummaryCard title="المناطق المُسجلة" value={regions.length} icon={Map} colorClass="text-purple-600" borderClass="border-purple-100" bgClass="bg-purple-50" />
+                <SummaryCard title="نقاط الشوارع" value={streets.length} icon={Navigation} colorClass="text-emerald-600" borderClass="border-emerald-100" bgClass="bg-emerald-50" />
+            </motion.div>
 
-                {/* Regions */}
-                <div className="bg-[#121215]/60 backdrop-blur-xl border border-white/5 rounded-3xl p-5">
-                    <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-sm font-black text-white">المناطق</h3>
-                        {selectedGov && <button onClick={() => { setModal({ type: 'add-region', open: true, data: null }); setFormName(''); }}
-                            className="bg-indigo-500/10 text-indigo-400 p-1.5 rounded-lg hover:bg-indigo-500/20 transition-all"><Plus className="w-4 h-4" /></button>}
+            {/* HIERARCHICAL LAYOUT */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
+                
+                {/* 1. Governorates */}
+                <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-white border border-slate-100 rounded-3xl p-6 md:p-8 shadow-[0_8px_40px_-12px_rgba(0,0,0,0.05)] flex flex-col h-[600px]">
+                    <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
+                        <div>
+                            <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
+                                <span className="bg-blue-100 text-blue-600 w-8 h-8 rounded-lg flex items-center justify-center font-black">1</span> المحافظات
+                            </h3>
+                            <p className="text-[10px] uppercase font-black text-slate-400 mt-1">التقسيم الإداري الأكبر</p>
+                        </div>
+                        <button 
+                            onClick={() => { setModal({ type: 'add-gov', open: true, data: null }); setFormName(''); }}
+                            className="bg-[var(--color-dark-turquoise)]/10 text-[var(--color-dark-turquoise)] p-2.5 rounded-xl hover:bg-[var(--color-dark-turquoise)] hover:text-white transition-all shadow-sm"
+                            title="إضافة محافظة"
+                        >
+                            <Plus className="w-5 h-5" />
+                        </button>
                     </div>
-                    <div className="space-y-2 max-h-80 overflow-y-auto">
-                        {!selectedGov ? <p className="text-center text-gray-600 text-xs py-8">اختر محافظة أولاً</p> :
-                            regions.length === 0 ? <p className="text-center text-gray-600 text-xs py-8">لا توجد مناطق</p> :
-                            regions.map(r => (
-                                <ListItem key={r.region_id} name={r.name} isSelected={selectedRegion === r.region_id}
-                                    onClick={() => setSelectedRegion(r.region_id)}
-                                    onEdit={() => { setModal({ type: 'edit-region', open: true, data: r }); setFormName(r.name); }}
-                                    onDelete={() => setDeleteDialog({ open: true, type: 'region', id: r.region_id })} />
-                            ))}
+                    
+                    <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-3">
+                        {loading ? (
+                            Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-16 bg-slate-100 rounded-xl animate-pulse"></div>)
+                        ) : govs.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center h-full text-center p-6 text-slate-400">
+                                <Globe className="w-12 h-12 mb-3 opacity-20" />
+                                <p className="text-sm font-bold">لا توجد أية محافظات.</p>
+                                <p className="text-xs">اضغط على زر الإضافة للبدء.</p>
+                            </div>
+                        ) : (
+                            <AnimatePresence mode="popLayout">
+                                {govs.map(g => (
+                                    <ListItem key={g.gov_id} name={g.name} isSelected={selectedGov === g.gov_id}
+                                        onClick={() => { setSelectedGov(g.gov_id); setSelectedRegion(null); }}
+                                        onEdit={() => { setModal({ type: 'edit-gov', open: true, data: g }); setFormName(g.name); }}
+                                        onDelete={() => setDeleteDialog({ open: true, type: 'gov', id: g.gov_id })} />
+                                ))}
+                            </AnimatePresence>
+                        )}
                     </div>
-                </div>
+                </motion.div>
 
-                {/* Streets */}
-                <div className="bg-[#121215]/60 backdrop-blur-xl border border-white/5 rounded-3xl p-5">
-                    <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-sm font-black text-white">الشوارع</h3>
-                        {selectedRegion && <button onClick={() => { setModal({ type: 'add-street', open: true, data: null }); setFormName(''); }}
-                            className="bg-indigo-500/10 text-indigo-400 p-1.5 rounded-lg hover:bg-indigo-500/20 transition-all"><Plus className="w-4 h-4" /></button>}
+                {/* 2. Regions */}
+                <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-white border border-slate-100 rounded-3xl p-6 md:p-8 shadow-[0_8px_40px_-12px_rgba(0,0,0,0.05)] flex flex-col h-[600px] relative">
+                    {!selectedGov && <div className="absolute inset-0 bg-slate-50/80 backdrop-blur-[2px] rounded-3xl z-10 flex flex-col items-center justify-center text-slate-400 border border-slate-100"><Map className="w-12 h-12 mb-3 opacity-30" /><p className="text-sm font-black">يرجى تحديد محافظة أولاً</p></div>}
+                    
+                    <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
+                        <div>
+                            <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
+                                <span className="bg-purple-100 text-purple-600 w-8 h-8 rounded-lg flex items-center justify-center font-black">2</span> المناطق
+                            </h3>
+                            <p className="text-[10px] uppercase font-black text-slate-400 mt-1">المحور الحضري الداخلي</p>
+                        </div>
+                        <button 
+                            disabled={!selectedGov}
+                            onClick={() => { setModal({ type: 'add-region', open: true, data: null }); setFormName(''); }}
+                            className="bg-[var(--color-dark-turquoise)]/10 text-[var(--color-dark-turquoise)] p-2.5 rounded-xl hover:bg-[var(--color-dark-turquoise)] hover:text-white transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="إضافة منطقة"
+                        >
+                            <Plus className="w-5 h-5" />
+                        </button>
                     </div>
-                    <div className="space-y-2 max-h-80 overflow-y-auto">
-                        {!selectedRegion ? <p className="text-center text-gray-600 text-xs py-8">اختر منطقة أولاً</p> :
-                            streets.length === 0 ? <p className="text-center text-gray-600 text-xs py-8">لا توجد شوارع</p> :
-                            streets.map(s => (
-                                <ListItem key={s.street_id} name={s.name} isSelected={false} onClick={() => {}}
-                                    onEdit={() => { setModal({ type: 'edit-street', open: true, data: s }); setFormName(s.name); }}
-                                    onDelete={() => setDeleteDialog({ open: true, type: 'street', id: s.street_id })} />
-                            ))}
+                    
+                    <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-3 relative z-0">
+                        {regions.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center h-full text-center p-6 text-slate-400">
+                                <ShieldCheck className="w-12 h-12 mb-3 opacity-20" />
+                                <p className="text-sm font-bold">لا توجد أية مناطق هنا.</p>
+                            </div>
+                        ) : (
+                            <AnimatePresence mode="popLayout">
+                                {regions.map(r => (
+                                    <ListItem key={r.region_id} name={r.name} isSelected={selectedRegion === r.region_id}
+                                        onClick={() => setSelectedRegion(r.region_id)}
+                                        onEdit={() => { setModal({ type: 'edit-region', open: true, data: r }); setFormName(r.name); }}
+                                        onDelete={() => setDeleteDialog({ open: true, type: 'region', id: r.region_id })} />
+                                ))}
+                            </AnimatePresence>
+                        )}
                     </div>
-                </div>
+                </motion.div>
+
+                {/* 3. Streets */}
+                <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="bg-white border border-slate-100 rounded-3xl p-6 md:p-8 shadow-[0_8px_40px_-12px_rgba(0,0,0,0.05)] flex flex-col h-[600px] relative">
+                    {!selectedRegion && <div className="absolute inset-0 bg-slate-50/80 backdrop-blur-[2px] rounded-3xl z-10 flex flex-col items-center justify-center text-slate-400 border border-slate-100"><Navigation className="w-12 h-12 mb-3 opacity-30" /><p className="text-sm font-black">يرجى تحديد منطقة أولاً</p></div>}
+                    
+                    <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
+                        <div>
+                            <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
+                                <span className="bg-emerald-100 text-emerald-600 w-8 h-8 rounded-lg flex items-center justify-center font-black">3</span> الشوارع / المواقع
+                            </h3>
+                            <p className="text-[10px] uppercase font-black text-slate-400 mt-1">تحديد الشاشات الجغرافية</p>
+                        </div>
+                        <button 
+                            disabled={!selectedRegion}
+                            onClick={() => { setModal({ type: 'add-street', open: true, data: null }); setFormName(''); }}
+                            className="bg-[var(--color-dark-turquoise)]/10 text-[var(--color-dark-turquoise)] p-2.5 rounded-xl hover:bg-[var(--color-dark-turquoise)] hover:text-white transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="إضافة شارع"
+                        >
+                            <Plus className="w-5 h-5" />
+                        </button>
+                    </div>
+                    
+                    <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-3 relative z-0">
+                        {streets.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center h-full text-center p-6 text-slate-400">
+                                <MapPin className="w-12 h-12 mb-3 opacity-20" />
+                                <p className="text-sm font-bold">لم تُسجل شوارع حتى الآن.</p>
+                            </div>
+                        ) : (
+                            <AnimatePresence mode="popLayout">
+                                {streets.map(s => (
+                                    <ListItem key={s.street_id} name={s.name} isSelected={false} onClick={() => {}}
+                                        onEdit={() => { setModal({ type: 'edit-street', open: true, data: s }); setFormName(s.name); }}
+                                        onDelete={() => setDeleteDialog({ open: true, type: 'street', id: s.street_id })} />
+                                ))}
+                            </AnimatePresence>
+                        )}
+                    </div>
+                </motion.div>
             </div>
 
-            {/* Add/Edit Modal */}
-            <Modal isOpen={modal.open} onClose={() => setModal({ type: '', open: false, data: null })} title={modal.type?.includes('add') ? 'إضافة' : 'تعديل'} size="sm">
-                <div className="space-y-4" dir="rtl">
-                    <input type="text" value={formName} onChange={e => setFormName(e.target.value)} placeholder="الاسم..." className={inputClass} autoFocus />
-                    <button onClick={handleSave} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-2xl transition-all">حفظ</button>
+            {/* Add/Edit Modal Wrapper */}
+            <Modal isOpen={modal.open} onClose={() => setModal({ type: '', open: false, data: null })} title={modal.type?.includes('add') ? 'إضافة نطاق جغرافي' : 'تعديل البيانات جغرافيات'} size="sm">
+                <div className="space-y-6 pt-4" dir="rtl">
+                    <div>
+                        <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider block px-1 mb-2">اسم النطاق المستهدف <span className="text-red-500">*</span></label>
+                        <input 
+                            type="text" 
+                            value={formName} 
+                            onChange={e => setFormName(e.target.value)} 
+                            placeholder="أدخل الاسم الرسمي المعتمد..." 
+                            className={inputClass} 
+                            autoFocus 
+                        />
+                        <p className="text-[10px] font-bold text-slate-400 px-1 mt-1">احرص على كتابة الاسم بدقة لتجنب الازدواجية والتكرار الجغرافي.</p>
+                    </div>
+                    
+                    <div className="flex justify-end gap-3 pt-2">
+                        <button 
+                            type="button" 
+                            onClick={() => setModal({ type: '', open: false, data: null })} 
+                            className="px-6 py-3 rounded-xl border border-slate-200 text-slate-600 font-black text-sm hover:bg-slate-50 transition-colors"
+                        >
+                            إلغاء التراجع
+                        </button>
+                        <button 
+                            onClick={handleSave} 
+                            className="bg-[var(--color-dark-turquoise)] hover:bg-[#0c4c58] text-white font-black px-8 py-3 rounded-xl transition-all shadow-md"
+                        >
+                            حفظ وتأكيد
+                        </button>
+                    </div>
                 </div>
             </Modal>
 
-            <ConfirmDialog isOpen={deleteDialog.open} onClose={() => setDeleteDialog({ open: false, type: '', id: null })}
-                onConfirm={handleDelete} title="تأكيد الحذف" message="هل أنت متأكد؟ سيتم حذف كل البيانات التابعة." confirmText="حذف" />
+            {/* Secure Delete Confirm Dialog */}
+            <ConfirmDialog 
+                isOpen={deleteDialog.open} 
+                onClose={() => setDeleteDialog({ open: false, type: '', id: null })}
+                onConfirm={handleDelete} 
+                title="تأكيد الحذف الأمني" 
+                message="أنت على وشك حذف هذا النطاق الجغرافي. هذا الإجراء قد يتسبب في تعطيل أو إخفاء الشاشات المرتبطة به. هل ترغب بالاستمرار؟" 
+                confirmText="حذف نهائي" 
+            />
         </div>
     );
 };
