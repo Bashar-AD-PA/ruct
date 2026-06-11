@@ -35,6 +35,7 @@ import RolesPage from '../../modules/admin/RolesPage';
 import PaymentOperationsPage from '../../modules/admin/PaymentOperationsPage';
 import AdminProfilePage from '../../modules/admin/AdminProfilePage';
 import FrequencyPackagesPage from '../../modules/admin/FrequencyPackagesPage';
+import SessionsPage from '../../modules/sessions/SessionsPage';
 /**
  * Protected Route - requires authentication
  */
@@ -160,6 +161,13 @@ const AppRoutes = () => {
                 <Route path="my-financials" element={
                     <RoleRoute allowedRoles={[ROLES.ADVERTISER]}>
                         <AdvertiserFinancials />
+                    </RoleRoute>
+                } />
+
+                {/* Sessions Management */}
+                <Route path="sessions" element={
+                    <RoleRoute allowedRoles={[ROLES.SUPER_ADMIN]}>
+                        <SessionsPage />
                     </RoleRoute>
                 } />
 

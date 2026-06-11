@@ -86,7 +86,7 @@ const DashboardLayout = () => {
                             textDecoration: 'none',
                             transition: 'all 0.18s ease',
                             direction: 'rtl',
-                            borderRight: isActive ? `3px solid ${GOLD}` : '3px solid transparent',
+                            borderLeft: isActive ? `3px solid ${GOLD}` : '3px solid transparent',
                         })}
                         onMouseEnter={e => {
                             if (!e.currentTarget.classList.contains('active')) {
@@ -143,14 +143,14 @@ const DashboardLayout = () => {
     );
 
     return (
-        /* ── Outer wrapper: LTR so sidebar stays on LEFT ── */
+        /* ── Outer wrapper: RTL so sidebar stays on RIGHT ── */
         <div style={{
             display: 'flex',
             minHeight: '100svh',
             background: '#F9F9F9',
-            direction: 'ltr',          /* sidebar LEFT, content RIGHT */
+            direction: 'rtl',          /* sidebar RIGHT, content LEFT */
         }}>
-            {/* ════ Desktop Sidebar (LEFT) ════ */}
+            {/* ════ Desktop Sidebar (RIGHT) ════ */}
             <aside style={{
                 width: '230px',
                 flexShrink: 0,
@@ -161,14 +161,14 @@ const DashboardLayout = () => {
                 top: 0,
                 height: '100svh',
                 overflowY: 'auto',
-                boxShadow: '2px 0 16px rgba(0,0,0,0.15)',
+                boxShadow: '-2px 0 16px rgba(0,0,0,0.15)',
                 zIndex: 50,
             }} className="ds-sidebar">
                 <SidebarInner />
             </aside>
 
-            {/* ════ Right column: header + content ════ */}
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+            {/* ════ Left column: header + content ════ */}
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, direction: 'ltr' }}>
 
                 {/* ── Top Header ── */}
                 <header style={{
@@ -278,7 +278,7 @@ const DashboardLayout = () => {
                     padding: '24px 24px 56px',
                     direction: 'rtl',   /* page content is RTL/Arabic */
                 }} className="custom-scrollbar">
-                    <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
+                    <div style={{ maxWidth: '1400px', margin: '0 auto', direction: 'rtl' }}>
                         <Outlet />
                     </div>
                 </main>
@@ -295,16 +295,16 @@ const DashboardLayout = () => {
                 />
             )}
 
-            {/* ════ Mobile Drawer (slides from LEFT) ════ */}
+            {/* ════ Mobile Drawer (slides from RIGHT) ════ */}
             <div style={{
                 position: 'fixed',
-                top: 0, left: 0, bottom: 0,
+                top: 0, right: 0, bottom: 0,
                 width: '240px',
                 background: `linear-gradient(180deg, ${TEAL} 0%, ${TEAL_DARK} 100%)`,
                 zIndex: 110,
-                transform: isMobileMenuOpen ? 'translateX(0)' : 'translateX(-100%)',
+                transform: isMobileMenuOpen ? 'translateX(0)' : 'translateX(100%)',
                 transition: 'transform 0.3s cubic-bezier(0.4,0,0.2,1)',
-                boxShadow: isMobileMenuOpen ? '4px 0 24px rgba(0,0,0,0.25)' : 'none',
+                boxShadow: isMobileMenuOpen ? '-4px 0 24px rgba(0,0,0,0.25)' : 'none',
             }}>
                 <SidebarInner />
             </div>

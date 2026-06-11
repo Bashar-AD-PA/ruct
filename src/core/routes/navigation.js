@@ -11,7 +11,8 @@ import {
     Clock,
     DollarSign,
     Wallet,
-    Repeat
+    Repeat,
+    ShieldAlert
 } from 'lucide-react';
 import { ROLES } from '../../hooks/usePermission';
 
@@ -35,6 +36,7 @@ export const getNavItems = (roleName) => {
                 { path: '/dashboard/frequency-packages', icon: Repeat, label: 'باقات التكرار' },
                 { path: '/dashboard/payment-methods', icon: CreditCard, label: 'طرق الدفع' },
                 { path: '/dashboard/payment-ops', icon: DollarSign, label: 'عمليات الدفع' },
+                { path: '/dashboard/sessions', icon: ShieldAlert, label: 'الجلسات' },
                 { path: '/dashboard/settings', icon: Settings, label: 'الإعدادات' },
             ];
         case ROLES.ADVERTISER:

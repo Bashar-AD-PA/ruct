@@ -162,6 +162,7 @@ const ScreensPage = () => {
   const [lookups, setLookups] = useState({ types: [], streets: [], owners: [] });
   const [statusFilter, setStatusFilter] = useState('all');
   const [detailsModal, setDetailsModal] = useState({ open: false, screen: null });
+  const [geoLoading, setGeoLoading] = useState(false);
   const { can } = usePermission();
   const addToast = useToastStore(state => state.addToast);
 
