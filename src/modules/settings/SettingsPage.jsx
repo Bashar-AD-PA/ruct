@@ -1,182 +1,251 @@
-import React from 'react';
-import { Settings, User, Bell, Shield, Mail, Phone, Info } from 'lucide-react';
-import { motion } from 'framer-motion';
+import React, { useState } from 'react';
 import useAuthStore from '../../store/useAuthStore';
-import PageHeader from '../../shared/components/PageHeader';
-
-const SettingsSection = ({ title, description, icon: Icon, children, delay = 0 }) => (
-    <motion.div 
-        initial={{ opacity: 0, y: 15 }} 
-        animate={{ opacity: 1, y: 0 }} 
-        transition={{ duration: 0.3, delay }}
-        className="bg-white rounded-3xl border border-slate-100 shadow-[0_8px_30px_-4px_rgba(0,0,0,0.03)] overflow-hidden mb-8 relative group"
-    >
-        <div className="absolute top-0 right-0 w-2 h-full bg-[var(--color-dark-turquoise)] opacity-0 group-hover:opacity-100 transition-opacity"></div>
-        <div className="flex flex-col md:flex-row md:items-start gap-8 p-8 md:p-10">
-            {/* Section Header */}
-            <div className="md:w-1/3 shrink-0">
-                <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center mb-4 border border-slate-100 shadow-sm">
-                    <Icon className="w-6 h-6 text-[var(--color-dark-turquoise)]" />
-                </div>
-                <h3 className="text-xl font-black text-slate-800 mb-2">{title}</h3>
-                <p className="text-sm font-bold text-slate-500 leading-relaxed max-w-[250px]">{description}</p>
-            </div>
-            
-            {/* Section Content */}
-            <div className="md:w-2/3 flex-1 w-full">
-                {children}
-            </div>
-        </div>
-    </motion.div>
-);
 
 const SettingsPage = () => {
     const { user } = useAuthStore();
+    const [emailNotif, setEmailNotif] = useState(true);
+    const [systemNotif, setSystemNotif] = useState(true);
+
+    /* ── Field rows for personal info table ── */
+    const infoRows = [
+        {
+            id: 'full_name',
+            icon: 'person',
+            iconBg: 'bg-primary/10',
+            iconColor: 'text-primary',
+            label: 'الاسم الكامل',
+            value: user?.full_name || '—',
+            dir: 'rtl',
+        },
+        {
+            id: 'email',
+            icon: 'mail',
+            iconBg: 'bg-secondary/10',
+            iconColor: 'text-secondary',
+            label: 'البريد الإلكتروني',
+            value: user?.email || '—',
+            dir: 'ltr',
+        },
+        {
+            id: 'phone',
+            icon: 'call',
+            iconBg: 'bg-secondary/10',
+            iconColor: 'text-secondary',
+            label: 'رقم الهاتف',
+            value: user?.phone || '—',
+            dir: 'ltr',
+        },
+        {
+            id: 'role',
+            icon: 'admin_panel_settings',
+            iconBg: 'bg-primary/10',
+            iconColor: 'text-primary',
+            label: 'الصلاحية الإدارية',
+            value: user?.role?.role_name || '—',
+            dir: 'ltr',
+            highlight: true,
+        },
+    ];
+
+    /* ── Notification rows ── */
+    const notifRows = [
+        {
+            id: 'email_notif',
+            icon: 'mail',
+            iconBg: 'bg-secondary/10',
+            iconColor: 'text-secondary',
+            label: 'إشعارات البريد الإلكتروني',
+            description: 'تلقي تحديثات أسبوعية حول أداء الإعلانات وحالة الحساب المالي.',
+            value: emailNotif,
+            onChange: () => setEmailNotif(p => !p),
+        },
+        {
+            id: 'system_notif',
+            icon: 'notifications',
+            iconBg: 'bg-primary/10',
+            iconColor: 'text-primary',
+            label: 'إشعارات النظام التفاعلية',
+            description: 'تنبيهات فورية متعلقة بالموافقات على الحملات والفواتير المصدرة.',
+            value: systemNotif,
+            onChange: () => setSystemNotif(p => !p),
+        },
+    ];
 
     return (
-        <div className="max-w-5xl mx-auto space-y-6 pb-20 font-sans" dir="rtl">
-            <div className="sticky top-0 bg-[#f8fafc]/90 z-20 pt-6 pb-4 border-b border-slate-200/50 mb-10 backdrop-blur-xl">
-                <PageHeader 
-                    title={
-                        <span className="flex items-center gap-3">
-                            <span className="bg-slate-900 text-white p-2.5 rounded-xl shadow-lg ring-4 ring-slate-900/5">
-                                <Settings className="w-6 h-6 shrink-0" />
-                            </span>
-                            <span className="text-3xl font-black tracking-tight text-slate-900">إعدادات الحساب</span>
-                        </span>
-                    }
-                    description="إدارة ملفك الشخصي وتخصيص تفضيلات الإشعارات والأمان."
-                />
+        <div className="space-y-4 pb-8" dir="rtl">
+
+            {/* ══════════════════════════════════════
+                Page Header
+            ══════════════════════════════════════ */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 py-2 mb-1">
+                <div className="flex flex-col">
+                    <h1 className="text-xl font-bold text-on-surface mb-0.5 flex items-center gap-2">
+                        إعدادات الحساب
+                        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                            <span className="material-symbols-outlined text-base">settings</span>
+                        </div>
+                    </h1>
+                    <p className="text-sm text-on-surface-variant">
+                        إدارة ملفك الشخصي وتخصيص تفضيلات الإشعارات والأمان.
+                    </p>
+                </div>
             </div>
 
-            {/* ACCOUNT INFORMATION */}
-            <SettingsSection 
-                title="المعلومات الشخصية" 
-                description="بيانات الحساب الأساسية الخاصة بك. لتحديث هذه البيانات يرجى التواصل مع الإدارة المركزية."
-                icon={User}
-                delay={0}
-            >
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                        <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider block px-1">الاسم الكامل</label>
-                        <div className="relative">
-                            <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
-                                <User className="h-4 w-4 text-slate-400" />
-                            </div>
-                            <input 
-                                type="text" 
-                                disabled 
-                                value={user?.full_name || ''} 
-                                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pr-11 pl-4 text-sm font-bold text-slate-600 cursor-not-allowed shadow-inner focus:outline-none"
-                            />
-                        </div>
-                    </div>
-
-                    <div className="space-y-2">
-                        <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider block px-1">البريد الإلكتروني</label>
-                        <div className="relative">
-                            <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
-                                <Mail className="h-4 w-4 text-slate-400" />
-                            </div>
-                            <input 
-                                type="email" 
-                                disabled 
-                                value={user?.email || ''} 
-                                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pr-11 pl-4 text-sm font-bold text-slate-600 cursor-not-allowed shadow-inner focus:outline-none"
-                            />
-                        </div>
-                    </div>
-
-                    <div className="space-y-2">
-                        <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider block px-1">رقم الهاتف</label>
-                        <div className="relative">
-                            <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
-                                <Phone className="h-4 w-4 text-slate-400" />
-                            </div>
-                            <input 
-                                type="text" 
-                                disabled 
-                                value={user?.phone || '—'} 
-                                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pr-11 pl-4 text-sm font-bold text-slate-600 cursor-not-allowed shadow-inner focus:outline-none"
-                                dir="ltr"
-                            />
-                        </div>
-                    </div>
-
-                    <div className="space-y-2">
-                        <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider block px-1">الصلاحية الإدارية</label>
-                        <div className="w-full bg-indigo-50/50 border border-indigo-100 rounded-xl py-3 px-4 text-sm font-black text-indigo-700 cursor-not-allowed flex items-center gap-2">
-                            <Shield className="w-4 h-4 text-indigo-500" />
-                            {user?.role?.role_name || '—'}
-                        </div>
-                    </div>
+            {/* ══════════════════════════════════════
+                Section 1: Personal Information Table
+            ══════════════════════════════════════ */}
+            <div className="bg-surface rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
+                {/* Table Header */}
+                <div className="p-4 border-b border-outline-variant flex items-center gap-2 bg-surface">
+                    <span className="material-symbols-outlined text-lg text-primary">person</span>
+                    <h3 className="text-base font-semibold text-on-surface">المعلومات الشخصية</h3>
+                    <span className="mr-auto text-xs text-on-surface-variant bg-surface-container-low px-2.5 py-1 rounded-full border border-outline-variant">
+                        للقراءة فقط
+                    </span>
                 </div>
 
-                <div className="mt-8 bg-amber-50/50 border border-amber-100 rounded-xl p-4 flex gap-3 items-start">
-                    <Info className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
-                    <div>
-                        <h5 className="text-sm font-black text-amber-800">تعديل الملف الشخصي مقفل حالياً</h5>
-                        <p className="text-xs font-bold text-amber-600/80 mt-1">حسابك مرتبط بالنظام الإداري المركزي ولا يمكن تعديله يدوياً لأغراض أمنية.</p>
-                    </div>
-                </div>
-            </SettingsSection>
+                {/* Table */}
+                <div className="overflow-x-auto">
+                    <table className="w-full text-right border-collapse">
+                        <thead className="bg-surface-container-low border-b border-outline-variant">
+                            <tr>
+                                <th className="py-3 px-5 text-xs text-on-surface-variant font-medium whitespace-nowrap">الحقل</th>
+                                <th className="py-3 px-5 text-xs text-on-surface-variant font-medium whitespace-nowrap">القيمة</th>
+                                <th className="py-3 px-5 text-xs text-on-surface-variant font-medium whitespace-nowrap text-left">الحالة</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-outline-variant text-sm">
+                            {infoRows.map((row) => (
+                                <tr key={row.id} className="hover:bg-surface-container-lowest transition-colors">
+                                    {/* Field label + icon */}
+                                    <td className="py-3 px-5">
+                                        <div className="flex items-center gap-2.5">
+                                            <div className={`w-8 h-8 rounded-full ${row.iconBg} ${row.iconColor} flex items-center justify-center flex-shrink-0`}>
+                                                <span className="material-symbols-outlined text-[16px]">{row.icon}</span>
+                                            </div>
+                                            <span className="font-medium text-on-surface-variant">{row.label}</span>
+                                        </div>
+                                    </td>
 
-            {/* NOTIFICATION PREFERENCES */}
-            <SettingsSection 
-                title="تفضيلات الإشعارات" 
-                description="إدارة كيفية تواصل النظام معك واستقبالك للتنبيهات الحيوية."
-                icon={Bell}
-                delay={0.1}
-            >
-                <div className="space-y-4">
-                    <label className="relative flex items-center justify-between p-5 border border-slate-200 rounded-2xl hover:bg-slate-50 cursor-pointer transition-all group overflow-hidden">
-                        <div className="flex items-center gap-4 relative z-10">
-                            <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center shrink-0 group-hover:bg-white border border-slate-200 transition-colors">
-                                <Mail className="w-4 h-4 text-slate-500" />
-                            </div>
-                            <div>
-                                <p className="font-black text-slate-800 text-sm">إشعارات البريد الإلكتروني</p>
-                                <p className="text-xs font-bold text-slate-500 mt-1">تلقي تحديثات أسبوعية حول أداء الإعلانات وحالة الحساب المالي.</p>
-                            </div>
-                        </div>
-                        {/* Custom Modern Toggle UI strictly visual based on native checkbox hidden behind peer */}
-                        <div className="relative z-10">
-                            <input type="checkbox" className="sr-only peer" defaultChecked />
-                            <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-[-100%] peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--color-dark-turquoise)]"></div>
-                        </div>
-                    </label>
+                                    {/* Value */}
+                                    <td className="py-3 px-5">
+                                        {row.highlight ? (
+                                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold border border-primary/20">
+                                                <span className="material-symbols-outlined text-[13px]">verified_user</span>
+                                                {row.value}
+                                            </span>
+                                        ) : (
+                                            <span
+                                                className="font-medium text-on-surface"
+                                                style={{ direction: row.dir, display: 'inline-block' }}
+                                            >
+                                                {row.value}
+                                            </span>
+                                        )}
+                                    </td>
 
-                    <label className="relative flex items-center justify-between p-5 border border-slate-200 rounded-2xl hover:bg-slate-50 cursor-pointer transition-all group overflow-hidden">
-                        <div className="flex items-center gap-4 relative z-10">
-                            <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center shrink-0 group-hover:bg-white border border-slate-200 transition-colors">
-                                <Bell className="w-4 h-4 text-slate-500" />
-                            </div>
-                            <div>
-                                <p className="font-black text-slate-800 text-sm">إشعارات النظام التفاعلية</p>
-                                <p className="text-xs font-bold text-slate-500 mt-1">تنبيهات فورية متعلقة بالموافقات على الحملات والفواتير المصدرة.</p>
-                            </div>
-                        </div>
-                        <div className="relative z-10">
-                            <input type="checkbox" className="sr-only peer" defaultChecked />
-                            <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-[-100%] peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--color-dark-turquoise)]"></div>
-                        </div>
-                    </label>
+                                    {/* Status badge */}
+                                    <td className="py-3 px-5 text-left">
+                                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-surface-container text-on-surface-variant text-xs border border-outline-variant">
+                                            <span className="material-symbols-outlined text-[12px]">lock</span>
+                                            مقفل
+                                        </span>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
                 </div>
-            </SettingsSection>
-            
-            {/* ACTION FOOTER */}
-            <motion.div 
-                initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
-                className="flex items-center justify-between pt-6 border-t border-slate-200"
-            >
-                <p className="text-xs font-bold text-slate-400">آخر تعديل على الحساب منذ وقت قريب.</p>
-                <button 
+
+                {/* Locked Notice inside the card */}
+                <div className="border-t border-outline-variant bg-error-container/40 px-5 py-3 flex items-start gap-3">
+                    <span className="material-symbols-outlined text-base text-error mt-0.5">info</span>
+                    <p className="text-xs text-on-error-container/80 leading-relaxed">
+                        <span className="font-bold">تعديل الملف الشخصي مقفل حالياً — </span>
+                        حسابك مرتبط بالنظام الإداري المركزي ولا يمكن تعديله يدوياً لأغراض أمنية. للتغيير يرجى التواصل مع الدعم الفني.
+                    </p>
+                </div>
+            </div>
+
+            {/* ══════════════════════════════════════
+                Section 2: Notification Preferences Table
+            ══════════════════════════════════════ */}
+            <div className="bg-surface rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
+                {/* Table Header */}
+                <div className="p-4 border-b border-outline-variant flex items-center gap-2 bg-surface">
+                    <span className="material-symbols-outlined text-lg text-primary">notifications_active</span>
+                    <h3 className="text-base font-semibold text-on-surface">تفضيلات الإشعارات</h3>
+                </div>
+
+                {/* Table */}
+                <div className="overflow-x-auto">
+                    <table className="w-full text-right border-collapse">
+                        <thead className="bg-surface-container-low border-b border-outline-variant">
+                            <tr>
+                                <th className="py-3 px-5 text-xs text-on-surface-variant font-medium whitespace-nowrap">نوع الإشعار</th>
+                                <th className="py-3 px-5 text-xs text-on-surface-variant font-medium whitespace-nowrap hidden md:table-cell">الوصف</th>
+                                <th className="py-3 px-5 text-xs text-on-surface-variant font-medium whitespace-nowrap text-left">تفعيل</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-outline-variant text-sm">
+                            {notifRows.map((row) => (
+                                <tr key={row.id} className="hover:bg-surface-container-lowest transition-colors">
+                                    {/* Label + icon */}
+                                    <td className="py-3 px-5">
+                                        <div className="flex items-center gap-2.5">
+                                            <div className={`w-8 h-8 rounded-full ${row.iconBg} ${row.iconColor} flex items-center justify-center flex-shrink-0`}>
+                                                <span className="material-symbols-outlined text-[16px]">{row.icon}</span>
+                                            </div>
+                                            <span className="font-medium text-on-surface">{row.label}</span>
+                                        </div>
+                                    </td>
+
+                                    {/* Description */}
+                                    <td className="py-3 px-5 text-on-surface-variant text-xs hidden md:table-cell max-w-xs">
+                                        {row.description}
+                                    </td>
+
+                                    {/* Toggle */}
+                                    <td className="py-3 px-5 text-left">
+                                        <button
+                                            type="button"
+                                            onClick={row.onChange}
+                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
+                                                row.value ? 'bg-primary' : 'bg-outline-variant'
+                                            }`}
+                                            role="switch"
+                                            aria-checked={row.value}
+                                        >
+                                            <span
+                                                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${
+                                                    row.value ? 'translate-x-1' : 'translate-x-6'
+                                                }`}
+                                            />
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {/* ══════════════════════════════════════
+                Save Bar
+            ══════════════════════════════════════ */}
+            <div className="bg-surface rounded-xl border border-outline-variant shadow-sm p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+                <p className="text-xs text-on-surface-variant">
+                    آخر تعديل على الإعدادات منذ وقت قريب.
+                </p>
+                <button
                     type="button"
-                    className="bg-[var(--color-dark-turquoise)] hover:bg-[#0c4c58] text-white font-black px-10 py-4 rounded-xl transition-all shadow-xl hover:shadow-2xl active:scale-95 flex items-center gap-2"
+                    className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-on-primary text-sm font-semibold py-2.5 px-6 rounded-lg shadow-sm transition-all active:scale-95"
                 >
-                    حفظ التفضيلات المؤقتة
+                    <span className="material-symbols-outlined text-base">save</span>
+                    حفظ التفضيلات
                 </button>
-            </motion.div>
+            </div>
+
         </div>
     );
 };

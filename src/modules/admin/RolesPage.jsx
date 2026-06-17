@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Plus, Edit2, Trash2 } from 'lucide-react';
 import axiosClient from '../../core/api/axiosClient';
 import { ENDPOINTS } from '../../core/api/endpoints';
 import useToastStore from '../../store/useToastStore';
-import PageHeader from '../../shared/components/PageHeader';
-import DataTable from '../../shared/components/DataTable';
 import Modal from '../../shared/components/Modal';
 import usePermission from '../../hooks/usePermission';
+import ConfirmDialog from '../../shared/components/ConfirmDialog';
 
 const RolesPage = () => {
     const addToast = useToastStore(state => state.addToast);
@@ -15,6 +13,7 @@ const RolesPage = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingRole, setEditingRole] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [deleteTargetId, setDeleteTargetId] = useState(null);
     const { can } = usePermission();
 
     const [form, setForm] = useState({
@@ -91,110 +90,128 @@ const RolesPage = () => {
         }
     };
 
-    const handleDelete = async (id) => {
-        if (window.confirm('هل أنت متأكد من حذف هذا الدور؟ قد يسبب هذا مشاكل إذا كان هناك مستخدمون مرتبطون به.')) {
-            try {
-                await axiosClient.delete(ENDPOINTS.LOOKUPS.ROLE(id));
-                addToast('تم حذف الدور بنجاح', 'success');
-                fetchRoles();
-            } catch (error) {
-                addToast(error.response?.data?.message || 'فشل حذف الدور', 'error');
-            }
+    const confirmDelete = async () => {
+        if (!deleteTargetId) return;
+        try {
+            await axiosClient.delete(ENDPOINTS.LOOKUPS.ROLE(deleteTargetId));
+            addToast('تم حذف الدور بنجاح', 'success');
+            fetchRoles();
+        } catch (error) {
+            addToast(error.response?.data?.message || 'فشل حذف الدور', 'error');
+        } finally {
+            setDeleteTargetId(null);
         }
     };
 
-    const columns = [
-        { 
-            accessorKey: 'role_name', 
-            header: 'اسم الدور', 
-            cell: (row) => (
-                <div className="flex items-center justify-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-indigo-100 flexitems-center justify-center text-indigo-600 shrink-0 hidden md:flex">
-                        <Shield className="w-5 h-5 mx-auto mt-2.5" />
-                    </div>
-                    <span className="font-bold text-gray-800">{row.role_name}</span>
-                </div>
-            ) 
-        },
-        { 
-            accessorKey: 'type', 
-            header: 'النوع', 
-            cell: (row) => {
-                const isProtected = PROTECTED_ROLES.includes(row.role_name);
-                return (
-                    <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                        isProtected ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-700'
-                    }`}>
-                        {isProtected ? 'دور أساسي (محمي)' : 'دور مخصص'}
-                    </span>
-                );
-            } 
-        }
-    ];
-
-    if (can('manage_all')) {
-        columns.push({
-            accessorKey: 'actions',
-            header: 'إجراءات',
-            cell: (row) => {
-                const id = row.role_id || row.id;
-                const isProtected = PROTECTED_ROLES.includes(row.role_name);
-                
-                return (
-                    <div className="flex justify-center items-center gap-2">
-                        <button onClick={() => openModal(row)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-                            <Edit2 className="w-4 h-4" />
-                        </button>
-                        {!isProtected && (
-                            <button onClick={() => handleDelete(id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors">
-                                <Trash2 className="w-4 h-4" />
-                            </button>
-                        )}
-                    </div>
-                );
-            }
-        });
-    }
-
-    const inputClass = "w-full bg-gray-50 border-[1.5px] border-gray-200 rounded-xl py-2.5 px-4 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-[var(--color-dark-turquoise)] focus:bg-white transition-all text-right";
-    const labelClass = "text-xs font-bold text-[var(--color-dark-turquoise)] mb-1.5 block px-1";
+    const inputClass = "w-full bg-background border border-outline-variant rounded-lg py-2.5 px-4 font-body-md text-on-surface placeholder-on-surface-variant focus:outline-none focus:border-primary focus:bg-surface transition-all text-right";
+    const labelClass = "font-label-md text-label-md text-on-surface-variant mb-1.5 block px-1";
 
     return (
-        <div className="space-y-6 animate-fade-in pb-12" dir="rtl">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <PageHeader
-                    title="إدارة الأدوار والصلاحيات"
-                    description="إضافة وتعديل أدوار المستخدمين في النظام"
-                    icon={Shield}
-                />
-                {can('manage_all') && (
-                    <button
-                        onClick={() => openModal()}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-sm"
-                    >
-                        <Plus className="w-5 h-5" /> إضافة دور جديد
-                    </button>
-                )}
+        <div className="space-y-8 animate-fade-in pb-12" dir="rtl">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-r-4 border-primary pr-6 bg-surface p-6 rounded-2xl shadow-sm border border-outline-variant">
+                <div>
+                    <h1 className="font-headline-lg text-headline-lg font-semibold text-on-surface mb-2">إدارة الأدوار والصلاحيات</h1>
+                    <p className="text-on-surface-variant font-body-md text-body-md">إضافة وتعديل أدوار المستخدمين في النظام</p>
+                </div>
+                <div>
+                    {can('manage_all') && (
+                        <button
+                            onClick={() => openModal()}
+                            className="bg-primary hover:bg-primary/90 text-on-primary font-label-md text-label-md px-6 py-3 rounded-lg flex items-center gap-2 shadow-sm transition-transform hover:-translate-y-0.5 active:translate-y-0 duration-200"
+                        >
+                            <span className="material-symbols-outlined">add</span>
+                            إضافة دور جديد
+                        </button>
+                    )}
+                </div>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-                <DataTable
-                    columns={columns}
-                    data={roles.map(r => ({ ...r, id: r.role_id }))}
-                    loading={isLoading}
-                    emptyMessage="لا توجد أدوار مضافة حالياً"
-                />
+            <div className="bg-surface rounded-2xl border border-outline-variant shadow-sm overflow-hidden flex flex-col min-h-[300px] relative">
+                {isLoading ? (
+                    <div className="flex justify-center items-center absolute inset-0 bg-surface/50 z-10">
+                        <div className="w-8 h-8 border-4 border-outline-variant border-t-primary rounded-full animate-spin"></div>
+                    </div>
+                ) : roles.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center p-12 text-center my-auto">
+                        <div className="w-16 h-16 bg-surface-container-lowest rounded-full flex items-center justify-center mb-4 border border-outline-variant">
+                            <span className="material-symbols-outlined text-outline text-3xl">warning</span>
+                        </div>
+                        <h4 className="font-headline-md text-headline-md text-on-surface mb-2">لا توجد بيانات</h4>
+                        <p className="font-body-md text-body-md text-on-surface-variant">لا توجد أدوار مضافة حالياً.</p>
+                    </div>
+                ) : (
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-right border-collapse">
+                            <thead className="bg-surface-container-low border-b border-outline-variant">
+                                <tr>
+                                    <th className="py-4 px-6 font-title-lg text-title-lg text-on-surface font-semibold whitespace-nowrap">اسم الدور</th>
+                                    <th className="py-4 px-6 font-title-lg text-title-lg text-on-surface font-semibold whitespace-nowrap text-center">النوع</th>
+                                    {can('manage_all') && <th className="py-4 px-6 font-title-lg text-title-lg text-on-surface font-semibold whitespace-nowrap text-left">إجراءات</th>}
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-outline-variant font-body-md text-body-md">
+                                {roles.map((row, index) => {
+                                    const id = row.role_id || row.id || index;
+                                    const isProtected = PROTECTED_ROLES.includes(row.role_name);
+                                    return (
+                                        <tr key={id} className="hover:bg-surface-container-lowest transition-colors group">
+                                            <td className="py-4 px-6">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 rounded-full bg-surface-container-high text-primary flex items-center justify-center">
+                                                        <span className="material-symbols-outlined">shield</span>
+                                                    </div>
+                                                    <span className="font-medium">{row.role_name}</span>
+                                                </div>
+                                            </td>
+                                            <td className="py-4 px-6 text-center">
+                                                {isProtected ? (
+                                                    <span className="inline-flex items-center px-3 py-1 rounded-full bg-[#fef3c7] text-[#92400e] font-caption text-caption border border-[#fde68a]">دور أساسي (محمي)</span>
+                                                ) : (
+                                                    <span className="inline-flex items-center px-3 py-1 rounded-full bg-surface-variant text-on-surface-variant font-caption text-caption">دور مخصص</span>
+                                                )}
+                                            </td>
+                                            {can('manage_all') && (
+                                                <td className="py-4 px-6 text-left">
+                                                    <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => { e.stopPropagation(); openModal(row); }}
+                                                            className="p-2 text-primary hover:bg-surface-container-high rounded-full transition-colors"
+                                                            title="تعديل"
+                                                        >
+                                                            <span className="material-symbols-outlined">edit</span>
+                                                        </button>
+                                                        {!isProtected && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => { e.stopPropagation(); setDeleteTargetId(id); }}
+                                                                className="p-2 text-error hover:bg-error-container rounded-full transition-colors"
+                                                                title="حذف"
+                                                            >
+                                                                <span className="material-symbols-outlined">delete</span>
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                            )}
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
             </div>
 
             <Modal
                 isOpen={isModalOpen}
                 onClose={closeModal}
                 title={editingRole ? 'تعديل الدور' : 'إضافة دور جديد'}
-                icon={Shield}
+                size="sm"
             >
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleSubmit} className="space-y-4 mt-4" dir="rtl">
                     <div>
-                        <label className={labelClass}>اسم الدور *</label>
+                        <label className={labelClass}>اسم الدور <span className="text-error">*</span></label>
                         <input
                             type="text"
                             required
@@ -210,22 +227,32 @@ const RolesPage = () => {
                         <button
                             type="submit"
                             disabled={isSubmitting}
-                            className="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-700 transition-colors disabled:opacity-50"
+                            className="flex-1 bg-primary text-on-primary py-3 rounded-lg font-label-md text-label-md hover:bg-primary/90 shadow-sm transition-colors disabled:opacity-50"
                         >
-                            {isSubmitting ? 'جاري الحفظ...' : 'حفظ'}
+                            {isSubmitting ? 'جاري الحفظ...' : 'تأكيد الحفظ'}
                         </button>
                         <button
                             type="button"
                             onClick={closeModal}
-                            className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-xl font-bold hover:bg-gray-200 transition-colors"
+                            className="flex-1 bg-surface-variant text-on-surface-variant py-3 rounded-lg font-label-md text-label-md hover:bg-surface-container-highest border border-outline-variant transition-colors"
                         >
                             إلغاء
                         </button>
                     </div>
                 </form>
             </Modal>
+
+            <ConfirmDialog
+                isOpen={!!deleteTargetId}
+                onClose={() => setDeleteTargetId(null)}
+                onConfirm={confirmDelete}
+                title="تأكيد حذف الدور"
+                message="هل أنت متأكد من حذف هذا الدور؟ قد يسبب هذا مشاكل إذا كان هناك مستخدمون مرتبطون به."
+                confirmText="نعم، موافق على الحذف"
+            />
         </div>
     );
 };
 
 export default RolesPage;
+

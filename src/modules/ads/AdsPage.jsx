@@ -1,43 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Megaphone, Plus, CheckCircle, XCircle, Trash2, Eye, PauseCircle, PlayCircle, CreditCard, Activity, Clock, Ban, DollarSign, Calendar, Info, Layers, User, Server } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
 import axiosClient from '../../core/api/axiosClient';
 import { ENDPOINTS } from '../../core/api/endpoints';
-import DataTable from '../../shared/components/DataTable';
 import StatusBadge from '../../shared/components/StatusBadge';
 import Modal from '../../shared/components/Modal';
 import ConfirmDialog from '../../shared/components/ConfirmDialog';
-import PageHeader from '../../shared/components/PageHeader';
 import usePermission from '../../hooks/usePermission';
 import useToastStore from '../../store/useToastStore';
 import StripePaymentModal from './components/StripePaymentModal';
-
-// Animation variants
-const containerVariants = {
-    hidden: { opacity: 0 },
-    show: { opacity: 1, transition: { staggerChildren: 0.1 } }
-};
-
-const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 260, damping: 20 } }
-};
-
-const StatCard = ({ title, value, icon: Icon, colorClass, borderClass, bgClass, textClass }) => (
-    <motion.div variants={itemVariants} className={`p-5 md:p-6 rounded-3xl border-2 ${borderClass} ${bgClass} relative overflow-hidden group shadow-[0_4px_20px_-4px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_30px_-4px_rgba(0,0,0,0.08)] transition-all duration-300`}>
-        <div className="flex justify-between items-start mb-4 relative z-10">
-            <div className="space-y-1.5 z-10">
-                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">{title}</p>
-                <h3 className={`text-3xl md:text-4xl font-black ${textClass}`}>{value}</h3>
-            </div>
-            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center z-10 transition-transform duration-300 group-hover:scale-110 shadow-lg ${colorClass}`}>
-                <Icon className="w-7 h-7" />
-            </div>
-        </div>
-        <div className={`absolute -bottom-8 -left-8 w-32 h-32 rounded-full blur-3xl opacity-20 ${colorClass.split(' ')[0]} group-hover:scale-150 transition-transform duration-700 pointer-events-none`}></div>
-    </motion.div>
-);
 
 const AdsPage = () => {
     const [ads, setAds] = useState([]);
@@ -59,11 +30,11 @@ const AdsPage = () => {
         try {
             const res = await axiosClient.get(ENDPOINTS.ADS.ALL);
             setAds(res.data.data || []);
-        } catch (e) { 
-            console.error(e); 
+        } catch (e) {
+            console.error(e);
             addToast('واجه النظام مشكلة في جلب الإعلانات', 'error');
-        } finally { 
-            setLoading(false); 
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -95,140 +66,10 @@ const AdsPage = () => {
             addToast('تم حذف الحملة الإعلانية من السجلات نهائياً', 'success');
             setDeleteTarget(null);
             fetchAds();
-        } catch (e) { 
-            addToast('لا يمكن حذف الحملة الإعلانية حالياً لارتباطها بجدولة سابقة', 'error'); 
+        } catch (e) {
+            addToast('لا يمكن حذف الحملة الإعلانية حالياً لارتباطها بجدولة سابقة', 'error');
         }
     };
-
-    const columns = [
-        { 
-            key: 'title', 
-            header: 'العنوان', 
-            render: (row) => (
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center shrink-0">
-                        <Megaphone className="w-5 h-5 text-[var(--color-dark-turquoise)]" />
-                    </div>
-                    <span className="font-black text-gray-900 text-sm whitespace-nowrap">{row.title}</span>
-                </div>
-            )
-        },
-        { 
-            key: 'advertiser.full_name', 
-            header: 'المعلن', 
-            render: (row) => (
-                <div className="flex items-center gap-1.5 text-gray-600">
-                    <User className="w-3.5 h-3.5 opacity-50" />
-                    <span className="text-xs font-bold whitespace-nowrap">{row.advertiser?.full_name || 'غير محدد'}</span>
-                </div>
-            )
-        },
-        { 
-            key: 'category', 
-            header: 'التصنيف', 
-            render: (row) => (
-                <span className="text-[10px] font-bold text-gray-600 bg-gray-50 border border-gray-200 px-2.5 py-1.5 rounded-full whitespace-nowrap flex items-center gap-1.5 w-max">
-                    <Layers className="w-3 h-3 text-gray-400" />
-                    {row.category?.category_name || 'عام'}
-                </span>
-            )
-        },
-        { 
-            key: 'status', 
-            header: 'الحالة', 
-            render: (row) => <StatusBadge status={row.status} /> 
-        },
-        { 
-            key: 'total_cost', 
-            header: 'التكلفة', 
-            render: (row) => (
-                <span className="font-black text-[var(--color-dark-turquoise)] bg-[var(--color-dark-turquoise)]/5 px-3 py-1 rounded-lg">
-                    ${row.total_cost || 0}
-                </span>
-            ) 
-        },
-        { 
-            key: 'daily_frequency', 
-            header: 'التكرار (د)', 
-            render: (row) => <span className="font-mono text-xs text-gray-500 font-bold bg-gray-50 px-2 py-0.5 rounded border border-gray-100">كل {row.daily_frequency || '—'} د</span> 
-        },
-        { 
-            key: 'duration', 
-            header: 'المدة (ث)', 
-            render: (row) => <span className="text-xs font-bold text-gray-700">{row.duration ? `${row.duration}s` : '—'}</span> 
-        },
-        { 
-            key: 'file_size', 
-            header: 'الحجم', 
-            render: (row) => (
-                <span className="text-[10px] font-bold text-gray-400 flex items-center gap-1 whitespace-nowrap">
-                    <Server className="w-3 h-3" />
-                    {row.file_size ? `${row.file_size} MB` : '—'}
-                </span>
-            )
-        },
-        { 
-            key: 'start_date', 
-            header: 'من', 
-            render: (row) => (
-                <span className="text-xs font-bold text-gray-500 whitespace-nowrap block" dir="ltr">{row.start_date || '—'}</span>
-            ) 
-        },
-        { 
-            key: 'end_date', 
-            header: 'إلى', 
-            render: (row) => (
-                <span className="text-xs font-bold text-gray-500 whitespace-nowrap block" dir="ltr">{row.end_date || '—'}</span>
-            ) 
-        },
-        {
-            key: 'actions', 
-            header: 'إجراءات', 
-            render: (row) => (
-                <div className="flex items-center justify-center gap-2">
-                    <button onClick={(e) => { e.stopPropagation(); setDetailsModal({ open: true, ad: row }) }} className="w-8 h-8 flex items-center justify-center rounded-xl bg-gray-50 text-gray-500 hover:bg-gray-900 hover:text-white transition-all shadow-sm border border-gray-200 hover:border-gray-900 group" title="استعراض التفاصيل">
-                        <Eye className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                    </button>
-                    {can('approve_ads') && row.status === 'Pending' && (
-                        <>
-                            <button onClick={(e) => { e.stopPropagation(); setApproveModal({ open: true, ad: row, action: 'Active' }) }}
-                                className="w-8 h-8 flex items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all border border-emerald-100 hover:border-emerald-600 shadow-sm group" title="الموافقة">
-                                <CheckCircle className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                            </button>
-                            <button onClick={(e) => { e.stopPropagation(); setApproveModal({ open: true, ad: row, action: 'Rejected' }) }}
-                                className="w-8 h-8 flex items-center justify-center rounded-xl bg-rose-50 text-rose-500 hover:bg-rose-600 hover:text-white transition-all border border-rose-100 hover:border-rose-600 shadow-sm group" title="رفض وطلب تعليل">
-                                <XCircle className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                            </button>
-                        </>
-                    )}
-                    {(can('approve_ads') || can('manage_all')) && row.status === 'Active' && (
-                        <button onClick={(e) => { e.stopPropagation(); setApproveModal({ open: true, ad: row, action: 'Paused' }) }} className="w-8 h-8 flex items-center justify-center rounded-xl bg-amber-50 text-amber-500 hover:bg-amber-500 hover:text-white transition-all border border-amber-100 hover:border-amber-500 shadow-sm group" title="إيقاف مؤقت للحملة">
-                            <PauseCircle className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                        </button>
-                    )}
-                    {(can('approve_ads') || can('manage_all')) && row.status === 'Paused' && (
-                        <button onClick={(e) => { e.stopPropagation(); setApproveModal({ open: true, ad: row, action: 'Active' }) }} className="w-8 h-8 flex items-center justify-center rounded-xl bg-blue-50 text-blue-500 hover:bg-blue-600 hover:text-white transition-all border border-blue-100 hover:border-blue-600 shadow-sm group" title="استئناف البث">
-                            <PlayCircle className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                        </button>
-                    )}
-                    {(isAdvertiser || isAdmin) && row.status === 'waiting_payment' && (
-                        <button onClick={(e) => { e.stopPropagation(); setStripeModal({ open: true, ad: row }) }} className="w-8 h-8 flex items-center justify-center rounded-xl bg-purple-50 text-purple-600 hover:bg-purple-600 hover:text-white transition-all border border-purple-100 hover:border-purple-600 shadow-sm group" title="سداد مبكر (Stripe)">
-                            <CreditCard className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                        </button>
-                    )}
-                    <button onClick={(e) => { e.stopPropagation(); setDeleteTarget(row.ad_id) }} className="w-8 h-8 flex items-center justify-center rounded-xl bg-rose-50 text-rose-500 hover:bg-rose-600 hover:text-white transition-all shadow-sm border border-rose-100 hover:border-rose-600 group" title="حذف الحملة">
-                        <Trash2 className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                    </button>
-                </div>
-            )
-        },
-    ];
-
-    const mappedColumns = columns.map(col => ({
-        header: col.header,
-        accessorKey: col.accessorKey || col.key,
-        cell: col.render
-    }));
 
     const statusTabs = [
         { key: 'all', label: 'كافة الحملات' },
@@ -249,109 +90,302 @@ const AdsPage = () => {
         paused: ads.filter(a => a.status === 'Paused').length,
     };
 
-    return (
-        <div className="space-y-6 pb-12 w-full max-w-[1600px] mx-auto font-sans" dir="rtl">
-            <PageHeader
-                title={
-                    <span className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-white rounded-2xl shadow-sm border border-gray-100 flex items-center justify-center shrink-0">
-                            <Megaphone className="w-6 h-6 text-[var(--color-dark-turquoise)]" />
-                        </div>
-                        <span className="text-2xl font-black text-gray-900 tracking-tight">المركز الإعلاني المباشر</span>
+    const renderStatusBadge = (status) => {
+        switch (status) {
+            case 'Active':
+                return (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#D1FAE5] text-[#059669] border border-[#A7F3D0] text-xs">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#059669]"></span>
+                        نشط
                     </span>
-                }
-                description="مراقبة ومراجعة وتوجيه جميع الحملات الإعلانية النشطة والمتوقفة ضمن الشبكة."
-                action={
-                    can('create_campaigns') && (
-                        <button onClick={() => navigate('/dashboard/ads/create')}
-                            className="bg-[var(--color-dark-turquoise)] hover:bg-[#0d4f5b] text-white font-bold px-6 py-3.5 rounded-xl flex items-center gap-2.5 text-sm transition-all shadow-[0_8px_16px_-4px_rgba(20,93,106,0.25)] hover:shadow-[0_12px_24px_-4px_rgba(20,93,106,0.3)] hover:-translate-y-0.5 active:translate-y-0 relative overflow-hidden group">
-                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-shine pointer-events-none"></div>
-                            <Plus className="w-5 h-5 text-[var(--color-gold)]" /> إطلاق حملة جديدة
-                        </button>
-                    )
-                }
-            />
+                );
+            case 'Pending':
+            case 'waiting_payment':
+                return (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FEF3C7] text-[#D97706] border border-[#FDE68A] text-xs">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#D97706]"></span>
+                        {status === 'Pending' ? 'تنتظر الاعتماد' : 'بانتظار الدفع'}
+                    </span>
+                );
+            case 'Paused':
+                return (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#dce2f7] text-[#434655] border border-[#c3c6d7] text-xs">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#737686]"></span>
+                        معلق
+                    </span>
+                );
+            case 'Rejected':
+                return (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#ffdad6] text-[#ba1a1a] border border-[#ba1a1a]/20 text-xs">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#ba1a1a]"></span>
+                        مرفوض
+                    </span>
+                );
+            default:
+                return (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-100 text-gray-600 border border-gray-200 text-xs">
+                        <span className="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
+                        {status}
+                    </span>
+                );
+        }
+    };
 
-            {!loading && (
-                <motion.div variants={containerVariants} initial="hidden" animate="show" className="grid grid-cols-2 md:grid-cols-5 gap-4 lg:gap-6">
-                    <StatCard title="إجمالي المعاملات" value={stats.total} icon={Layers} colorClass="bg-blue-50 text-blue-600 shadow-blue-500/20" borderClass="border-blue-100 border-transparent hover:border-blue-500" bgClass="bg-white" textClass="text-gray-900" />
-                    <StatCard title="يتم بثها حالياً" value={stats.active} icon={Activity} colorClass="bg-emerald-50 text-emerald-600 shadow-emerald-500/20" borderClass="border-emerald-100 border-transparent hover:border-emerald-500" bgClass="bg-white" textClass="text-gray-900" />
-                    <StatCard title="تنتظر الاعتماد" value={stats.pending} icon={Clock} colorClass="bg-amber-50 text-amber-600 shadow-amber-500/20" borderClass="border-amber-100 border-transparent hover:border-amber-500" bgClass="bg-white" textClass="text-gray-900" />
-                    <StatCard title="إعلانات مرفوضة" value={stats.rejected} icon={Ban} colorClass="bg-rose-50 text-rose-600 shadow-rose-500/20" borderClass="border-rose-100 border-transparent hover:border-rose-500" bgClass="bg-white" textClass="text-gray-900" />
-                    <StatCard title="حملات متوقفة" value={stats.paused} icon={PauseCircle} colorClass="bg-gray-100 text-gray-600 shadow-gray-500/20" borderClass="border-gray-200 border-transparent hover:border-gray-500" bgClass="bg-white" textClass="text-gray-900" />
-                </motion.div>
-            )}
-
-            <div className="bg-white p-4 md:p-6 rounded-[2rem] shadow-[0_8px_30px_-4px_rgba(0,0,0,0.03)] border border-gray-100 flex flex-col">
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-4">
-                    <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar items-center flex-1">
-                        {statusTabs.map(tab => (
-                            <button key={tab.key} onClick={() => setStatusFilter(tab.key)}
-                                className={`px-5 py-2.5 rounded-xl text-xs md:text-sm font-bold whitespace-nowrap transition-all border shrink-0 ${statusFilter === tab.key ? 'bg-gray-900 text-white border-gray-900 shadow-lg shadow-gray-900/20' : 'bg-gray-50 text-gray-600 border-gray-200 hover:border-gray-400 hover:bg-white'}`}>
-                                {tab.label}
-                            </button>
-                        ))}
+    return (
+        <div className="flex-1 overflow-y-auto" dir="rtl" style={{ fontFamily: "'IBM Plex Sans Arabic', sans-serif" }}>
+            {/* Page Header */}
+            <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-4 mb-8">
+                <div>
+                    <div className="flex items-center gap-3 mb-2">
+                        <Megaphone className="text-[#004ac6] w-8 h-8 md:w-[36px] md:h-[36px]" />
+                        <h1 className="text-2xl md:text-3xl font-semibold text-[#141b2b]">المركز الإعلاني المباشر</h1>
                     </div>
+                    <p className="text-base text-[#434655]">مراقبة ومراجعة وتوجيه جميع الحملات الإعلانية النشطة والمتوقفة ضمن الشبكة.</p>
+                </div>
+                {can('create_campaigns') && (
+                    <button onClick={() => navigate('/dashboard/ads/create')}
+                        className="bg-[#004ac6] hover:bg-[#2563eb] text-white px-6 py-3 rounded-lg text-sm font-medium flex items-center justify-center gap-2 shadow-sm transition-all hover:shadow-md">
+                        <Plus className="w-5 h-5" />
+                        إطلاق حملة جديدة
+                    </button>
+                )}
+            </div>
 
-                    <div className="flex items-center gap-3 shrink-0">
-                        <span className="text-xs font-black text-gray-400 uppercase tracking-wider bg-gray-50 px-3 py-2.5 rounded-xl border border-gray-100">التصنيف</span>
-                        <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} className="px-4 py-2.5 bg-white text-gray-900 border border-gray-200 rounded-xl text-sm font-bold focus:outline-none focus:border-[var(--color-dark-turquoise)] focus:ring-4 focus:ring-[var(--color-dark-turquoise)]/10 transition-all cursor-pointer">
+            {/* Stats Summary Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
+                {/* Total Transactions */}
+                <div className="bg-white rounded-[16px] p-6 border border-[#E5E7EB] flex flex-col justify-between items-center text-center shadow-sm">
+                    <div className="w-12 h-12 rounded-full bg-[#f1f3ff] flex items-center justify-center mb-4">
+                        <Layers className="text-[#004ac6] w-6 h-6" />
+                    </div>
+                    <p className="text-sm font-medium text-[#434655] mb-1">إجمالي المعاملات</p>
+                    <h3 className="text-5xl font-bold text-[#141b2b]">{stats.total}</h3>
+                </div>
+
+                {/* Active Campaigns */}
+                <div className="bg-white rounded-[16px] p-6 border border-[#E5E7EB] flex flex-col justify-between items-center text-center shadow-sm">
+                    <div className="w-12 h-12 rounded-full bg-[#E0F2FE] flex items-center justify-center mb-4">
+                        <Activity className="text-[#0284C7] w-6 h-6" />
+                    </div>
+                    <p className="text-sm font-medium text-[#434655] mb-1">يتم بثها حالياً</p>
+                    <h3 className="text-5xl font-bold text-[#141b2b]">{stats.active}</h3>
+                </div>
+
+                {/* Pending Approval */}
+                <div className="bg-white rounded-[16px] p-6 border border-[#E5E7EB] flex flex-col justify-between items-center text-center shadow-sm">
+                    <div className="w-12 h-12 rounded-full bg-[#FEF3C7] flex items-center justify-center mb-4">
+                        <Clock className="text-[#D97706] w-6 h-6" />
+                    </div>
+                    <p className="text-sm font-medium text-[#434655] mb-1">تنتظر الاعتماد</p>
+                    <h3 className="text-5xl font-bold text-[#141b2b]">{stats.pending}</h3>
+                </div>
+
+                {/* Rejected Ads */}
+                <div className="bg-white rounded-[16px] p-6 border border-[#E5E7EB] flex flex-col justify-between items-center text-center shadow-sm">
+                    <div className="w-12 h-12 rounded-full bg-[#ffdad6] flex items-center justify-center mb-4">
+                        <Ban className="text-[#ba1a1a] w-6 h-6" />
+                    </div>
+                    <p className="text-sm font-medium text-[#434655] mb-1">إعلانات مرفوضة</p>
+                    <h3 className="text-5xl font-bold text-[#141b2b]">{stats.rejected}</h3>
+                </div>
+
+                {/* Stopped Campaigns */}
+                <div className="bg-white rounded-[16px] p-6 border border-[#E5E7EB] flex flex-col justify-between items-center text-center shadow-sm">
+                    <div className="w-12 h-12 rounded-full bg-[#dce2f7] flex items-center justify-center mb-4">
+                        <PauseCircle className="text-[#434655] w-6 h-6" />
+                    </div>
+                    <p className="text-sm font-medium text-[#434655] mb-1">حملات متوقفة</p>
+                    <h3 className="text-5xl font-bold text-[#141b2b]">{stats.paused}</h3>
+                </div>
+            </div>
+
+            {/* Filters Bar */}
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
+                <div className="flex overflow-x-auto gap-2 bg-white p-1 rounded-lg border border-[#E5E7EB] w-full lg:w-auto">
+                    {statusTabs.map(tab => (
+                        <button key={tab.key} onClick={() => setStatusFilter(tab.key)}
+                            className={`px-4 py-2 rounded text-sm font-medium whitespace-nowrap transition-colors ${statusFilter === tab.key ? 'bg-[#111827] text-white' : 'text-[#434655] hover:bg-[#f1f3ff]'}`}>
+                            {tab.label}
+                        </button>
+                    ))}
+                </div>
+                <div className="flex flex-col sm:flex-row gap-3">
+                    <div className="relative">
+                        <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} className="appearance-none bg-white border border-[#E5E7EB] text-[#141b2b] text-base rounded-lg pl-10 pr-4 py-2.5 outline-none focus:border-[#004ac6] focus:ring-1 focus:ring-[#004ac6] w-full sm:w-48 cursor-pointer">
                             <option value="all">كافة التصنيفات والمجالات</option>
                             {uniqueCategories.map(c => (
                                 <option key={c.category_id} value={c.category_id}>{c.category_name}</option>
                             ))}
                         </select>
+                        <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-[#434655] pointer-events-none w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
                     </div>
                 </div>
+            </div>
 
-                <div className="rounded-2xl border border-gray-100 overflow-hidden bg-gray-50/20 shadow-inner min-h-[400px]">
-                    <DataTable 
-                        columns={mappedColumns} 
-                        data={filteredAds} 
-                        loading={loading} 
-                        emptyMessage={
-                            <div className="flex flex-col items-center justify-center py-20 text-center">
-                                <div className="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center mb-6 border border-gray-100 shadow-sm relative">
-                                    <div className="absolute inset-0 bg-gray-200 rounded-full animate-ping opacity-20"></div>
-                                    <Megaphone className="w-10 h-10 text-gray-300" />
-                                </div>
-                                <h4 className="text-xl font-black text-gray-900 mb-2">لا توجد حملات مسجلة هنا</h4>
-                                <p className="text-sm font-medium text-gray-500 max-w-[320px] mx-auto">
-                                    حاول تغيير الفلاتر الحالية للبحث، أو ابدأ بإطلاق حملتك الإعلانية الأولى فوراً عبر لوحة التحكم.
-                                </p>
-                            </div>
-                        } 
-                    />
+            {/* Data Table */}
+            <div className="bg-surface-container-lowest rounded-2xl border border-border-color overflow-hidden shadow-sm">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-right font-sans">
+                        <thead>
+                            <tr className="bg-surface-container-low border-b border-border-color">
+                                <th className="py-4 px-6 font-label-md text-label-md text-on-surface font-bold whitespace-nowrap">العنوان</th>
+                                <th className="py-4 px-6 font-label-md text-label-md text-on-surface font-bold whitespace-nowrap">المعلن</th>
+                                <th className="py-4 px-6 font-label-md text-label-md text-on-surface font-bold whitespace-nowrap">التصنيف</th>
+                                <th className="py-4 px-6 font-label-md text-label-md text-on-surface font-bold whitespace-nowrap text-center">الحالة</th>
+                                <th className="py-4 px-6 font-label-md text-label-md text-on-surface font-bold whitespace-nowrap">التكلفة</th>
+                                <th className="py-4 px-6 font-label-md text-label-md text-on-surface font-bold whitespace-nowrap text-center">التكرار (د)</th>
+                                <th className="py-4 px-6 font-label-md text-label-md text-on-surface font-bold whitespace-nowrap text-center">المدة (ث)</th>
+                                <th className="py-4 px-6 font-label-md text-label-md text-on-surface font-bold whitespace-nowrap text-center">الحجم</th>
+                                <th className="py-4 px-6 font-label-md text-label-md text-on-surface font-bold whitespace-nowrap">من</th>
+                                <th className="py-4 px-6 font-label-md text-label-md text-on-surface font-bold whitespace-nowrap">إلى</th>
+                                <th className="py-4 px-6 font-label-md text-label-md text-on-surface font-bold whitespace-nowrap text-center">إجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-outline-variant/30">
+                            {!loading && filteredAds.length === 0 ? (
+                                <tr>
+                                    <td colSpan="11" className="py-16 text-center">
+                                        <div className="flex flex-col items-center justify-center">
+                                            <div className="w-20 h-20 bg-surface-container rounded-full flex items-center justify-center mb-5 border border-outline-variant">
+                                                <Megaphone className="w-8 h-8 text-outline" />
+                                            </div>
+                                            <h4 className="font-title-lg text-title-lg text-on-background font-bold mb-2">لا توجد حملات مسجلة هنا</h4>
+                                            <p className="font-body-md text-body-md text-on-surface-variant">حاول تغيير الفلاتر الحالية للبحث، أو ابدأ بإطلاق حملتك الإعلانية.</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ) : (
+                                filteredAds.map(row => (
+                                    <tr key={row.ad_id} className="hover:bg-surface-container-low transition-colors group">
+                                        <td className="py-4 px-6">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-lg bg-primary-container text-primary flex items-center justify-center flex-shrink-0">
+                                                    <Megaphone className="w-4 h-4" />
+                                                </div>
+                                                <span className="font-label-lg text-label-lg text-on-background font-bold whitespace-nowrap">{row.title}</span>
+                                            </div>
+                                        </td>
+                                        <td className="py-4 px-6">
+                                            <div className="flex items-center gap-2 text-on-surface-variant">
+                                                <User className="w-4 h-4" />
+                                                <span className="font-body-sm text-body-sm whitespace-nowrap">{row.advertiser?.full_name || 'غير محدد'}</span>
+                                            </div>
+                                        </td>
+                                        <td className="py-4 px-6">
+                                            <div className="inline-flex items-center gap-1.5 bg-surface-container px-2.5 py-1 rounded-md border border-outline-variant text-on-surface-variant whitespace-nowrap">
+                                                <Layers className="w-3.5 h-3.5" />
+                                                <span className="font-body-sm text-body-sm">{row.category?.category_name || 'عام'}</span>
+                                            </div>
+                                        </td>
+                                        <td className="py-4 px-6 text-center">
+                                            {renderStatusBadge(row.status)}
+                                        </td>
+                                        <td className="py-4 px-6 font-label-lg text-label-lg text-primary font-bold">${row.total_cost || 0}</td>
+                                        <td className="py-4 px-6 text-center">
+                                            <span className="inline-flex px-2 py-1 bg-surface border border-outline-variant rounded-md text-on-surface-variant font-body-sm text-body-sm whitespace-nowrap shadow-sm">
+                                                كل {row.daily_frequency || '—'} د
+                                            </span>
+                                        </td>
+                                        <td className="py-4 px-6 text-center font-caption text-caption text-on-background">{row.duration ? `${row.duration}s` : '—'}</td>
+                                        <td className="py-4 px-6 text-center font-caption text-caption text-on-surface-variant whitespace-nowrap">
+                                            {row.file_size ? `${row.file_size} MB` : '—'}
+                                        </td>
+                                        <td className="py-4 px-6 font-caption text-caption text-on-surface-variant whitespace-nowrap" dir="ltr">{row.start_date || '—'}</td>
+                                        <td className="py-4 px-6 font-caption text-caption text-on-surface-variant whitespace-nowrap" dir="ltr">{row.end_date || '—'}</td>
+                                        <td className="py-4 px-6">
+                                            <div className="flex items-center justify-center gap-1.5 flex-nowrap w-max mx-auto">
+                                                {/* عرض التفاصيل */}
+                                                <button onClick={(e) => { e.stopPropagation(); setDetailsModal({ open: true, ad: row }) }} 
+                                                    className="w-9 h-9 flex-shrink-0 rounded-xl border border-outline-variant flex items-center justify-center text-on-surface-variant hover:text-primary hover:bg-primary-container hover:border-primary transition-all bg-surface shadow-sm group/btn" title="استعراض التفاصيل">
+                                                    <Eye className="w-[18px] h-[18px] transition-transform group-hover/btn:scale-110" />
+                                                </button>
+                                                
+                                                {/* أوامر الرقابة (القبول/الرفض) */}
+                                                {can('approve_ads') && row.status === 'Pending' && (
+                                                    <>
+                                                        <button onClick={(e) => { e.stopPropagation(); setApproveModal({ open: true, ad: row, action: 'Active' }) }} 
+                                                            className="w-9 h-9 flex-shrink-0 rounded-xl border border-outline-variant flex items-center justify-center text-on-surface-variant hover:text-emerald-700 hover:bg-emerald-100 hover:border-emerald-500 transition-all bg-surface shadow-sm group/btn" title="الموافقة">
+                                                            <CheckCircle className="w-[18px] h-[18px] transition-transform group-hover/btn:scale-110" />
+                                                        </button>
+                                                        <button onClick={(e) => { e.stopPropagation(); setApproveModal({ open: true, ad: row, action: 'Rejected' }) }} 
+                                                            className="w-9 h-9 flex-shrink-0 rounded-xl border border-outline-variant flex items-center justify-center text-on-surface-variant hover:text-error hover:bg-error-container hover:border-error transition-all bg-surface shadow-sm group/btn" title="رفض">
+                                                            <XCircle className="w-[18px] h-[18px] transition-transform group-hover/btn:scale-110" />
+                                                        </button>
+                                                    </>
+                                                )}
+                                                
+                                                {/* أوامر الإيقاف والاستئناف */}
+                                                {(can('approve_ads') || can('manage_all')) && row.status === 'Active' && (
+                                                    <button onClick={(e) => { e.stopPropagation(); setApproveModal({ open: true, ad: row, action: 'Paused' }) }} 
+                                                        className="w-9 h-9 flex-shrink-0 rounded-xl border border-outline-variant flex items-center justify-center text-on-surface-variant hover:text-amber-700 hover:bg-amber-100 hover:border-amber-500 transition-all bg-surface shadow-sm group/btn" title="إيقاف مؤقت">
+                                                        <PauseCircle className="w-[18px] h-[18px] transition-transform group-hover/btn:scale-110" />
+                                                    </button>
+                                                )}
+                                                
+                                                {(can('approve_ads') || can('manage_all')) && row.status === 'Paused' && (
+                                                    <button onClick={(e) => { e.stopPropagation(); setApproveModal({ open: true, ad: row, action: 'Active' }) }} 
+                                                        className="w-9 h-9 flex-shrink-0 rounded-xl border border-outline-variant flex items-center justify-center text-on-surface-variant hover:text-primary hover:bg-primary-container hover:border-primary transition-all bg-surface shadow-sm group/btn" title="استئناف">
+                                                        <PlayCircle className="w-[18px] h-[18px] transition-transform group-hover/btn:scale-110" />
+                                                    </button>
+                                                )}
+                                                
+                                                {/* الدفع (Stripe) */}
+                                                {(isAdvertiser || isAdmin) && row.status === 'waiting_payment' && (
+                                                    <button onClick={(e) => { e.stopPropagation(); setStripeModal({ open: true, ad: row }) }} 
+                                                        className="w-9 h-9 flex-shrink-0 rounded-xl border border-border-color flex items-center justify-center text-[#8B5CF6] hover:bg-[#8B5CF6]/10 hover:border-[#8B5CF6] transition-all bg-surface shadow-sm group/btn" title="سداد (Stripe)">
+                                                        <CreditCard className="w-[18px] h-[18px] transition-transform group-hover/btn:scale-110" />
+                                                    </button>
+                                                )}
+                                                
+                                                {/* الحذف النهائي */}
+                                                <button onClick={(e) => { e.stopPropagation(); setDeleteTarget(row.ad_id) }} 
+                                                    className="w-9 h-9 flex-shrink-0 rounded-xl border border-outline-variant flex items-center justify-center text-on-surface-variant hover:text-error hover:bg-error-container hover:border-error transition-all bg-surface shadow-sm group/btn" title="حذف">
+                                                    <Trash2 className="w-[18px] h-[18px] transition-transform group-hover/btn:scale-110" />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
             {/* Approve/Reject Modal */}
             <Modal isOpen={approveModal.open} onClose={() => { setApproveModal({ open: false, ad: null, action: '' }); setRejectReason(''); }}
                 title={approveModal.action === 'Active' ? 'الموافقة على الحملة' : approveModal.action === 'Paused' ? 'إيقاف البث مؤقتاً' : 'قرارات الرقابة (رفض الإعلان)'}>
-                <div className="space-y-6" dir="rtl">
-                    <div className={`p-4 rounded-xl border ${approveModal.action === 'Active' ? 'bg-emerald-50 border-emerald-100' : approveModal.action === 'Paused' ? 'bg-amber-50 border-amber-100' : 'bg-rose-50 border-rose-100'}`}>
-                        <div className="flex gap-3">
-                            {approveModal.action === 'Active' ? <CheckCircle className="w-6 h-6 text-emerald-600 shrink-0" /> : approveModal.action === 'Paused' ? <PauseCircle className="w-6 h-6 text-amber-600 shrink-0" /> : <Ban className="w-6 h-6 text-rose-600 shrink-0" />}
-                            <p className={`text-sm font-bold ${approveModal.action === 'Active' ? 'text-emerald-800' : approveModal.action === 'Paused' ? 'text-amber-800' : 'text-rose-800'} leading-relaxed`}>
+                <div className="space-y-6 font-sans" dir="rtl">
+                    <div className={`p-5 rounded-2xl border flex gap-4 ${approveModal.action === 'Active' ? 'bg-emerald-50 border-emerald-200' : approveModal.action === 'Paused' ? 'bg-amber-50 border-amber-200' : 'bg-error-container border-error/20'}`}>
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${approveModal.action === 'Active' ? 'bg-emerald-100 text-emerald-600' : approveModal.action === 'Paused' ? 'bg-amber-100 text-amber-600' : 'bg-error text-white'}`}>
+                            {approveModal.action === 'Active' ? <CheckCircle className="w-5 h-5" /> : approveModal.action === 'Paused' ? <PauseCircle className="w-5 h-5" /> : <Ban className="w-5 h-5" />}
+                        </div>
+                        <div>
+                            <span className={`block font-label-lg text-label-lg mb-1 ${approveModal.action === 'Active' ? 'text-emerald-700' : approveModal.action === 'Paused' ? 'text-amber-700' : 'text-error'}`}>
+                                إقرار نهائي للإجراء
+                            </span>
+                            <p className="font-body-md text-body-md text-on-surface-variant leading-relaxed">
                                 {approveModal.action === 'Active'
                                     ? `أنت على وشك اعتماد الحملة "${approveModal.ad?.title}" وبدء البث الفوري لها على الشاشات بناءً على الجدول الزمني المسجل.`
                                     : approveModal.action === 'Paused'
                                     ? `هل أنت متأكد من إيقاف البث مؤقتاً للحملة "${approveModal.ad?.title}"؟ لن يتم عرضها على الشاشات حتى استئنافها.`
-                                    : `سيتم رفض حملة "${approveModal.ad?.title}" وإعادتها للمعلن بانتظار تعديلها. يرجى توضيح التجاوزات ليتمكن المعلن من إصلاحها.`}
+                                    : `سيتم إرجاع حملة "${approveModal.ad?.title}" للمعلن نظراً لوجود تجاوزات. يرجى توضيحها أدناه بوضوح.`}
                             </p>
                         </div>
                     </div>
 
                     {approveModal.action === 'Rejected' && (
                         <div className="space-y-2">
-                            <label className="text-[11px] font-black text-gray-500 uppercase tracking-wider block px-1">سبب تعليق وإيقاف الحملة رقابياً <span className="text-red-500">*</span></label>
-                            <textarea value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} placeholder="مثال: التصميم يحتوي مساحات فارغة كبيرة، أو يخالف الشروط والأحكام الخاصة بالمحتوى الصوتي..."
-                                className="w-full bg-white border border-gray-200 rounded-xl py-3.5 px-4 text-sm font-bold text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-4 focus:ring-red-500/10 focus:border-red-500 transition-all min-h-[120px] resize-none" required />
+                            <label className="font-label-md text-label-md text-on-surface block px-1">سبب تعليق وإيقاف الحملة رقابياً <span className="text-error">*</span></label>
+                            <textarea value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} placeholder="مثال: التصميم يخالف الشروط والأحكام الخاصة بالمحتوى..."
+                                className="w-full bg-surface border border-outline-variant rounded-xl py-3.5 px-4 font-body-md text-body-md text-on-background placeholder-outline focus:outline-none focus:ring-1 focus:ring-error focus:border-error transition-all min-h-[120px] resize-none" required />
                         </div>
                     )}
                     
                     <button onClick={handleStatusChange}
-                        className={`w-full font-black py-4 rounded-xl transition-all text-white shadow-lg ${approveModal.action === 'Active' ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20' : approveModal.action === 'Paused' ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/20' : 'bg-red-600 hover:bg-red-700 shadow-red-600/20'}`}>
+                        className={`w-full font-label-lg text-label-lg py-4 rounded-xl transition-all shadow-sm ${approveModal.action === 'Active' ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : approveModal.action === 'Paused' ? 'bg-amber-600 hover:bg-amber-700 text-white' : 'bg-error hover:bg-error/90 text-on-error'}`}>
                         {approveModal.action === 'Active' ? 'اعتماد العرض الآن' : approveModal.action === 'Paused' ? 'تأكيد الإيقاف' : 'إصدار قرار الرفض'}
                     </button>
                 </div>
@@ -360,98 +394,87 @@ const AdsPage = () => {
             {/* View Details Modal */}
             <Modal isOpen={detailsModal.open} onClose={() => setDetailsModal({ open: false, ad: null })} title="البطاقة التعريفية للحملة">
                 {detailsModal.ad && (
-                    <div className="space-y-6" dir="rtl">
-                        <div className="flex items-start justify-between bg-white border border-gray-100 p-5 rounded-2xl shadow-sm">
+                    <div className="space-y-6 font-sans bg-surface" dir="rtl">
+                        <div className="flex items-start justify-between bg-surface-container-lowest border border-outline-variant p-5 rounded-2xl shadow-sm">
                             <div className="space-y-1.5 flex-1 pr-2">
-                                <h2 className="text-lg font-black text-gray-900">{detailsModal.ad.title}</h2>
-                                <div className="flex items-center gap-2 text-sm text-gray-500">
+                                <h2 className="font-title-lg text-title-lg text-on-background font-bold">{detailsModal.ad.title}</h2>
+                                <div className="flex items-center gap-2 font-body-sm text-body-sm text-on-surface-variant">
                                     <User className="w-4 h-4" />
-                                    <span className="font-bold">{detailsModal.ad.advertiser?.full_name || 'غير معروف'}</span>
+                                    <span>{detailsModal.ad.advertiser?.full_name || 'غير معروف'}</span>
                                 </div>
                             </div>
-                            <StatusBadge status={detailsModal.ad.status} />
+                            {renderStatusBadge(detailsModal.ad.status)}
                         </div>
 
                         {detailsModal.ad.rejection_reason && detailsModal.ad.status === 'Rejected' && (
-                            <div className="bg-rose-50 p-4 rounded-2xl border border-rose-200 text-rose-800 flex gap-3 shadow-inner">
-                                <Ban className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
+                            <div className="bg-error-container p-4 rounded-2xl border border-error/20 flex gap-3 shadow-inner">
+                                <Ban className="w-5 h-5 text-error shrink-0 mt-0.5" />
                                 <div>
-                                    <span className="block text-xs font-black mb-1.5 uppercase tracking-wider text-rose-600">رسالة الرقابة</span>
-                                    <p className="text-sm font-bold leading-relaxed">{detailsModal.ad.rejection_reason}</p>
+                                    <span className="block font-label-sm text-label-sm text-error uppercase tracking-wider mb-1">رسالة الإدارة الرقابية</span>
+                                    <p className="font-body-sm text-body-sm text-on-error-container leading-relaxed">{detailsModal.ad.rejection_reason}</p>
                                 </div>
                             </div>
                         )}
 
-                        <div className="grid grid-cols-2 gap-4 text-sm bg-gray-50/70 p-5 rounded-2xl border border-gray-200">
-                            <div className="space-y-1">
-                                <span className="text-gray-400 block text-[10px] font-black uppercase tracking-wider">التصنيف الإعلاني</span>
-                                <span className="font-bold text-gray-800 bg-white px-2.5 py-1 rounded border border-gray-200 shadow-sm inline-block">{detailsModal.ad.category?.category_name || '—'}</span>
+                        <div className="grid grid-cols-2 gap-4 bg-surface-container-low p-5 rounded-2xl border border-outline-variant">
+                            <div className="space-y-1.5">
+                                <span className="font-caption text-caption text-on-surface-variant uppercase tracking-wider block">التصنيف الإعلاني</span>
+                                <span className="font-label-md text-label-md text-on-surface bg-surface px-3 py-1.5 rounded-lg border border-outline-variant shadow-sm inline-block">{detailsModal.ad.category?.category_name || '—'}</span>
                             </div>
-                            <div className="space-y-1">
-                                <span className="text-gray-400 block text-[10px] font-black uppercase tracking-wider">الميزانية المرصودة</span>
-                                <span className="font-black text-[var(--color-dark-turquoise)] flex items-center gap-1">
-                                    <DollarSign className="w-4 h-4" />
+                            <div className="space-y-1.5">
+                                <span className="font-caption text-caption text-on-surface-variant uppercase tracking-wider block">الميزانية المرصودة</span>
+                                <span className="font-title-md text-title-md text-primary font-black flex items-center gap-1">
+                                    <DollarSign className="w-5 h-5" />
                                     {detailsModal.ad.total_cost || 0}
                                 </span>
                             </div>
-                            <div className="space-y-1">
-                                <span className="text-gray-400 block text-[10px] font-black uppercase tracking-wider">معدل البث</span>
-                                <span className="font-bold text-gray-800 flex items-center gap-1">
-                                    <Activity className="w-4 h-4 text-gray-400" />
+                            <div className="space-y-1 mt-2">
+                                <span className="font-caption text-caption text-on-surface-variant uppercase tracking-wider block">معدل البث</span>
+                                <span className="font-body-md text-body-md text-on-background flex items-center gap-1.5 border border-outline-variant/50 bg-surface rounded p-1.5">
+                                    <Activity className="w-4 h-4 text-primary" />
                                     كل {detailsModal.ad.daily_frequency || '—'} دقيقة
                                 </span>
                             </div>
-                            <div className="space-y-1">
-                                <span className="text-gray-400 block text-[10px] font-black uppercase tracking-wider">طول الشريط / المقطع</span>
-                                <span className="font-bold text-gray-800 flex items-center gap-1" dir="ltr">
-                                    <Clock className="w-4 h-4 text-gray-400" />
+                            <div className="space-y-1 mt-2">
+                                <span className="font-caption text-caption text-on-surface-variant uppercase tracking-wider block">طول الشريط / المقطع</span>
+                                <span className="font-body-md text-body-md text-on-background flex items-center gap-1.5 border border-outline-variant/50 bg-surface rounded p-1.5" dir="ltr">
+                                    <Clock className="w-4 h-4 text-primary" />
                                     {detailsModal.ad.duration ? `${detailsModal.ad.duration}s` : '—'}
                                 </span>
                             </div>
-                            <div className="col-span-2 grid grid-cols-2 gap-4 pt-4 border-t border-gray-200 mt-2">
-                                <div className="space-y-1.5">
-                                    <span className="text-gray-400 block text-[10px] font-black uppercase tracking-wider flex items-center gap-1">
-                                        <Calendar className="w-3 h-3" /> الإنطلاق
+                            
+                            <div className="col-span-2 grid grid-cols-2 gap-4 pt-5 mt-3 border-t border-outline-variant">
+                                <div className="space-y-2">
+                                    <span className="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-1.5">
+                                        <div className="w-6 h-6 rounded-md bg-secondary/10 text-secondary flex items-center justify-center">
+                                            <Calendar className="w-3.5 h-3.5" />
+                                        </div>
+                                        تاريخ الانطلاق
                                     </span>
-                                    <span className="font-bold text-gray-800 block text-xs" dir="ltr">{detailsModal.ad.start_date || '—'}</span>
+                                    <span className="font-body-lg text-body-lg text-on-background font-bold block pl-8" dir="ltr">{detailsModal.ad.start_date || '—'}</span>
                                 </div>
-                                <div className="space-y-1.5 border-r border-gray-200 pr-4">
-                                    <span className="text-gray-400 block text-[10px] font-black uppercase tracking-wider flex items-center gap-1">
-                                        <Calendar className="w-3 h-3" /> التوقف
+                                <div className="space-y-2 border-r border-outline-variant pr-4">
+                                    <span className="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-1.5">
+                                        <div className="w-6 h-6 rounded-md bg-error/10 text-error flex items-center justify-center">
+                                            <Calendar className="w-3.5 h-3.5" />
+                                        </div>
+                                        تاريخ التوقف
                                     </span>
-                                    <span className="font-bold text-gray-800 block text-xs" dir="ltr">{detailsModal.ad.end_date || '—'}</span>
+                                    <span className="font-body-lg text-body-lg text-on-background font-bold block pl-8" dir="ltr">{detailsModal.ad.end_date || '—'}</span>
                                 </div>
                             </div>
                         </div>
 
-                        <div>
-                            <span className="block text-[11px] font-black text-gray-500 uppercase tracking-wider mb-3 px-1">أسطول الشاشات المستهدف ({detailsModal.ad.screens?.length || 0})</span>
-                            {detailsModal.ad.screens && detailsModal.ad.screens.length > 0 ? (
-                                <div className="flex flex-wrap gap-2 p-4 bg-gray-50 border border-gray-200 rounded-2xl shadow-inner max-h-[160px] overflow-y-auto custom-scrollbar">
-                                    {detailsModal.ad.screens.map(s => (
-                                        <span key={s.screen_id} className="bg-white text-gray-700 px-3.5 py-2 rounded-xl text-xs font-bold border border-gray-300 shadow-sm flex items-center gap-2 hover:border-gray-400 cursor-default transition-colors">
-                                            <MonitorSmartphone className="w-3 h-3 text-gray-400" />
-                                            {s.screen_name}
-                                        </span>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="bg-gray-50 border border-gray-200 rounded-2xl p-6 text-center shadow-inner">
-                                    <Info className="w-6 h-6 text-gray-300 mx-auto mb-2" />
-                                    <span className="text-sm font-bold text-gray-400">لم يتم تحديد شاشات مستهدفة لهذه الحملة</span>
-                                </div>
-                            )}
-                        </div>
-
-                        <button onClick={() => setDetailsModal({ open: false, ad: null })} className="w-full mt-2 bg-gray-100 text-gray-700 font-black py-4 rounded-xl border border-gray-200 hover:bg-gray-200 transition-colors shadow-sm focus:outline-none">
-                            إغلاق نافذة التفاصيل
+                        <button onClick={() => setDetailsModal({ open: false, ad: null })} 
+                            className="w-full mt-4 bg-surface border border-outline text-on-surface hover:bg-surface-container hover:text-primary font-label-lg text-label-lg py-3.5 rounded-xl shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-primary">
+                            إغلاق البطاقة
                         </button>
                     </div>
                 )}
             </Modal>
 
             <ConfirmDialog isOpen={!!deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={handleDelete}
-                title="إتلاف وحذف الحملة الإعلانية" message="هل أنت متأكد من رغبتك في حذف هذا الإعلان من سجلات النظام نهائياً؟ في حال حذفه لن تتمكن من استرجاع البيانات المالية والتقارير المرتبطة به. الإجراء دائم المفعول." confirmText="نعم، موافق على الإتلاف" />
+                title="حذف الحملة الإعلانية" message="هل أنت متأكد من رغبتك في حذف هذا الإعلان من سجلات النظام نهائياً؟" confirmText="نعم، موافق على الإتلاف" />
 
             <StripePaymentModal
                 isOpen={stripeModal.open}

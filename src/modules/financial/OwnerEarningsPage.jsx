@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Banknote, DollarSign, ArrowDownCircle } from 'lucide-react';
 import axiosClient from '../../core/api/axiosClient';
 import { ENDPOINTS } from '../../core/api/endpoints';
+import DynamicPageLoader from '../../shared/components/DynamicPageLoader';
 
 const OwnerEarningsPage = () => {
     const [data, setData] = useState(null);
@@ -13,7 +14,18 @@ const OwnerEarningsPage = () => {
         fetch();
     }, []);
 
-    if (loading) return <div className="flex justify-center py-20"><div className="w-10 h-10 border-4 border-white/10 border-t-indigo-500 rounded-full animate-spin"></div></div>;
+    if (loading) return (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-center py-20">
+            <DynamicPageLoader 
+                messages={[
+                    "جاري التحقق من الأرباح المعتمدة...", 
+                    "يتم حساب إجمالي الرصيد المسحوب...",
+                    "لحظات ونعرض لك سجلاتك المالية..."
+                ]}
+                icon="account_balance_wallet"
+            />
+        </motion.div>
+    );
 
     return (
         <div className="space-y-6" dir="rtl">

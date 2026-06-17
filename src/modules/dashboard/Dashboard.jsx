@@ -1,671 +1,950 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Monitor, PlayCircle, DollarSign, Users, AlertCircle, RefreshCw, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Monitor, PlayCircle, DollarSign, Users, AlertCircle, RefreshCw, Search, ChevronLeft, ChevronRight, TrendingUp, Info, CalendarDays, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axiosClient from '../../core/api/axiosClient';
 import { ENDPOINTS } from '../../core/api/endpoints';
 import useToastStore from '../../store/useToastStore';
 
-/* ── Colour palette matching the reference image ── */
-const C = {
-  darkGreen : '#1c3a2d',
-  midGreen  : '#2e5e45',
-  cream     : '#f7f2e8',
-  cardBg    : '#faf6ec',
-  gold      : '#c8a84b',
-  goldLight : '#e6d08a',
-  goldDark  : '#9a7b2e',
-  border    : '#d4c07a',
-  textDark  : '#1e2a1a',
-  textMid   : '#4a6340',
-  textLight : '#8a9e7a',
-  white     : '#ffffff',
+/* ─── Stitch colour tokens ─── */
+const S = {
+    primary: '#004ac6',
+    primaryContainer: '#2563eb',
+    onPrimaryContainer: '#eeefff',
+    secondary: '#0060ac',
+    secondaryFixed: '#d4e3ff',
+    secondaryContainer: '#64a8fe',
+    onSecondaryContainer: '#003c70',
+    surface: '#f9f9ff',
+    surfaceContainerLowest: '#ffffff',
+    surfaceContainerLow: '#f1f3ff',
+    surfaceContainer: '#e9edff',
+    surfaceContainerHigh: '#e1e8fd',
+    surfaceContainerHighest: '#dce2f7',
+    onBackground: '#141b2b',
+    onSurface: '#141b2b',
+    onSurfaceVariant: '#434655',
+    outline: '#737686',
+    outlineVariant: '#c3c6d7',
+    primaryFixed: '#dbe1ff',
+    primaryFixedDim: '#b4c5ff',
+    error: '#ba1a1a',
+    errorContainer: '#ffdad6',
+    onError: '#ffffff',
 };
 
+/* ── Gov chart colours ── */
+const GOV_COLORS = [S.primaryContainer, S.secondaryContainer, S.secondaryFixed, '#adc6ff', '#64a8fe'];
+
 /* ══════════════════════════════════════════════════════
-   KPI CARD  (matches the gold-bordered cards in image)
+   KPI CARD  — Stitch style
 ══════════════════════════════════════════════════════ */
-const KpiCard = ({ label, sublabel, value, valueSmall, note, index }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.45, delay: index * 0.08 }}
-    whileHover={{ y: -4, boxShadow: '0 16px 40px -8px rgba(200,168,75,0.30)' }}
-    className="relative flex flex-col justify-between rounded-2xl overflow-hidden cursor-default select-none"
-    style={{
-      background : `linear-gradient(145deg, ${C.cardBg} 0%, #f0e8d0 100%)`,
-      border     : `1.5px solid ${C.border}`,
-      boxShadow  : '0 4px 18px -4px rgba(200,168,75,0.18)',
-      padding    : '18px 22px 16px',
-      minHeight  : '110px',
-    }}
-  >
-    {/* top gold accent strip */}
-    <div
-      style={{
-        position : 'absolute', top: 0, left: 0, right: 0, height: '3px',
-        background: `linear-gradient(90deg,${C.goldDark},${C.gold},${C.goldLight},${C.gold},${C.goldDark})`,
-      }}
-    />
-    {/* label row */}
-    <div className="flex items-center justify-between">
-      <p style={{ fontSize: '11px', fontWeight: 700, color: C.textMid, letterSpacing: '0.03em', direction: 'rtl' }}>
-        {label}
-      </p>
-      {sublabel && (
-        <p style={{ fontSize: '10px', color: C.textLight, fontStyle: 'italic' }}>{sublabel}</p>
-      )}
-    </div>
+const KpiCard = ({
+    label, sublabel, value, valueSmall,
+    note, noteIcon: NoteIcon, noteColor,
+    accentColor, iconBg, iconColor, Icon,
+    borderAccent, index,
+}) => (
+    <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: index * 0.07 }}
+        whileHover={{ y: -3, boxShadow: '0 8px 24px -4px rgba(0,74,198,0.14)' }}
+        style={{
+            background: S.surfaceContainerLowest,
+            border: `1px solid ${S.outlineVariant}`,
+            borderRadius: '16px',
+            padding: '22px 22px 18px',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            minHeight: '130px',
+            cursor: 'default',
+            transition: 'all 0.2s ease',
+            position: 'relative',
+            overflow: 'hidden',
+            borderRight: borderAccent ? `4px solid ${borderAccent}` : `1px solid ${S.outlineVariant}`,
+            direction: 'rtl',
+        }}
+    >
+        {/* header row */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px' }}>
+            <div>
+                <p style={{
+                    margin: 0, fontSize: '13px', fontWeight: 500,
+                    color: S.outline,
+                    fontFamily: "'IBM Plex Sans Arabic', sans-serif",
+                }}>
+                    {label}
+                </p>
+                {sublabel && (
+                    <p style={{ margin: '2px 0 0', fontSize: '10px', color: S.outlineVariant, fontFamily: "'IBM Plex Sans Arabic', sans-serif" }}>
+                        {sublabel}
+                    </p>
+                )}
+            </div>
+            {Icon && (
+                <div style={{
+                    width: 40, height: 40, borderRadius: '50%',
+                    background: iconBg || S.surfaceContainer,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0,
+                }}>
+                    <Icon style={{ width: 20, height: 20, color: iconColor || S.primaryContainer }} />
+                </div>
+            )}
+        </div>
 
-    {/* big number */}
-    <div className="flex items-baseline gap-1" style={{ direction: 'ltr' }}>
-      <span style={{ fontSize: '30px', fontWeight: 900, color: C.darkGreen, lineHeight: 1, letterSpacing: '-0.02em' }}>
-        {value}
-      </span>
-      {valueSmall && (
-        <span style={{ fontSize: '15px', fontWeight: 700, color: C.goldDark }}>{valueSmall}</span>
-      )}
-    </div>
-
-    {/* note */}
-    {note && (
-      <p style={{ fontSize: '10px', color: C.textLight, marginTop: '2px', direction: 'rtl' }}>{note}</p>
-    )}
-
-    {/* decorative circle */}
-    <div
-      style={{
-        position: 'absolute', bottom: '-20px', right: '-20px',
-        width: '70px', height: '70px', borderRadius: '50%',
-        background: `radial-gradient(circle,${C.gold}22,transparent 70%)`,
-      }}
-    />
-  </motion.div>
+        {/* value */}
+        <div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', direction: 'ltr' }}>
+                <span style={{
+                    fontSize: '36px', fontWeight: 700, lineHeight: 1,
+                    color: accentColor || S.onBackground,
+                    fontFamily: "'IBM Plex Sans Arabic', sans-serif",
+                    letterSpacing: '-0.02em',
+                }}>
+                    {value}
+                </span>
+                {valueSmall && (
+                    <span style={{ fontSize: '16px', fontWeight: 500, color: S.outline }}>
+                        {valueSmall}
+                    </span>
+                )}
+            </div>
+            {note && (
+                <div style={{
+                    display: 'flex', alignItems: 'center', gap: '4px',
+                    marginTop: '6px',
+                    color: noteColor || S.primaryContainer,
+                }}>
+                    {NoteIcon && <NoteIcon style={{ width: 14, height: 14 }} />}
+                    <span style={{ fontSize: '11px', fontFamily: "'IBM Plex Sans Arabic', sans-serif" }}>
+                        {note}
+                    </span>
+                </div>
+            )}
+        </div>
+    </motion.div>
 );
 
 /* ══════════════════════════════════════════════════════
-   WEEKLY REVENUE SVG CHART
+   WEEKLY REVENUE SVG CHART — Stitch blue palette
 ══════════════════════════════════════════════════════ */
 const WEEK_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 const WeeklyChart = ({ weeklyRevenue = [] }) => {
-  const svgRef = useRef(null);
-  const [tip, setTip] = useState(null);
+    const svgRef = useRef(null);
+    const [tip, setTip] = useState(null);
 
-  const W = 580, H = 200, pL = 52, pR = 16, pT = 16, pB = 32;
-  const iW = W - pL - pR, iH = H - pT - pB;
+    const W = 580, H = 220, pL = 52, pR = 16, pT = 16, pB = 32;
+    const iW = W - pL - pR, iH = H - pT - pB;
 
-  // API returns [{day, amount}] objects — normalise to {label, value}
-  const pts = weeklyRevenue.length > 0
-    ? weeklyRevenue.map(item => ({
-        label : item.day   ?? item.label ?? '',
-        value : Number(item.amount ?? item.value ?? item ?? 0),
-      }))
-    : WEEK_DAYS.map(d => ({ label: d, value: 0 }));
+    const pts = weeklyRevenue.length > 0
+        ? weeklyRevenue.map(item => ({
+            label: item.day ?? item.label ?? '',
+            value: Number(item.amount ?? item.value ?? item ?? 0),
+        }))
+        : WEEK_DAYS.map(d => ({ label: d, value: 0 }));
 
-  const maxV  = Math.max(...pts.map(p => p.value), 1);
-  const xOf   = i => pL + (i / (pts.length - 1)) * iW;
-  const yOf   = v => pT + iH - (v / maxV) * iH;
-  const coords = pts.map((p, i) => [xOf(i), yOf(p.value)]);
+    const maxV = Math.max(...pts.map(p => p.value), 1);
+    const xOf = i => pL + (i / (pts.length - 1)) * iW;
+    const yOf = v => pT + iH - (v / maxV) * iH;
+    const coords = pts.map((p, i) => [xOf(i), yOf(p.value)]);
 
-  /* smooth bezier */
-  const makePath = (arr) => {
-    if (arr.length < 2) return '';
-    let d = `M ${arr[0][0]} ${arr[0][1]}`;
-    for (let i = 0; i < arr.length - 1; i++) {
-      const mx = (arr[i][0] + arr[i + 1][0]) / 2;
-      d += ` C ${mx} ${arr[i][1]}, ${mx} ${arr[i + 1][1]}, ${arr[i + 1][0]} ${arr[i + 1][1]}`;
-    }
-    return d;
-  };
+    const makePath = (arr) => {
+        if (arr.length < 2) return '';
+        let d = `M ${arr[0][0]} ${arr[0][1]}`;
+        for (let i = 0; i < arr.length - 1; i++) {
+            const mx = (arr[i][0] + arr[i + 1][0]) / 2;
+            d += ` C ${mx} ${arr[i][1]}, ${mx} ${arr[i + 1][1]}, ${arr[i + 1][0]} ${arr[i + 1][1]}`;
+        }
+        return d;
+    };
 
-  const linePath  = makePath(coords);
-  const areaPath  = `${linePath} L ${coords[coords.length-1][0]} ${pT+iH} L ${coords[0][0]} ${pT+iH} Z`;
+    const linePath = makePath(coords);
+    const areaPath = `${linePath} L ${coords[coords.length - 1][0]} ${pT + iH} L ${coords[0][0]} ${pT + iH} Z`;
 
-  const yTicks = [0, 0.25, 0.5, 0.75, 1].map(r => ({
-    v : maxV * r,
-    y : pT + iH - r * iH,
-  }));
+    const yTicks = [0, 0.25, 0.5, 0.75, 1].map(r => ({
+        v: maxV * r,
+        y: pT + iH - r * iH,
+    }));
 
-  const onMove = (e) => {
-    const rect = svgRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    const mx = (e.clientX - rect.left) * (W / rect.width);
-    let best = 0;
-    coords.forEach((c, i) => { if (Math.abs(c[0] - mx) < Math.abs(coords[best][0] - mx)) best = i; });
-    setTip({ x: coords[best][0], y: coords[best][1], label: pts[best].label, value: pts[best].value });
-  };
+    const onMove = (e) => {
+        const rect = svgRef.current?.getBoundingClientRect();
+        if (!rect) return;
+        const mx = (e.clientX - rect.left) * (W / rect.width);
+        let best = 0;
+        coords.forEach((c, i) => { if (Math.abs(c[0] - mx) < Math.abs(coords[best][0] - mx)) best = i; });
+        setTip({ x: coords[best][0], y: coords[best][1], label: pts[best].label, value: pts[best].value });
+    };
 
-  return (
-    <div style={{ direction: 'ltr', width: '100%' }}>
-      <svg
-        ref={svgRef}
-        viewBox={`0 0 ${W} ${H}`}
-        style={{ width: '100%', overflow: 'visible' }}
-        onMouseMove={onMove}
-        onMouseLeave={() => setTip(null)}
-      >
-        <defs>
-          <linearGradient id="wkArea" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%"   stopColor={C.midGreen}  stopOpacity="0.6" />
-            <stop offset="60%"  stopColor={C.midGreen}  stopOpacity="0.25" />
-            <stop offset="100%" stopColor={C.cream}      stopOpacity="0" />
-          </linearGradient>
-          <linearGradient id="wkLine" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%"   stopColor={C.goldDark} />
-            <stop offset="50%"  stopColor={C.midGreen} />
-            <stop offset="100%" stopColor={C.goldDark} />
-          </linearGradient>
-          <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur stdDeviation="2.5" result="blur" />
-            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-          </filter>
-        </defs>
+    return (
+        <div style={{ direction: 'ltr', width: '100%' }}>
+            <svg
+                ref={svgRef}
+                viewBox={`0 0 ${W} ${H}`}
+                style={{ width: '100%', overflow: 'visible' }}
+                onMouseMove={onMove}
+                onMouseLeave={() => setTip(null)}
+            >
+                <defs>
+                    <linearGradient id="wkAreaStitch" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor={S.primaryContainer} stopOpacity="0.22" />
+                        <stop offset="70%" stopColor={S.primaryContainer} stopOpacity="0.06" />
+                        <stop offset="100%" stopColor={S.primaryContainer} stopOpacity="0" />
+                    </linearGradient>
+                    <filter id="glowStitch" x="-20%" y="-20%" width="140%" height="140%">
+                        <feGaussianBlur stdDeviation="2" result="blur" />
+                        <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+                    </filter>
+                </defs>
 
-        {/* grid */}
-        {yTicks.map((t, i) => (
-          <g key={i}>
-            <line x1={pL} y1={t.y} x2={W-pR} y2={t.y}
-              stroke={C.border} strokeOpacity="0.3" strokeDasharray="4 4" strokeWidth="1" />
-            <text x={pL-6} y={t.y+4} textAnchor="end" fontSize="9.5" fill={C.textLight} fontFamily="'Segoe UI',sans-serif">
-              {t.v >= 1000 ? `$${(t.v/1000).toFixed(1)}k` : `$${Math.round(t.v)}`}
-            </text>
-          </g>
-        ))}
+                {/* grid lines */}
+                {yTicks.map((t, i) => (
+                    <g key={i}>
+                        <line
+                            x1={pL} y1={t.y} x2={W - pR} y2={t.y}
+                            stroke={S.outlineVariant} strokeOpacity="0.5"
+                            strokeDasharray={i === 0 ? 'none' : '4 4'}
+                            strokeWidth="1"
+                        />
+                        <text x={pL - 6} y={t.y + 4} textAnchor="end" fontSize="9.5"
+                            fill={S.outline} fontFamily="'IBM Plex Sans Arabic',sans-serif">
+                            {t.v >= 1000 ? `$${(t.v / 1000).toFixed(1)}k` : `$${Math.round(t.v)}`}
+                        </text>
+                    </g>
+                ))}
 
-        {/* area */}
-        <path d={areaPath} fill="url(#wkArea)" />
+                {/* area fill */}
+                <path d={areaPath} fill="url(#wkAreaStitch)" />
 
-        {/* line */}
-        <path d={linePath} fill="none" stroke="url(#wkLine)" strokeWidth="2.5" strokeLinecap="round" filter="url(#glow)" />
+                {/* line */}
+                <path d={linePath} fill="none" stroke={S.primaryContainer} strokeWidth="2.5"
+                    strokeLinecap="round" filter="url(#glowStitch)" />
 
-        {/* dots */}
-        {coords.map(([x, y], i) => (
-          <g key={i}>
-            <circle cx={x} cy={y} r="6"  fill={C.cardBg}  stroke={C.gold} strokeWidth="2.5" />
-            <circle cx={x} cy={y} r="2.8" fill={C.gold} />
-          </g>
-        ))}
+                {/* dots */}
+                {coords.map(([x, y], i) => (
+                    <g key={i}>
+                        <circle cx={x} cy={y} r="5.5" fill={S.surfaceContainerLowest}
+                            stroke={S.primaryContainer} strokeWidth="2.5" />
+                        <circle cx={x} cy={y} r="2.5" fill={S.primaryContainer} />
+                    </g>
+                ))}
 
-        {/* x labels */}
-        {pts.map((p, i) => (
-          <text key={i} x={xOf(i)} y={H-4} textAnchor="middle" fontSize="10" fill={C.textMid} fontFamily="'Segoe UI',sans-serif">
-            {p.label}
-          </text>
-        ))}
+                {/* x-axis labels */}
+                {pts.map((p, i) => (
+                    <text key={i} x={xOf(i)} y={H - 4} textAnchor="middle" fontSize="10"
+                        fill={S.outline} fontFamily="'IBM Plex Sans Arabic',sans-serif">
+                        {p.label}
+                    </text>
+                ))}
 
-        {/* tooltip */}
-        {tip && (
-          <g>
-            <line x1={tip.x} y1={pT} x2={tip.x} y2={pT+iH}
-              stroke={C.gold} strokeOpacity="0.45" strokeDasharray="4 3" />
-            <circle cx={tip.x} cy={tip.y} r="8" fill={C.gold} fillOpacity="0.2" />
-            <circle cx={tip.x} cy={tip.y} r="4" fill={C.gold} />
-            <rect x={tip.x-36} y={tip.y-34} width="72" height="22" rx="6"
-              fill={C.darkGreen} stroke={C.gold} strokeWidth="1" />
-            <text x={tip.x} y={tip.y-19} textAnchor="middle" fontSize="11"
-              fill={C.white} fontWeight="bold" fontFamily="'Segoe UI',sans-serif">
-              ${tip.value.toLocaleString()}
-            </text>
-          </g>
-        )}
-      </svg>
-    </div>
-  );
+                {/* tooltip */}
+                {tip && (
+                    <g>
+                        <line x1={tip.x} y1={pT} x2={tip.x} y2={pT + iH}
+                            stroke={S.primaryContainer} strokeOpacity="0.35" strokeDasharray="4 3" />
+                        <circle cx={tip.x} cy={tip.y} r="8" fill={S.primaryContainer} fillOpacity="0.15" />
+                        <circle cx={tip.x} cy={tip.y} r="4" fill={S.primaryContainer} />
+                        <rect x={tip.x - 36} y={tip.y - 34} width="72" height="22" rx="6"
+                            fill={S.onBackground} stroke={S.primaryContainer} strokeWidth="1" />
+                        <text x={tip.x} y={tip.y - 19} textAnchor="middle" fontSize="11"
+                            fill="#fff" fontWeight="bold" fontFamily="'IBM Plex Sans Arabic',sans-serif">
+                            ${tip.value.toLocaleString()}
+                        </text>
+                    </g>
+                )}
+            </svg>
+        </div>
+    );
 };
 
 /* ══════════════════════════════════════════════════════
-   DONUT CHART  (Screens by Governorate)
+   DONUT CHART — Stitch palette
 ══════════════════════════════════════════════════════ */
-const GOV_COLORS = [C.midGreen, C.gold, C.goldLight, '#8fbc8f', '#a08c4a'];
-
 const DonutChart = ({ data = [] }) => {
-  const [hov, setHov] = useState(null);
-  const cx = 90, cy = 90, R = 68, r = 40;
-  const total = data.reduce((s, d) => s + (d.count || 0), 0) || 1;
+    const [hov, setHov] = useState(null);
+    const cx = 90, cy = 90, R = 70, r = 42;
+    const total = data.reduce((s, d) => s + (d.count || 0), 0) || 1;
 
-  let angle = -Math.PI / 2;
-  const slices = data.map((d, i) => {
-    const pct  = d.count / total;
-    const a1   = angle;
-    const a2   = angle + pct * 2 * Math.PI;
-    const R2   = hov === i ? R + 7 : R;
-    const lrg  = pct > 0.5 ? 1 : 0;
-    const x1=cx+R2*Math.cos(a1), y1=cy+R2*Math.sin(a1);
-    const x2=cx+R2*Math.cos(a2), y2=cy+R2*Math.sin(a2);
-    const xi1=cx+r*Math.cos(a1), yi1=cy+r*Math.sin(a1);
-    const xi2=cx+r*Math.cos(a2), yi2=cy+r*Math.sin(a2);
-    angle = a2;
-    return {
-      path  : `M ${xi1} ${yi1} L ${x1} ${y1} A ${R2} ${R2} 0 ${lrg} 1 ${x2} ${y2} L ${xi2} ${yi2} A ${r} ${r} 0 ${lrg} 0 ${xi1} ${yi1} Z`,
-      color : GOV_COLORS[i % GOV_COLORS.length],
-      name  : d.name,
-      pct   : Math.round(pct * 100),
-    };
-  });
+    let angle = -Math.PI / 2;
+    const slices = data.map((d, i) => {
+        const pct = d.count / total;
+        const a1 = angle;
+        const a2 = angle + pct * 2 * Math.PI;
+        const R2 = hov === i ? R + 6 : R;
+        const lrg = pct > 0.5 ? 1 : 0;
+        const x1 = cx + R2 * Math.cos(a1), y1 = cy + R2 * Math.sin(a1);
+        const x2 = cx + R2 * Math.cos(a2), y2 = cy + R2 * Math.sin(a2);
+        const xi1 = cx + r * Math.cos(a1), yi1 = cy + r * Math.sin(a1);
+        const xi2 = cx + r * Math.cos(a2), yi2 = cy + r * Math.sin(a2);
+        angle = a2;
+        return {
+            path: `M ${xi1} ${yi1} L ${x1} ${y1} A ${R2} ${R2} 0 ${lrg} 1 ${x2} ${y2} L ${xi2} ${yi2} A ${r} ${r} 0 ${lrg} 0 ${xi1} ${yi1} Z`,
+            color: GOV_COLORS[i % GOV_COLORS.length],
+            name: d.name,
+            pct: Math.round(pct * 100),
+        };
+    });
 
-  return (
-    <div className="flex flex-col items-center gap-3">
-      <svg viewBox="0 0 180 180" style={{ width: '150px', height: '150px', direction: 'ltr' }}>
-        <defs>
-          <filter id="ds"><feDropShadow dx="0" dy="2" stdDeviation="3" floodColor={C.darkGreen} floodOpacity="0.18"/></filter>
-        </defs>
-        {slices.map((s, i) => (
-          <path key={i} d={s.path} fill={s.color}
-            filter="url(#ds)"
-            style={{ cursor:'pointer', transition:'all 0.2s', opacity: hov === null || hov === i ? 1 : 0.5 }}
-            onMouseEnter={() => setHov(i)}
-            onMouseLeave={() => setHov(null)}
-          />
-        ))}
-        {/* center */}
-        <text x={cx} y={cy-5} textAnchor="middle" fontSize="18" fontWeight="900" fill={C.darkGreen} fontFamily="sans-serif">
-          {total > 1 ? `${slices[hov ?? 0]?.pct ?? ''}%` : ''}
-        </text>
-        {total === 1 && (
-          <text x={cx} y={cy+5} textAnchor="middle" fontSize="14" fontWeight="900" fill={C.darkGreen}>100%</text>
-        )}
-        {hov === null && (
-          <text x={cx} y={cy+6} textAnchor="middle" fontSize="10" fill={C.textLight} fontFamily="sans-serif">إجمالي</text>
-        )}
-        {hov !== null && (
-          <text x={cx} y={cy+14} textAnchor="middle" fontSize="9" fill={C.textLight} fontFamily="sans-serif">
-            {slices[hov]?.name}
-          </text>
-        )}
-      </svg>
+    return (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+            <div style={{ position: 'relative', width: '180px', height: '180px' }}>
+                <svg viewBox="0 0 180 180" style={{ width: '100%', height: '100%', direction: 'ltr' }}>
+                    <defs>
+                        <filter id="dsStitch">
+                            <feDropShadow dx="0" dy="2" stdDeviation="3"
+                                floodColor={S.onBackground} floodOpacity="0.10" />
+                        </filter>
+                    </defs>
+                    {slices.map((s, i) => (
+                        <path key={i} d={s.path} fill={s.color}
+                            filter="url(#dsStitch)"
+                            style={{
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                                opacity: hov === null || hov === i ? 1 : 0.45,
+                            }}
+                            onMouseEnter={() => setHov(i)}
+                            onMouseLeave={() => setHov(null)}
+                        />
+                    ))}
+                    {/* center label */}
+                    <text x={cx} y={cy - 5} textAnchor="middle" fontSize="20"
+                        fontWeight="700" fill={S.onBackground}
+                        fontFamily="'IBM Plex Sans Arabic',sans-serif">
+                        {hov !== null ? `${slices[hov]?.pct ?? ''}%` : (total > 1 ? `${slices[0]?.pct ?? ''}%` : '100%')}
+                    </text>
+                    <text x={cx} y={cy + 13} textAnchor="middle" fontSize="11"
+                        fill={S.outline} fontFamily="'IBM Plex Sans Arabic',sans-serif">
+                        {hov !== null ? slices[hov]?.name : 'إجمالي'}
+                    </text>
+                </svg>
+            </div>
 
-      {/* legend list */}
-      <div className="flex flex-col gap-1.5 w-full px-1">
-        {slices.map((s, i) => (
-          <div key={i}
-            className="flex items-center gap-2 rounded-lg px-2 py-1 cursor-pointer transition-all"
-            style={{ background: hov === i ? `${s.color}22` : 'transparent' }}
-            onMouseEnter={() => setHov(i)}
-            onMouseLeave={() => setHov(null)}
-          >
-            <span style={{ width:10, height:10, borderRadius:'50%', background:s.color, flexShrink:0 }} />
-            <span style={{ fontSize:'11px', color:C.textDark, flex:1, direction:'rtl' }}>{s.name}</span>
-            <span style={{ fontSize:'11px', fontWeight:700, color:s.color }}>{s.pct}%</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+            {/* legend */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%', padding: '0 4px' }}>
+                {slices.map((s, i) => (
+                    <div key={i}
+                        style={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                            padding: '6px 8px', borderRadius: '8px', cursor: 'pointer',
+                            background: hov === i ? `${s.color}22` : 'transparent',
+                            transition: 'background 0.15s',
+                        }}
+                        onMouseEnter={() => setHov(i)}
+                        onMouseLeave={() => setHov(null)}
+                    >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{
+                                width: 10, height: 10, borderRadius: '50%',
+                                background: s.color, flexShrink: 0,
+                            }} />
+                            <span style={{
+                                fontSize: '13px', color: S.onSurface,
+                                fontFamily: "'IBM Plex Sans Arabic', sans-serif",
+                            }}>
+                                {s.name}
+                            </span>
+                        </div>
+                        <span style={{
+                            fontSize: '13px', fontWeight: 700, color: s.color,
+                            fontFamily: "'IBM Plex Sans Arabic', sans-serif",
+                        }}>
+                            {s.pct}%
+                        </span>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
 };
 
 /* ══════════════════════════════════════════════════════
    SKELETON
 ══════════════════════════════════════════════════════ */
 const DashboardSkeleton = () => (
-  <div style={{ direction: 'rtl', padding: '8px' }}>
-    <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:'16px', marginBottom:'16px' }}>
-      {[...Array(4)].map((_,i) => (
-        <div key={i} className="animate-pulse rounded-2xl"
-          style={{ height:'110px', background:`${C.border}44`, border:`1.5px solid ${C.border}` }} />
-      ))}
+    <div style={{ direction: 'rtl', padding: '8px' }}>
+        <style>{`
+            @keyframes stitchPulse {
+              0%, 100% { opacity: 1; }
+              50% { opacity: 0.45; }
+            }
+            .stitch-skel { animation: stitchPulse 1.6s ease-in-out infinite; }
+        `}</style>
+        {/* title skeleton */}
+        <div className="stitch-skel" style={{ height: '32px', width: '220px', borderRadius: '8px', background: S.surfaceContainerHigh, marginBottom: '24px' }} />
+        {/* kpi row */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '16px', marginBottom: '20px' }}>
+            {[...Array(4)].map((_, i) => (
+                <div key={i} className="stitch-skel"
+                    style={{ height: '130px', borderRadius: '16px', background: S.surfaceContainerHigh, border: `1px solid ${S.outlineVariant}` }} />
+            ))}
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px', marginBottom: '16px' }}>
+            <div className="stitch-skel" style={{ height: '280px', borderRadius: '16px', background: S.surfaceContainerHigh }} />
+            <div className="stitch-skel" style={{ height: '280px', borderRadius: '16px', background: S.surfaceContainerHigh }} />
+        </div>
+        <div className="stitch-skel" style={{ height: '220px', borderRadius: '16px', background: S.surfaceContainerHigh }} />
     </div>
-    <div style={{ display:'grid', gridTemplateColumns:'2fr 1fr', gap:'16px', marginBottom:'16px' }}>
-      <div className="animate-pulse rounded-2xl" style={{ height:'260px', background:`${C.border}44` }} />
-      <div className="animate-pulse rounded-2xl" style={{ height:'260px', background:`${C.border}44` }} />
-    </div>
-    <div className="animate-pulse rounded-2xl" style={{ height:'200px', background:`${C.border}44` }} />
-  </div>
 );
 
 /* ══════════════════════════════════════════════════════
    MAIN DASHBOARD
 ══════════════════════════════════════════════════════ */
 const Dashboard = () => {
-  const [data,    setData]    = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error,   setError]   = useState(false);
+    const navigate = useNavigate();
+    const [data, setData] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(false);
 
-  /* table */
-  const [search,  setSearch]  = useState('');
-  const [page,    setPage]    = useState(1);
-  const PER = 8;
+    /* table */
+    const [search, setSearch] = useState('');
+    const [page, setPage] = useState(1);
+    const PER = 8;
 
-  /* gov filter dropdown */
-  const [govSel, setGovSel] = useState('all');
+    /* gov filter dropdown */
+    const [govSel, setGovSel] = useState('all');
 
-  const addToast = useToastStore(s => s.addToast);
+    const addToast = useToastStore(s => s.addToast);
 
-  const load = useCallback(async () => {
-    setLoading(true); setError(false);
-    try {
-      const res = await axiosClient.get(ENDPOINTS.DASHBOARD.OVERVIEW);
-      setData(res.data.data || res.data);
-    } catch (e) {
-      console.error(e);
-      addToast('لم نتمكن من جلب بيانات لوحة التحكم', 'error');
-      setError(true);
-    } finally {
-      setLoading(false);
-    }
-  }, [addToast]);
+    const load = useCallback(async () => {
+        setLoading(true); setError(false);
+        try {
+            const res = await axiosClient.get(ENDPOINTS.DASHBOARD.OVERVIEW);
+            setData(res.data.data || res.data);
+        } catch (e) {
+            console.error(e);
+            addToast('لم نتمكن من جلب بيانات لوحة التحكم', 'error');
+            setError(true);
+        } finally {
+            setLoading(false);
+        }
+    }, [addToast]);
 
-  useEffect(() => { load(); }, [load]);
+    useEffect(() => { load(); }, [load]);
 
-  if (loading) return <DashboardSkeleton />;
+    if (loading) return <DashboardSkeleton />;
 
-  if (error && !data) return (
-    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'80px 16px', direction:'rtl', gap:'16px', textAlign:'center' }}>
-      <div style={{ width:72, height:72, borderRadius:20, background:`${C.gold}22`, display:'flex', alignItems:'center', justifyContent:'center' }}>
-        <AlertCircle style={{ width:36, height:36, color:C.goldDark }} />
-      </div>
-      <h3 style={{ fontSize:18, fontWeight:900, color:C.darkGreen }}>تعذر تحميل بيانات اللوحة</h3>
-      <p  style={{ fontSize:13, color:C.textMid }}>يرجى التحقق من الاتصال والمحاولة مرة أخرى.</p>
-      <button onClick={load}
-        style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 28px', borderRadius:12, background:C.darkGreen, color:'#fff', fontSize:13, fontWeight:700, border:'none', cursor:'pointer' }}>
-        <RefreshCw style={{ width:16, height:16 }} /> إعادة المحاولة
-      </button>
-    </div>
-  );
-
-  /* Derived */
-  const kpis         = data?.kpis                    || {};
-  const totalRevenue  = kpis.total_revenue            ?? 0;
-  const activeScreens = kpis.active_screens           ?? 0;
-  const totalScreens  = kpis.total_screens            ?? 0;
-  const pendingAds    = kpis.pending_ads              ?? 0;
-  const activeUsers   = kpis.active_users             ?? 0;
-
-  // API nests chart data inside data.charts
-  const charts       = data?.charts                          || {};
-  const weeklyRevenue  = charts.weekly_revenue               || data?.weekly_revenue          || [];
-  const screensByGov   = charts.screens_by_governorate       || data?.screens_by_governorate  || [];
-
-  const rawLogs = data?.recent_logs || [];
-  const filtered = rawLogs.filter(l =>
-    !search ||
-    l.ad_name?.toLowerCase().includes(search.toLowerCase()) ||
-    l.screen_name?.toLowerCase().includes(search.toLowerCase())
-  );
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PER));
-  const pageLogs   = filtered.slice((page - 1) * PER, page * PER);
-
-  /* Panel styles */
-  const panelStyle = {
-    background  : `linear-gradient(145deg,${C.cardBg},${C.cream})`,
-    border      : `1.5px solid ${C.border}`,
-    borderRadius: '16px',
-    boxShadow   : '0 4px 20px -4px rgba(200,168,75,0.16)',
-    padding     : '18px 20px',
-  };
-
-  const headStyle = {
-    fontSize  : '14px',
-    fontWeight: 800,
-    color     : C.darkGreen,
-    direction : 'rtl',
-    marginBottom: '12px',
-    fontFamily: "'Georgia', 'Amiri', serif",
-  };
-
-  return (
-    <div style={{ direction:'rtl', paddingBottom:'40px', fontFamily:"'Segoe UI',Tahoma,sans-serif" }}>
-
-      {/* ── Page title ── */}
-      <motion.div
-        initial={{ opacity:0, x:20 }}
-        animate={{ opacity:1, x:0 }}
-        transition={{ duration:0.4 }}
-        style={{ marginBottom:'20px' }}
-      >
-        <h1 style={{ fontSize:'22px', fontWeight:900, color:C.darkGreen, margin:0, fontFamily:"'Georgia',serif" }}>
-          نظرة عامة على لوحة التحكم
-        </h1>
-        <p style={{ fontSize:'12px', fontStyle:'italic', color:C.gold, margin:'2px 0 0', letterSpacing:'0.05em' }}>
-          Dashboard Overview
-        </p>
-        <div style={{ marginTop:'6px', height:'2px', width:'60px', borderRadius:'99px',
-          background:`linear-gradient(90deg,${C.gold},${C.goldLight})` }} />
-      </motion.div>
-
-      {/* ── KPI CARDS ── */}
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:'14px', marginBottom:'16px' }}>
-        <KpiCard
-          index={0}
-          label="إجمالي الأرباح"
-          sublabel="Free Revenue"
-          value={`$${Number(totalRevenue).toLocaleString()}`}
-        />
-        <KpiCard
-          index={1}
-          label="الشاشات النشطة"
-          value={`${activeScreens} / ${totalScreens}`}
-          note="شاشة / Connected"
-        />
-        <KpiCard
-          index={2}
-          label="إعلانات قيد المراجعة"
-          value={pendingAds}
-          note="للمراجعة / for review"
-        />
-        <KpiCard
-          index={3}
-          label="المستخدمون النشطون"
-          value={activeUsers}
-          note="Active Users"
-        />
-      </div>
-
-      {/* ── CHARTS ROW ── */}
-      <div style={{ display:'grid', gridTemplateColumns:'2fr 1fr', gap:'14px', marginBottom:'16px' }}>
-
-        {/* Weekly Revenue */}
-        <motion.div
-          initial={{ opacity:0, y:20 }}
-          animate={{ opacity:1, y:0 }}
-          transition={{ duration:0.5, delay:0.35 }}
-          style={panelStyle}
-        >
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'12px' }}>
-            <p style={headStyle}>الأرباح الأسبوعية الكلية</p>
-            <select
-              value={govSel}
-              onChange={e => setGovSel(e.target.value)}
-              style={{
-                fontSize:'11px', fontWeight:600, color:C.textDark,
-                border:`1px solid ${C.border}`, borderRadius:'8px',
-                padding:'4px 10px', background:C.cream, outline:'none', cursor:'pointer',
-                direction:'rtl',
-              }}
-            >
-              <option value="all">كل المحافظات</option>
-              {screensByGov.map(g => <option key={g.name} value={g.name}>{g.name}</option>)}
-            </select>
-          </div>
-          <WeeklyChart weeklyRevenue={weeklyRevenue} />
-        </motion.div>
-
-        {/* Donut Chart */}
-        <motion.div
-          initial={{ opacity:0, y:20 }}
-          animate={{ opacity:1, y:0 }}
-          transition={{ duration:0.5, delay:0.45 }}
-          style={panelStyle}
-        >
-          <p style={headStyle}>الشاشات حسب المحافظة</p>
-          {screensByGov.length > 0 ? (
-            <DonutChart data={screensByGov} />
-          ) : (
-            <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'160px', gap:'8px' }}>
-              <Monitor style={{ width:36, height:36, color:C.textLight, opacity:0.4 }} />
-              <p style={{ fontSize:'12px', color:C.textLight }}>لا توجد بيانات</p>
-            </div>
-          )}
-        </motion.div>
-      </div>
-
-      {/* ── RECENT PLAY LOGS ── */}
-      <motion.div
-        initial={{ opacity:0, y:20 }}
-        animate={{ opacity:1, y:0 }}
-        transition={{ duration:0.5, delay:0.55 }}
-        style={{ ...panelStyle, padding:0, overflow:'hidden' }}
-      >
-        {/* Table toolbar */}
+    if (error && !data) return (
         <div style={{
-          display:'flex', alignItems:'center', justifyContent:'space-between',
-          padding:'12px 18px',
-          background:`linear-gradient(90deg,${C.darkGreen}0a,${C.gold}0a)`,
-          borderBottom:`1px solid ${C.border}`,
+            display: 'flex', flexDirection: 'column', alignItems: 'center',
+            justifyContent: 'center', padding: '80px 16px',
+            direction: 'rtl', gap: '16px', textAlign: 'center',
         }}>
-          <p style={{ fontSize:'14px', fontWeight:800, color:C.darkGreen, margin:0, direction:'rtl' }}>
-            سجلات التشغيل الحديثة
-          </p>
-
-          <div style={{ display:'flex', alignItems:'center', gap:'10px', direction:'ltr' }}>
-            {/* pagination */}
-            <div style={{ display:'flex', alignItems:'center', gap:'4px' }}>
-              <button
-                onClick={() => setPage(p => Math.max(1, p-1))}
-                disabled={page === 1}
-                style={{
-                  width:28, height:28, borderRadius:8, border:`1px solid ${C.border}`,
-                  background:C.cream, display:'flex', alignItems:'center', justifyContent:'center',
-                  cursor:'pointer', opacity: page === 1 ? 0.35 : 1,
-                }}
-              >
-                <ChevronRight style={{ width:14, height:14, color:C.textDark }} />
-              </button>
-              <span style={{
-                width:28, height:28, borderRadius:8, background:C.darkGreen,
-                color:'#fff', display:'flex', alignItems:'center', justifyContent:'center',
-                fontSize:'12px', fontWeight:800,
-              }}>{page}</span>
-              <button
-                onClick={() => setPage(p => Math.min(totalPages, p+1))}
-                disabled={page === totalPages}
-                style={{
-                  width:28, height:28, borderRadius:8, border:`1px solid ${C.border}`,
-                  background:C.cream, display:'flex', alignItems:'center', justifyContent:'center',
-                  cursor:'pointer', opacity: page === totalPages ? 0.35 : 1,
-                }}
-              >
-                <ChevronLeft style={{ width:14, height:14, color:C.textDark }} />
-              </button>
-            </div>
-
-            {/* search */}
             <div style={{
-              display:'flex', alignItems:'center', gap:6,
-              border:`1px solid ${C.border}`, borderRadius:8,
-              padding:'5px 10px', background:C.cream,
+                width: 72, height: 72, borderRadius: '20px',
+                background: S.errorContainer,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <Search style={{ width:13, height:13, color:C.textLight }} />
-              <input
-                type="text"
-                placeholder="بحث..."
-                value={search}
-                onChange={e => { setSearch(e.target.value); setPage(1); }}
-                style={{
-                  background:'transparent', border:'none', outline:'none',
-                  fontSize:'12px', width:'110px', color:C.textDark,
-                  direction:'rtl',
-                }}
-              />
+                <AlertCircle style={{ width: 36, height: 36, color: S.error }} />
             </div>
-          </div>
+            <h3 style={{ fontSize: '18px', fontWeight: 700, color: S.onBackground, margin: 0, fontFamily: "'IBM Plex Sans Arabic', sans-serif" }}>
+                تعذر تحميل بيانات اللوحة
+            </h3>
+            <p style={{ fontSize: '13px', color: S.onSurfaceVariant, margin: 0, fontFamily: "'IBM Plex Sans Arabic', sans-serif" }}>
+                يرجى التحقق من الاتصال والمحاولة مرة أخرى.
+            </p>
+            <button
+                onClick={load}
+                style={{
+                    display: 'flex', alignItems: 'center', gap: '8px',
+                    padding: '10px 28px', borderRadius: '10px',
+                    background: S.primaryContainer, color: '#fff',
+                    fontSize: '13px', fontWeight: 600, border: 'none', cursor: 'pointer',
+                    fontFamily: "'IBM Plex Sans Arabic', sans-serif",
+                }}
+            >
+                <RefreshCw style={{ width: 16, height: 16 }} />
+                إعادة المحاولة
+            </button>
         </div>
+    );
 
-        {/* Table */}
-        <div style={{ overflowX:'auto' }}>
-          <table style={{ width:'100%', borderCollapse:'collapse', whiteSpace:'nowrap', minWidth:'600px' }}>
-            <thead>
-              <tr style={{ background:`${C.gold}1a`, borderBottom:`1px solid ${C.border}` }}>
-                {[
-                  { label:'اسم الإعلان',    sub:'AD NAME'      },
-                  { label:'اسم الشاشة',     sub:'SCREEN NAME'  },
-                  { label:'المدة (الثاني)', sub:'Duration (s)' },
-                  { label:'وقت التشغيل',    sub:'TIMESTAMP'    },
-                ].map((h, i) => (
-                  <th key={i} style={{
-                    padding:'10px 18px', textAlign:'right', direction:'rtl',
-                    fontSize:'11px', fontWeight:800, color:C.goldDark,
-                    letterSpacing:'0.04em',
-                  }}>
-                    <div>{h.label}</div>
-                    <div style={{ fontSize:'9px', fontWeight:600, color:C.textLight, marginTop:'1px' }}>{h.sub}</div>
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              <AnimatePresence mode="wait">
-                {pageLogs.length > 0 ? pageLogs.map((log, idx) => (
-                  <motion.tr
-                    key={`${log.ad_name}-${idx}-${page}`}
-                    initial={{ opacity:0, x:8 }}
-                    animate={{ opacity:1, x:0 }}
-                    exit={{ opacity:0 }}
-                    transition={{ duration:0.18, delay: idx * 0.025 }}
-                    style={{
-                      borderBottom:`1px solid ${C.border}44`,
-                      background: idx % 2 === 0 ? 'transparent' : `${C.gold}08`,
-                      cursor:'default',
-                    }}
-                    onMouseEnter={e => e.currentTarget.style.background = `${C.gold}18`}
-                    onMouseLeave={e => e.currentTarget.style.background = idx % 2 === 0 ? 'transparent' : `${C.gold}08`}
-                  >
-                    <td style={{ padding:'10px 18px', fontSize:'13px', fontWeight:600, color:C.darkGreen, direction:'rtl' }}>
-                      {log.ad_name || '—'}
-                    </td>
-                    <td style={{ padding:'10px 18px', fontSize:'12px', color:C.textMid, direction:'rtl' }}>
-                      {log.screen_name || '—'}
-                    </td>
-                    <td style={{ padding:'10px 18px' }}>
-                      <span style={{
-                        display:'inline-flex', alignItems:'center', gap:4,
-                        padding:'3px 10px', borderRadius:'99px',
-                        background:`${C.midGreen}18`, color:C.midGreen,
-                        border:`1px solid ${C.midGreen}30`,
-                        fontSize:'12px', fontWeight:700,
-                      }}>
-                        {log.duration ?? '—'}
-                      </span>
-                    </td>
-                    <td style={{ padding:'10px 18px', fontSize:'12px', color:C.textMid, direction:'ltr' }}>
-                      {log.playback_timestamp
-                        ? new Date(log.playback_timestamp).toLocaleString('en-US', {
-                            year:'numeric', month:'2-digit', day:'2-digit',
-                            hour:'2-digit', minute:'2-digit', hour12:true,
-                          })
-                        : '—'}
-                    </td>
-                  </motion.tr>
-                )) : (
-                  <tr>
-                    <td colSpan="4" style={{ padding:'48px 16px', textAlign:'center' }}>
-                      <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'10px' }}>
-                        <PlayCircle style={{ width:36, height:36, color:C.textLight, opacity:0.4 }} />
-                        <p style={{ fontSize:'13px', color:C.textMid }}>
-                          {search ? 'لا توجد نتائج للبحث' : 'لا يوجد نشاط مسجل حتى الآن'}
-                        </p>
-                      </div>
-                    </td>
-                  </tr>
+    /* ── derived data (props & state unchanged) ── */
+    const kpis = data?.kpis || {};
+    const totalRevenue = kpis.total_revenue ?? 0;
+    const activeScreens = kpis.active_screens ?? 0;
+    const totalScreens = kpis.total_screens ?? 0;
+    const pendingAds = kpis.pending_ads ?? 0;
+    const activeUsers = kpis.active_users ?? 0;
+
+    const charts = data?.charts || {};
+    const weeklyRevenue = charts.weekly_revenue || data?.weekly_revenue || [];
+    const screensByGov = charts.screens_by_governorate || data?.screens_by_governorate || [];
+
+    const rawLogs = data?.recent_logs || [];
+    const filtered = rawLogs.filter(l =>
+        !search ||
+        l.ad_name?.toLowerCase().includes(search.toLowerCase()) ||
+        l.screen_name?.toLowerCase().includes(search.toLowerCase())
+    );
+    const totalPages = Math.max(1, Math.ceil(filtered.length / PER));
+    const pageLogs = filtered.slice((page - 1) * PER, page * PER);
+
+    /* screen ratio */
+    const screenRatio = totalScreens > 0 ? Math.round((activeScreens / totalScreens) * 100) : 0;
+
+    /* ── glass card style ── */
+    const glassCard = {
+        background: S.surfaceContainerLowest,
+        border: `1px solid ${S.outlineVariant}`,
+        borderRadius: '16px',
+        boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
+    };
+
+    return (
+        <div style={{
+            direction: 'rtl',
+            paddingBottom: '40px',
+            fontFamily: "'IBM Plex Sans Arabic', sans-serif",
+        }}>
+
+            {/* ── Page header ── */}
+            <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.4 }}
+                style={{
+                    marginBottom: '24px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-end',
+                }}
+            >
+                <div>
+                    <h1 style={{
+                        fontSize: '28px', fontWeight: 700,
+                        color: S.onBackground, margin: 0,
+                        fontFamily: "'IBM Plex Sans Arabic', sans-serif",
+                        lineHeight: 1.2,
+                    }}>
+                        نظرة عامة على لوحة التحكم
+                    </h1>
+                    <p style={{
+                        margin: '4px 0 0', fontSize: '13px',
+                        color: S.outline,
+                        fontFamily: "'IBM Plex Sans Arabic', sans-serif",
+                    }}>
+                        Dashboard Overview
+                    </p>
+                </div>
+
+                {/* action buttons */}
+                <div style={{ display: 'flex', gap: '10px' }}>
+                    <button 
+                        onClick={() => addToast('ميزة فلترة الإحصائيات حسب التاريخ ستكون متاحة قريباً', 'info')}
+                        style={{
+                            display: 'flex', alignItems: 'center', gap: '6px',
+                            padding: '8px 16px', borderRadius: '10px',
+                            background: S.surfaceContainerLowest,
+                            border: `1px solid ${S.outlineVariant}`,
+                            color: S.onSurface, fontSize: '13px', fontWeight: 500,
+                            cursor: 'pointer', fontFamily: "'IBM Plex Sans Arabic', sans-serif",
+                            boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                        }}>
+                        <CalendarDays style={{ width: 15, height: 15 }} />
+                        هذا الشهر
+                    </button>
+                    <button 
+                        onClick={() => navigate('/dashboard/ads/create')}
+                        style={{
+                            display: 'flex', alignItems: 'center', gap: '6px',
+                            padding: '8px 16px', borderRadius: '10px',
+                            background: S.primaryContainer, color: '#fff',
+                            border: 'none', fontSize: '13px', fontWeight: 600,
+                            cursor: 'pointer', fontFamily: "'IBM Plex Sans Arabic', sans-serif",
+                            boxShadow: '0 2px 8px rgba(37,99,235,0.30)',
+                        }}>
+                        <Plus style={{ width: 15, height: 15 }} />
+                        إعلان جديد
+                    </button>
+                </div>
+            </motion.div>
+
+            {/* ── KPI CARDS ROW ── */}
+            <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(4, 1fr)',
+                gap: '16px',
+                marginBottom: '20px',
+            }}>
+                {/* Active Users */}
+                <KpiCard
+                    index={0}
+                    label="المستخدمون النشطون"
+                    sublabel="Active Users"
+                    value={activeUsers}
+                    note="+12% من الشهر الماضي"
+                    noteIcon={TrendingUp}
+                    noteColor={S.primaryContainer}
+                    Icon={Users}
+                    iconBg={S.surfaceContainer}
+                    iconColor={S.primaryContainer}
+                />
+                {/* Pending Ads */}
+                <KpiCard
+                    index={1}
+                    label="إعلانات قيد المراجعة"
+                    sublabel="Pending Ads"
+                    value={pendingAds}
+                    note="يتطلب إجراء"
+                    noteIcon={Info}
+                    noteColor={S.error}
+                    Icon={Monitor}
+                    iconBg={S.errorContainer}
+                    iconColor={S.error}
+                    borderAccent={S.error}
+                />
+                {/* Active Screens */}
+                <KpiCard
+                    index={2}
+                    label="الشاشات النشطة"
+                    sublabel="Active Screens"
+                    value={activeScreens}
+                    valueSmall={`/ ${totalScreens}`}
+                    Icon={Monitor}
+                    iconBg={S.secondaryFixed}
+                    iconColor={S.secondary}
+                    extraContent={
+                        <div style={{
+                            marginTop: '8px',
+                            height: '6px', borderRadius: '999px',
+                            background: S.surfaceContainerHighest, overflow: 'hidden',
+                        }}>
+                            <div style={{
+                                height: '100%', borderRadius: '999px',
+                                background: S.secondary,
+                                width: `${screenRatio}%`,
+                                transition: 'width 0.5s ease',
+                            }} />
+                        </div>
+                    }
+                />
+                {/* Total Revenue */}
+                <KpiCard
+                    index={3}
+                    label="إجمالي الأرباح"
+                    sublabel="Total Revenue"
+                    value={`$${Number(totalRevenue).toLocaleString()}`}
+                    note="+5.4% هذا الأسبوع"
+                    noteIcon={TrendingUp}
+                    noteColor={S.primaryContainer}
+                    accentColor={S.primaryContainer}
+                    Icon={DollarSign}
+                    iconBg={S.primaryFixed}
+                    iconColor={S.primary}
+                />
+            </div>
+
+            {/* ── CHARTS ROW ── */}
+            <div style={{
+                display: 'grid',
+                gridTemplateColumns: '2fr 1fr',
+                gap: '16px',
+                marginBottom: '20px',
+            }}>
+                {/* Weekly Revenue chart */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.3 }}
+                    style={{ ...glassCard, padding: '22px 22px 16px' }}
+                >
+                    <div style={{
+                        display: 'flex', alignItems: 'center',
+                        justifyContent: 'space-between', marginBottom: '16px',
+                    }}>
+                        <h3 style={{
+                            margin: 0, fontSize: '16px', fontWeight: 600,
+                            color: S.onBackground,
+                            fontFamily: "'IBM Plex Sans Arabic', sans-serif",
+                        }}>
+                            الأرباح الأسبوعية الكلية
+                        </h3>
+                        <select
+                            value={govSel}
+                            onChange={e => setGovSel(e.target.value)}
+                            style={{
+                                fontSize: '12px', fontWeight: 500,
+                                color: S.onSurface,
+                                border: `1px solid ${S.outlineVariant}`,
+                                borderRadius: '8px',
+                                padding: '5px 12px',
+                                background: S.surfaceContainerLow,
+                                outline: 'none', cursor: 'pointer',
+                                direction: 'rtl',
+                                fontFamily: "'IBM Plex Sans Arabic', sans-serif",
+                            }}
+                        >
+                            <option value="all">كل المحافظات</option>
+                            {screensByGov.map(g => (
+                                <option key={g.name} value={g.name}>{g.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <WeeklyChart weeklyRevenue={weeklyRevenue} />
+                </motion.div>
+
+                {/* Donut chart */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.4 }}
+                    style={{ ...glassCard, padding: '22px' }}
+                >
+                    <h3 style={{
+                        margin: '0 0 18px', fontSize: '16px', fontWeight: 600,
+                        color: S.onBackground,
+                        fontFamily: "'IBM Plex Sans Arabic', sans-serif",
+                    }}>
+                        الشاشات حسب المحافظة
+                    </h3>
+                    {screensByGov.length > 0 ? (
+                        <DonutChart data={screensByGov} />
+                    ) : (
+                        <div style={{
+                            display: 'flex', flexDirection: 'column',
+                            alignItems: 'center', justifyContent: 'center',
+                            height: '200px', gap: '10px',
+                        }}>
+                            <Monitor style={{ width: 36, height: 36, color: S.outlineVariant }} />
+                            <p style={{
+                                fontSize: '13px', color: S.outline, margin: 0,
+                                fontFamily: "'IBM Plex Sans Arabic', sans-serif",
+                            }}>
+                                لا توجد بيانات
+                            </p>
+                        </div>
+                    )}
+                </motion.div>
+            </div>
+
+            {/* ── RECENT PLAY LOGS ── */}
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.5 }}
+                style={{ ...glassCard, overflow: 'hidden' }}
+            >
+                {/* toolbar */}
+                <div style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '16px 20px',
+                    background: S.surfaceContainerLowest,
+                    borderBottom: `1px solid ${S.outlineVariant}`,
+                }}>
+                    <h3 style={{
+                        margin: 0, fontSize: '16px', fontWeight: 600,
+                        color: S.onBackground, direction: 'rtl',
+                        fontFamily: "'IBM Plex Sans Arabic', sans-serif",
+                    }}>
+                        سجلات التشغيل الحديثة
+                    </h3>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', direction: 'ltr' }}>
+                        {/* pagination */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <button
+                                onClick={() => setPage(p => Math.max(1, p - 1))}
+                                disabled={page === 1}
+                                style={{
+                                    width: 30, height: 30, borderRadius: '6px',
+                                    border: `1px solid ${S.outlineVariant}`,
+                                    background: S.surfaceContainerLowest,
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    cursor: 'pointer', opacity: page === 1 ? 0.35 : 1,
+                                    color: S.onSurfaceVariant,
+                                }}
+                            >
+                                <ChevronRight style={{ width: 14, height: 14 }} />
+                            </button>
+                            <span style={{
+                                width: 30, height: 30, borderRadius: '6px',
+                                background: S.primaryContainer,
+                                color: '#fff',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                fontSize: '13px', fontWeight: 700,
+                            }}>
+                                {page}
+                            </span>
+                            <button
+                                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                                disabled={page === totalPages}
+                                style={{
+                                    width: 30, height: 30, borderRadius: '6px',
+                                    border: `1px solid ${S.outlineVariant}`,
+                                    background: S.surfaceContainerLowest,
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    cursor: 'pointer', opacity: page === totalPages ? 0.35 : 1,
+                                    color: S.onSurfaceVariant,
+                                }}
+                            >
+                                <ChevronLeft style={{ width: 14, height: 14 }} />
+                            </button>
+                        </div>
+
+                        {/* search */}
+                        <div style={{
+                            display: 'flex', alignItems: 'center', gap: '6px',
+                            border: `1px solid ${S.outlineVariant}`,
+                            borderRadius: '8px',
+                            padding: '6px 10px',
+                            background: S.surfaceContainerLow,
+                        }}>
+                            <Search style={{ width: 13, height: 13, color: S.outline, flexShrink: 0 }} />
+                            <input
+                                type="text"
+                                placeholder="بحث..."
+                                value={search}
+                                onChange={e => { setSearch(e.target.value); setPage(1); }}
+                                style={{
+                                    background: 'transparent', border: 'none', outline: 'none',
+                                    fontSize: '13px', width: '120px',
+                                    color: S.onSurface, direction: 'rtl',
+                                    fontFamily: "'IBM Plex Sans Arabic', sans-serif",
+                                }}
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* table */}
+                <div style={{ overflowX: 'auto' }}>
+                    <table style={{
+                        width: '100%', borderCollapse: 'collapse',
+                        whiteSpace: 'nowrap', minWidth: '600px',
+                    }}>
+                        <thead>
+                            <tr style={{
+                                background: S.surfaceContainerLow,
+                                borderBottom: `1px solid ${S.outlineVariant}`,
+                            }}>
+                                {[
+                                    { label: 'اسم الإعلان', sub: 'AD NAME' },
+                                    { label: 'اسم الشاشة', sub: 'SCREEN NAME' },
+                                    { label: 'المدة (الثواني)', sub: 'Duration (s)' },
+                                    { label: 'وقت التشغيل', sub: 'TIMESTAMP' },
+                                ].map((h, i) => (
+                                    <th key={i} style={{
+                                        padding: '12px 20px',
+                                        textAlign: 'right', direction: 'rtl',
+                                        fontSize: '12px', fontWeight: 600,
+                                        color: S.onSurfaceVariant,
+                                        letterSpacing: '0.02em',
+                                        fontFamily: "'IBM Plex Sans Arabic', sans-serif",
+                                    }}>
+                                        <div>{h.label}</div>
+                                        <div style={{
+                                            fontSize: '10px', fontWeight: 400,
+                                            color: S.outlineVariant, marginTop: '1px',
+                                        }}>
+                                            {h.sub}
+                                        </div>
+                                    </th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <AnimatePresence mode="wait">
+                                {pageLogs.length > 0 ? pageLogs.map((log, idx) => (
+                                    <motion.tr
+                                        key={`${log.ad_name}-${idx}-${page}`}
+                                        initial={{ opacity: 0, x: 6 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        exit={{ opacity: 0 }}
+                                        transition={{ duration: 0.16, delay: idx * 0.02 }}
+                                        style={{
+                                            borderBottom: `1px solid ${S.outlineVariant}40`,
+                                            background: S.surfaceContainerLowest,
+                                            cursor: 'default',
+                                        }}
+                                        onMouseEnter={e => e.currentTarget.style.background = S.surfaceContainerLow}
+                                        onMouseLeave={e => e.currentTarget.style.background = S.surfaceContainerLowest}
+                                    >
+                                        <td style={{
+                                            padding: '12px 20px',
+                                            fontSize: '14px', fontWeight: 600,
+                                            color: S.onSurface, direction: 'rtl',
+                                            fontFamily: "'IBM Plex Sans Arabic', sans-serif",
+                                        }}>
+                                            {log.ad_name || '—'}
+                                        </td>
+                                        <td style={{
+                                            padding: '12px 20px',
+                                            fontSize: '13px', color: S.onSurfaceVariant,
+                                            direction: 'rtl',
+                                            fontFamily: "'IBM Plex Sans Arabic', sans-serif",
+                                        }}>
+                                            {log.screen_name || '—'}
+                                        </td>
+                                        <td style={{ padding: '12px 20px' }}>
+                                            <span style={{
+                                                display: 'inline-flex', alignItems: 'center',
+                                                justifyContent: 'center',
+                                                width: 32, height: 32, borderRadius: '50%',
+                                                background: S.surfaceContainer,
+                                                color: S.onSurface,
+                                                fontSize: '13px', fontWeight: 600,
+                                                fontFamily: "'IBM Plex Sans Arabic', sans-serif",
+                                            }}>
+                                                {log.duration ?? '—'}
+                                            </span>
+                                        </td>
+                                        <td style={{
+                                            padding: '12px 20px',
+                                            fontSize: '12px', color: S.onSurfaceVariant,
+                                            direction: 'ltr',
+                                            fontFamily: "'IBM Plex Sans Arabic', sans-serif",
+                                        }}>
+                                            {log.playback_timestamp
+                                                ? new Date(log.playback_timestamp).toLocaleString('en-US', {
+                                                    year: 'numeric', month: '2-digit', day: '2-digit',
+                                                    hour: '2-digit', minute: '2-digit', hour12: true,
+                                                })
+                                                : '—'}
+                                        </td>
+                                    </motion.tr>
+                                )) : (
+                                    <tr>
+                                        <td colSpan="4" style={{ padding: '48px 16px', textAlign: 'center' }}>
+                                            <div style={{
+                                                display: 'flex', flexDirection: 'column',
+                                                alignItems: 'center', gap: '10px',
+                                            }}>
+                                                <PlayCircle style={{ width: 36, height: 36, color: S.outlineVariant }} />
+                                                <p style={{
+                                                    fontSize: '13px', color: S.outline, margin: 0,
+                                                    fontFamily: "'IBM Plex Sans Arabic', sans-serif",
+                                                }}>
+                                                    {search ? 'لا توجد نتائج للبحث' : 'لا يوجد نشاط مسجل حتى الآن'}
+                                                </p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                )}
+                            </AnimatePresence>
+                        </tbody>
+                    </table>
+                </div>
+
+                {/* footer */}
+                {filtered.length > 0 && (
+                    <div style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        padding: '10px 20px',
+                        borderTop: `1px solid ${S.outlineVariant}40`,
+                        fontSize: '11px', color: S.outline, direction: 'rtl',
+                        fontFamily: "'IBM Plex Sans Arabic', sans-serif",
+                    }}>
+                        <span>عرض {pageLogs.length} من {filtered.length} سجل</span>
+                        <span>صفحة {page} / {totalPages}</span>
+                    </div>
                 )}
-              </AnimatePresence>
-            </tbody>
-          </table>
+            </motion.div>
         </div>
-
-        {/* Footer */}
-        {filtered.length > 0 && (
-          <div style={{
-            display:'flex', alignItems:'center', justifyContent:'space-between',
-            padding:'8px 18px', borderTop:`1px solid ${C.border}`,
-            fontSize:'11px', color:C.textLight, direction:'rtl',
-          }}>
-            <span>عرض {pageLogs.length} من {filtered.length} سجل</span>
-            <span>صفحة {page} / {totalPages}</span>
-          </div>
-        )}
-      </motion.div>
-    </div>
-  );
+    );
 };
 
 export default Dashboard;

@@ -38,19 +38,31 @@ const CreateAdPage = () => {
     const [previewUrl, setPreviewUrl] = useState(null);
     const { can } = usePermission();
 
+    // ── Step-3 search & geo filter state ─────────────────────────────────
+    const [screenSearch, setScreenSearch] = useState('');
+    const [filterGov, setFilterGov] = useState('');
+    const [filterRegion, setFilterRegion] = useState('');
+    const [filterStreet, setFilterStreet] = useState('');
+    const [govList, setGovList] = useState([]);
+    const [regionList, setRegionList] = useState([]);
+    const [streetList, setStreetList] = useState([]);
+    const [geoFilterLoading, setGeoFilterLoading] = useState(false);
+
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const [screensRes, categoriesRes, freqRes, advRes] = await Promise.all([
+                const [screensRes, categoriesRes, freqRes, advRes, govRes] = await Promise.all([
                     axiosClient.get(ENDPOINTS.SCREENS.ALL),
                     axiosClient.get(ENDPOINTS.LOOKUPS.CATEGORIES),
                     axiosClient.get(ENDPOINTS.FREQUENCY_PACKAGES.ALL),
-                    can('manage_all') ? axiosClient.get(ENDPOINTS.LOOKUPS.USERS_BY_ROLE('Advertiser')) : Promise.resolve({ data: [] })
+                    can('manage_all') ? axiosClient.get(ENDPOINTS.LOOKUPS.USERS_BY_ROLE('Advertiser')) : Promise.resolve({ data: [] }),
+                    axiosClient.get(ENDPOINTS.LOOKUPS.GOVERNORATES)
                 ]);
                 setScreens(screensRes.data || []);
                 setCategories(categoriesRes.data || []);
                 setFrequencyPackages(freqRes.data?.data || freqRes.data || []);
                 setAdvertisers(advRes.data || []);
+                setGovList(govRes.data || []);
             } catch (e) {
                 console.error(e);
             }
@@ -61,6 +73,64 @@ const CreateAdPage = () => {
             if (previewUrl) URL.revokeObjectURL(previewUrl);
         };
     }, []);
+
+    // ── Geo-filter cascade handlers ───────────────────────────────────────
+    const handleFilterGovChange = async (govId) => {
+        setFilterGov(govId);
+        setFilterRegion('');
+        setFilterStreet('');
+        setRegionList([]);
+        setStreetList([]);
+        if (!govId) return;
+        try {
+            setGeoFilterLoading(true);
+            const res = await axiosClient.get(ENDPOINTS.LOOKUPS.REGIONS_BY_GOV(govId));
+            setRegionList(res.data || []);
+        } catch (e) { console.error(e); }
+        finally { setGeoFilterLoading(false); }
+    };
+
+    const handleFilterRegionChange = async (regionId) => {
+        setFilterRegion(regionId);
+        setFilterStreet('');
+        setStreetList([]);
+        if (!regionId) return;
+        try {
+            setGeoFilterLoading(true);
+            const res = await axiosClient.get(ENDPOINTS.LOOKUPS.STREETS_BY_REGION(regionId));
+            setStreetList(res.data || []);
+        } catch (e) { console.error(e); }
+        finally { setGeoFilterLoading(false); }
+    };
+
+    const clearGeoFilters = () => {
+        setScreenSearch('');
+        setFilterGov('');
+        setFilterRegion('');
+        setFilterStreet('');
+        setRegionList([]);
+        setStreetList([]);
+    };
+
+    // ── Derived: screens visible in Step 3 ───────────────────────────────
+    const filteredScreensForAd = React.useMemo(() => {
+        return screens.filter(s => {
+            // text search (name, street, region)
+            if (screenSearch.trim()) {
+                const q = screenSearch.trim().toLowerCase();
+                const hit =
+                    s.screen_name?.toLowerCase().includes(q) ||
+                    s.street?.name?.toLowerCase().includes(q) ||
+                    s.street?.region?.name?.toLowerCase().includes(q);
+                if (!hit) return false;
+            }
+            // cascading geo filter
+            if (filterStreet)  return String(s.street_id) === String(filterStreet);
+            if (filterRegion)  return String(s.street?.region_id) === String(filterRegion);
+            if (filterGov)     return String(s.street?.region?.gov_id) === String(filterGov);
+            return true;
+        });
+    }, [screens, screenSearch, filterGov, filterRegion, filterStreet]);
 
     const handleFileChange = (e) => {
         const file = e.target.files[0];
@@ -174,15 +244,15 @@ const CreateAdPage = () => {
         }
     };
 
-    const inputClass = "w-full bg-slate-50 border border-slate-200 rounded-xl py-3.5 px-4 text-sm font-bold text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-dark-turquoise)] focus:border-transparent transition-all";
-    const labelClass = "text-[12px] font-black text-slate-700 uppercase tracking-wider mb-2 block px-1";
+    const inputClass = "w-full border border-border-color rounded-lg px-4 py-3 font-body-md focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-colors";
+    const labelClass = "block font-label-md text-label-md text-on-background mb-2";
 
     const steps = [
-        { id: 1, title: 'المعلومات الأساسية', icon: Info, subtitle: 'التعريف والتصنيف' },
-        { id: 2, title: 'الجدولة والتكرار', icon: Calendar, subtitle: 'التاريخ وكثافة البث' },
-        { id: 3, title: 'الاستهداف المكاني', icon: MapPin, subtitle: 'تحديد الشاشات' },
-        { id: 4, title: 'المحتوى المرئي', icon: ImageIcon, subtitle: 'رفع الملفات' },
-        { id: 5, title: 'التسعير والاعتماد', icon: Calculator, subtitle: 'مراجعة ختامية' }
+        { id: 1, title: 'المعلومات الأساسية', subtitle: 'التعريف والتصنيف' },
+        { id: 2, title: 'الجدولة والتكرار', subtitle: 'التاريخ وكثافة البث' },
+        { id: 3, title: 'الاستهداف المكاني', subtitle: 'تحديد الشاشات' },
+        { id: 4, title: 'المحتوى المرئي', subtitle: 'رفع الملفات' },
+        { id: 5, title: 'التسعير والاعتماد', subtitle: 'مراجعة ختامية' }
     ];
 
     const nextStep = () => {
@@ -197,131 +267,124 @@ const CreateAdPage = () => {
     const isStepCurrent = (stepNum) => currentStep === stepNum;
 
     return (
-        <div className="max-w-6xl mx-auto space-y-6 pb-20 font-sans" dir="rtl">
-            <div className="sticky top-0 bg-[#f8fafc]/90 z-30 pt-4 pb-4 border-b border-gray-200/50 mb-8 backdrop-blur-xl">
-                <button onClick={() => navigate('/dashboard/ads')} className="text-gray-500 hover:text-gray-900 text-sm font-black flex items-center gap-1.5 mb-3 transition-colors px-1">
-                    <ArrowRight className="w-4 h-4 rotate-180" /> الرجوع للإدارة
-                </button>
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <PageHeader
-                        title={
-                            <span className="flex items-center gap-3">
-                                <span className="bg-gradient-to-br from-[var(--color-dark-turquoise)] to-[#0c4c58] text-white p-2.5 rounded-xl shadow-lg ring-4 ring-[var(--color-dark-turquoise)]/10">
-                                    <Layers className="w-6 h-6 shrink-0" />
-                                </span>
-                                <span className="text-3xl font-black tracking-tight text-slate-900">إنشاء حملة احترافية</span>
-                            </span>
-                        }
-                        description="بناء وتخصيص حملتك الإعلانية باستهداف ذكي ومحاكي تسعير متقدم مدمج."
+        <div className="flex-1 md:mr-64 flex flex-col min-h-screen bg-background">
+            <header className="bg-surface/95 backdrop-blur-md border-b border-border-color fixed top-0 left-0 w-full md:w-[calc(100%-16rem)] z-30">
+                <div className="flex items-center justify-between px-5 md:px-6 h-13 gap-3" style={{height:'52px'}}>
+                    {/* Right: back + step dots */}
+                    <div className="flex items-center gap-2.5">
+                        <button onClick={() => navigate('/dashboard/ads')} className="group flex items-center gap-1.5 text-on-surface-variant hover:text-primary transition-colors">
+                            <span className="material-symbols-outlined text-[18px] transition-transform group-hover:translate-x-0.5">arrow_forward</span>
+                            <span className="hidden md:block font-label-md text-label-md">الإعلانات</span>
+                        </button>
+                        <div className="h-4 w-px bg-outline-variant hidden sm:block"></div>
+                        <div className="hidden sm:flex items-center gap-1">
+                            {steps.map(s => (
+                                <div key={s.id} className={`transition-all duration-300 rounded-full ${
+                                    s.id < currentStep ? 'w-4 h-1.5 bg-secondary' :
+                                    s.id === currentStep ? 'w-6 h-1.5 bg-primary' :
+                                    'w-1.5 h-1.5 bg-outline-variant'
+                                }`} />
+                            ))}
+                        </div>
+                    </div>
+                    {/* Center: title */}
+                    <div className="flex items-center gap-2 absolute left-1/2 -translate-x-1/2">
+                        <span className="material-symbols-outlined text-primary text-[16px]" style={{ fontVariationSettings: '"FILL" 1' }}>campaign</span>
+                        <span className="font-label-lg text-label-lg text-on-surface font-bold hidden sm:block">إطلاق حملة</span>
+                        <span className="font-caption text-caption text-outline hidden md:block">· {steps[currentStep - 1]?.title}</span>
+                    </div>
+                    {/* Left: KPI badges */}
+                    <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5 bg-surface-container-low px-2.5 py-1 rounded-lg border border-border-color">
+                            <span className="material-symbols-outlined text-[14px] text-outline">payments</span>
+                            <span className="font-label-md text-label-md text-on-surface font-bold" dir="ltr">{calculatedCost ? `$${calculatedCost.toFixed(2)}` : '—'}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 bg-surface-container-low px-2.5 py-1 rounded-lg border border-border-color">
+                            <span className="material-symbols-outlined text-[14px] text-outline">desktop_windows</span>
+                            <span className="font-label-md text-label-md text-on-surface font-bold">{selectedScreens.length}</span>
+                        </div>
+                    </div>
+                </div>
+                {/* Animated gradient progress bar */}
+                <div className="h-[2px] w-full bg-outline-variant/20 relative overflow-hidden">
+                    <motion.div
+                        className="absolute top-0 right-0 h-full bg-gradient-to-l from-primary via-primary/80 to-secondary rounded-full"
+                        animate={{ width: `${((currentStep - 1) / (steps.length - 1)) * 100}%` }}
+                        transition={{ duration: 0.45, ease: 'easeInOut' }}
                     />
-                    
-                    {/* Compact Status Indicator for high-level insight */}
-                    <div className="flex gap-4">
-                        <div className="bg-white border border-slate-200 rounded-xl px-4 py-2 flex flex-col items-end justify-center shadow-sm">
-                            <span className="text-[10px] uppercase font-black text-slate-400">التكلفة التقديرية</span>
-                            <span className="text-lg font-black text-[var(--color-dark-turquoise)] font-mono">{calculatedCost ? `$${calculatedCost.toFixed(2)}` : '---'}</span>
+                </div>
+            </header>
+
+            <main className="flex-1 p-3 md:p-5 max-w-[1440px] mx-auto w-full font-sans" style={{marginTop:'54px'}} dir="rtl">
+                {/* Slim compact title row */}
+                <div className="mb-3 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary-container to-primary/20 text-primary flex items-center justify-center border border-primary/10 shadow-sm flex-shrink-0">
+                            <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: '"FILL" 1' }}>campaign</span>
                         </div>
-                        <div className="bg-white border border-slate-200 rounded-xl px-4 py-2 flex flex-col items-end justify-center shadow-sm">
-                            <span className="text-[10px] uppercase font-black text-slate-400">تغطية الشاشات</span>
-                            <span className="text-lg font-black text-slate-800 font-mono">{selectedScreens.length}</span>
+                        <div>
+                            <h2 className="font-title-md text-title-md text-on-background font-bold leading-snug">إطلاق حملة إعلانية جديدة</h2>
+                            <p className="font-caption text-caption text-on-surface-variant">{steps[currentStep - 1]?.title} · الخطوة {currentStep} من {steps.length}</p>
                         </div>
                     </div>
-                </div>
-            </div>
-
-            <div className="flex flex-col lg:flex-row gap-8">
-                {/* WIZARD NAVIGATION - SIDEBAR */}
-                <div className="lg:w-1/4 shrink-0">
-                    <div className="bg-white rounded-2xl p-6 shadow-[0_8px_30px_-4px_rgba(0,0,0,0.03)] border border-slate-100 sticky top-40">
-                        <h3 className="text-sm font-black text-slate-900 mb-6 flex items-center gap-2">
-                            <Flag className="w-4 h-4 text-[var(--color-dark-turquoise)]" /> مسار الحملة
-                        </h3>
-                        <div className="space-y-4">
-                            {steps.map((step, index) => {
-                                const current = isStepCurrent(step.id);
-                                const done = isStepDone(step.id);
-                                const Icon = step.icon;
-                                return (
-                                    <div key={step.id} className="relative">
-                                        {/* Connector Line */}
-                                        {index !== steps.length - 1 && (
-                                            <div className={`absolute top-10 right-5 bottom-[-16px] w-[2px] ${done ? 'bg-[var(--color-dark-turquoise)]' : 'bg-slate-100'}`} />
-                                        )}
-                                        <button 
-                                            type="button"
-                                            onClick={() => setCurrentStep(step.id)}
-                                            className={`w-full flex items-center gap-4 p-2 rounded-xl transition-all text-right group outline-none
-                                                ${current ? 'bg-slate-50' : 'hover:bg-slate-50'}`}
-                                        >
-                                            <div className={`w-10 h-10 shrink-0 rounded-full flex items-center justify-center font-black transition-all shadow-sm z-10
-                                                ${done ? 'bg-[var(--color-dark-turquoise)] text-white' : 
-                                                  current ? 'bg-white border-2 border-[var(--color-dark-turquoise)] text-[var(--color-dark-turquoise)] shadow-md shadow-[var(--color-dark-turquoise)]/20' : 
-                                                  'bg-white border-2 border-slate-200 text-slate-400 group-hover:border-slate-300'}`}>
-                                                {done ? <Check className="w-5 h-5" /> : step.id}
-                                            </div>
-                                            <div>
-                                                <h4 className={`text-sm font-black transition-colors ${current ? 'text-[var(--color-dark-turquoise)]' : done ? 'text-slate-800' : 'text-slate-500'}`}>
-                                                    {step.title}
-                                                </h4>
-                                                <p className="text-[10px] font-bold text-slate-400 mt-0.5">{step.subtitle}</p>
-                                            </div>
-                                        </button>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
+                    <button
+                        onClick={() => navigate('/dashboard/ads')}
+                        className="group flex items-center gap-2 px-4 py-2 bg-surface-container-lowest hover:bg-error-container/20 border border-border-color hover:border-error/30 text-error rounded-xl transition-all font-label-md shadow-sm flex-shrink-0"
+                    >
+                        <span className="material-symbols-outlined text-[17px] transition-transform group-hover:translate-x-0.5">arrow_forward</span>
+                        <span className="hidden sm:block">إلغاء</span>
+                    </button>
                 </div>
 
-                {/* FORM CONTENT */}
-                <div className="lg:w-3/4">
-                    <form onSubmit={handleSubmit} className="relative">
-                        <AnimatePresence mode="wait">
+                <div className="flex flex-col lg:flex-row gap-3 items-start">
+                    {/* MAIN FORM CARD - Left side */}
+                    <div className="flex-1 flex flex-col gap-4 order-2 lg:order-1 min-w-0">
+                    <div className="bg-surface-container-lowest rounded-2xl border border-outline-variant p-5 md:p-7 flex flex-col gap-6 flex-1 shadow-sm">
+                        <form onSubmit={handleSubmit} className="relative">
+                            <AnimatePresence mode="wait">
                             
                             {/* STEP 1: CAMPAIGN INFORMATION */}
                             {currentStep === 1 && (
-                                <motion.div 
-                                    key="step1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }}
-                                    className="bg-white rounded-3xl p-6 md:p-10 shadow-[0_8px_30px_-4px_rgba(0,0,0,0.03)] border border-slate-100"
-                                >
+                                <motion.div key="step1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }}>
                                     <div className="mb-8">
-                                        <h2 className="text-2xl font-black text-slate-900 flex items-center gap-3">
-                                            <Info className="w-6 h-6 text-[var(--color-dark-turquoise)]" /> المعلومات الأساسية للتصنيف
-                                        </h2>
-                                        <p className="text-slate-500 font-bold text-sm mt-2">تعريف هوية الحملة وتحديد القطاع الإعلاني المستهدف.</p>
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <span className="material-symbols-outlined text-primary text-xl">info</span>
+                                            <h3 className="font-title-lg text-title-lg text-on-background">المعلومات الأساسية للتصنيف</h3>
+                                        </div>
+                                        <p className="font-body-md text-body-md text-on-surface-variant">تعريف هوية الحملة وتحديد القطاع الإعلاني المستهدف.</p>
                                     </div>
                                     
                                     <div className="space-y-6">
                                         {can('manage_all') && (
-                                            <div className="bg-indigo-50/50 p-6 rounded-2xl border border-indigo-100/50">
-                                                <label className="text-xs font-black text-indigo-900 uppercase tracking-wider mb-3 block px-1 flex items-center gap-1.5">
-                                                    <ShieldCheck className="w-5 h-5 text-indigo-600" /> إسناد الحملة لمعلن (صلاحية إدارية عليا)
+                                            <div className="bg-surface-container-low p-6 rounded-xl border border-border-color">
+                                                <label className="font-label-md text-label-md text-primary mb-3 flex items-center gap-1.5">
+                                                    <span className="material-symbols-outlined">admin_panel_settings</span> إسناد الحملة لمعلن (صلاحية إدارية عليا)
                                                 </label>
                                                 <div className="relative">
-                                                    <select value={form.advertiser_id} onChange={(e) => setForm(p => ({ ...p, advertiser_id: e.target.value }))} className="w-full bg-white border border-indigo-200 rounded-xl py-4 px-4 pr-10 text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all cursor-pointer shadow-sm appearance-none">
+                                                    <select value={form.advertiser_id} onChange={(e) => setForm(p => ({ ...p, advertiser_id: e.target.value }))} className="w-full bg-white border border-border-color rounded-lg py-3 px-4 text-on-background focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-colors cursor-pointer shadow-sm appearance-none font-body-md">
                                                         <option value="">-- إصدار تحت حساب الإدارة (افتراضي) --</option>
                                                         {advertisers.map(adv => <option key={adv.user_id} value={adv.user_id}>{adv.full_name} ({adv.email})</option>)}
                                                     </select>
-                                                    <ChevronDown className="w-5 h-5 text-indigo-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+                                                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">expand_content</span>
                                                 </div>
-                                                <p className="text-[11px] text-indigo-600 font-bold px-1 mt-2">باختيارك لمعلن، سيشاهد هذه الحملة في لوحته وتصدر الفاتورة باسمه.</p>
+                                                <p className="font-caption text-caption text-on-surface-variant mt-2 px-1">باختيارك لمعلن، سيشاهد هذه الحملة في لوحته وتصدر الفاتورة باسمه.</p>
                                             </div>
                                         )}
                                         
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                             <div>
-                                                <label className={labelClass}>عنوان الحملة الترويجي <span className="text-red-500">*</span></label>
+                                                <label className={labelClass}>عنوان الحملة الترويجي <span className="text-error">*</span></label>
                                                 <input type="text" value={form.title} onChange={(e) => setForm(p => ({ ...p, title: e.target.value }))} placeholder="مثال: إطلاق منتج صيف 2026..." className={inputClass} />
-                                                <p className="text-[10px] text-slate-400 font-bold px-1 mt-1.5">الاسم المرجعي الداخلي للحملة (لن يظهر للجمهور).</p>
+                                                <p className="font-caption text-caption text-on-surface-variant mt-1.5 px-1">الاسم المرجعي الداخلي للحملة (لن يظهر للجمهور).</p>
                                             </div>
                                             <div>
-                                                <label className={labelClass}>تصنيف القطاع الإعلاني <span className="text-red-500">*</span></label>
+                                                <label className={labelClass}>تصنيف القطاع الإعلاني <span className="text-error">*</span></label>
                                                 <div className="relative">
-                                                    <select value={form.category_id} onChange={(e) => setForm(p => ({ ...p, category_id: e.target.value }))} className={`${inputClass} appearance-none cursor-pointer pr-4 pl-10`}>
-                                                        <option value="">-- اختر التصنيف التسعيري المناسب --</option>
-                                                        {categories.map(c => <option key={c.category_id} value={c.category_id}>{c.category_name} - {c.price}$ (معامل تصنيف)</option>)}
+                                                    <select value={form.category_id} onChange={(e) => setForm(p => ({ ...p, category_id: e.target.value }))} className={`${inputClass} appearance-none cursor-pointer pl-10 pr-4 text-left`} dir="ltr">
+                                                        <option value="" dir="rtl">-- اختر التصنيف التسعيري المناسب --</option>
+                                                        {categories.map(c => <option key={c.category_id} value={c.category_id} dir="rtl">{c.category_name} - {c.price}$ (معامل تصنيف)</option>)}
                                                     </select>
-                                                    <ChevronDown className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                                                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">expand_content</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -333,162 +396,321 @@ const CreateAdPage = () => {
                             {currentStep === 2 && (
                                 <motion.div 
                                     key="step2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }}
-                                    className="bg-white rounded-3xl p-6 md:p-10 shadow-[0_8px_30px_-4px_rgba(0,0,0,0.03)] border border-slate-100"
+                                    className="bg-white rounded-2xl border border-border-color p-6 md:p-8 shadow-sm"
                                 >
                                     <div className="mb-8">
-                                        <h2 className="text-2xl font-black text-slate-900 flex items-center gap-3">
-                                            <Calendar className="w-6 h-6 text-[var(--color-dark-turquoise)]" /> الجدولة الزمنية وكثافة البث
-                                        </h2>
-                                        <p className="text-slate-500 font-bold text-sm mt-2">تحديد المواصفات الزمنية لعمر الحملة، وفترات البث خلال اليوم.</p>
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <span className="material-symbols-outlined text-primary text-xl">calendar_month</span>
+                                            <h3 className="font-title-lg text-title-lg text-on-background">الجدولة الزمنية وكثافة البث</h3>
+                                        </div>
+                                        <p className="font-body-md text-body-md text-on-surface-variant">تحديد المواصفات الزمنية لعمر الحملة، وفترات البث خلال اليوم.</p>
                                     </div>
                                     
-                                    <div className="space-y-8">
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                            <div>
-                                                <label className={labelClass}>طول المادة الإعلانية <span className="text-red-500">*</span></label>
-                                                <div className="relative">
-                                                    <input type="number" min="1" value={form.duration} onChange={(e) => { setForm(p => ({ ...p, duration: e.target.value })); if (calculatedCost) setCalculatedCost(null); }} placeholder="مثال: 15" className={`${inputClass} pl-12 font-mono`} />
-                                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-black text-slate-400 pointer-events-none">ثانية</span>
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <label className={labelClass}>تاريخ الانطلاق <span className="text-red-500">*</span></label>
-                                                <input type="date" value={form.start_date} onChange={(e) => { setForm(p => ({ ...p, start_date: e.target.value })); if (calculatedCost) setCalculatedCost(null); }} className={inputClass} />
-                                            </div>
-                                            <div>
-                                                <label className={labelClass}>تاريخ الانتهاء <span className="text-red-500">*</span></label>
-                                                <input type="date" value={form.end_date} onChange={(e) => { setForm(p => ({ ...p, end_date: e.target.value })); if (calculatedCost) setCalculatedCost(null); }} className={inputClass} />
-                                            </div>
-                                        </div>
-
-                                        <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200">
-                                            <h4 className="text-sm font-black text-slate-800 mb-5 flex items-center gap-2">
-                                                <Crosshair className="w-4 h-4 text-slate-500" /> توجيه البث النهاري/الليلي (اختياري)
-                                            </h4>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                                <div>
-                                                    <label className={labelClass}>يبدأ البث في الساعة</label>
-                                                    <input type="time" value={form.target_start_time} onChange={(e) => { setForm(p => ({ ...p, target_start_time: e.target.value })); if (calculatedCost) setCalculatedCost(null); }} className={`${inputClass} bg-white shadow-sm font-mono`} />
-                                                </div>
-                                                <div>
-                                                    <label className={labelClass}>يتوقف البث في الساعة</label>
-                                                    <input type="time" value={form.target_end_time} onChange={(e) => { setForm(p => ({ ...p, target_end_time: e.target.value })); if (calculatedCost) setCalculatedCost(null); }} className={`${inputClass} bg-white shadow-sm font-mono`} />
-                                                </div>
-                                            </div>
-                                            <p className="text-[11px] font-bold text-slate-500 mt-3 px-1">بإمكانك حصر ساعات البث في فترات الذروة المحددة. يترك فارغاً للبث على مدار 24 ساعة.</p>
-                                        </div>
-
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                                         <div>
-                                            <h4 className="text-sm font-black text-slate-900 mb-4 flex items-center gap-2">
-                                                <Activity className="w-4 h-4 text-[var(--color-dark-turquoise)]" /> باقات التكرار وكثافة البث
-                                            </h4>
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                                {frequencyPackages.map(pkg => {
-                                                    const isSelected = form.interval_minutes == pkg.display_interval;
-                                                    return (
-                                                        <div 
-                                                            key={pkg.id || pkg.display_interval}
-                                                            onClick={() => {
+                                            <label className="block font-label-md text-label-md text-on-background mb-2">
+                                                طول المادة الإعلانية <span className="text-error">*</span>
+                                            </label>
+                                            <div className="relative">
+                                                <input 
+                                                    type="number" min="1"
+                                                    value={form.duration} 
+                                                    onChange={(e) => { setForm(p => ({ ...p, duration: e.target.value })); if (calculatedCost) setCalculatedCost(null); }} 
+                                                    className="w-full border border-border-color rounded-lg px-4 py-3 font-body-md focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-colors pl-12 text-left" 
+                                                    dir="ltr" 
+                                                    placeholder="مثال : 15" 
+                                                />
+                                                <span className="absolute left-4 top-1/2 -translate-y-1/2 font-body-md text-on-surface-variant pointer-events-none">ثانية</span>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="block font-label-md text-label-md text-on-background mb-2">
+                                                تاريخ الانطلاق <span className="text-error">*</span>
+                                            </label>
+                                            <div className="relative">
+                                                <input 
+                                                    type="date" 
+                                                    value={form.start_date} 
+                                                    onChange={(e) => { setForm(p => ({ ...p, start_date: e.target.value })); if (calculatedCost) setCalculatedCost(null); }} 
+                                                    className="w-full border border-border-color rounded-lg px-4 py-3 font-body-md focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-colors pr-10 text-left" 
+                                                    dir="ltr" 
+                                                />
+                                                <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">calendar_today</span>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="block font-label-md text-label-md text-on-background mb-2">
+                                                تاريخ الانتهاء <span className="text-error">*</span>
+                                            </label>
+                                            <div className="relative">
+                                                <input 
+                                                    type="date" 
+                                                    value={form.end_date} 
+                                                    onChange={(e) => { setForm(p => ({ ...p, end_date: e.target.value })); if (calculatedCost) setCalculatedCost(null); }} 
+                                                    className="w-full border border-border-color rounded-lg px-4 py-3 font-body-md focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-colors pr-10 text-left" 
+                                                    dir="ltr" 
+                                                />
+                                                <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">calendar_today</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-surface-container-low border border-border-color rounded-xl p-6 mb-10">
+                                        <div className="flex items-center justify-between mb-6">
+                                            <div className="flex items-center gap-2">
+                                                <span className="material-symbols-outlined text-outline">routine</span>
+                                                <h4 className="font-label-md text-label-md font-bold text-on-background">توجيه البث النهاري/الليلي (اختياري)</h4>
+                                            </div>
+                                            <button type="button" onClick={() => {
+                                                if (form.target_start_time || form.target_end_time) {
+                                                    setForm(p => ({ ...p, target_start_time: '', target_end_time: '' }));
+                                                    if (calculatedCost) setCalculatedCost(null);
+                                                } else {
+                                                    setForm(p => ({ ...p, target_start_time: '08:00', target_end_time: '23:00' }));
+                                                }
+                                            }} className={`w-10 h-6 inline-flex rounded-full relative transition-colors duration-300 ${(form.target_start_time || form.target_end_time) ? 'bg-primary' : 'bg-outline-variant'}`}>
+                                                <span className={`w-4 h-4 bg-white rounded-full absolute top-[4px] shadow-sm transition-all duration-300 ${(form.target_start_time || form.target_end_time) ? 'left-1' : 'right-1'}`}></span>
+                                            </button>
+                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <div>
+                                                <label className="block font-label-md text-label-md text-on-background mb-2">يبدأ البث في الساعة</label>
+                                                <div className="relative">
+                                                    <input 
+                                                        type="time" 
+                                                        value={form.target_start_time} 
+                                                        onChange={(e) => { setForm(p => ({ ...p, target_start_time: e.target.value })); if (calculatedCost) setCalculatedCost(null); }} 
+                                                        className="w-full border border-border-color bg-white rounded-lg px-4 py-3 font-body-md focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-colors pr-10 text-left" 
+                                                        dir="ltr" 
+                                                    />
+                                                    <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">schedule</span>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label className="block font-label-md text-label-md text-on-background mb-2">يتوقف البث في الساعة</label>
+                                                <div className="relative">
+                                                    <input 
+                                                        type="time" 
+                                                        value={form.target_end_time} 
+                                                        onChange={(e) => { setForm(p => ({ ...p, target_end_time: e.target.value })); if (calculatedCost) setCalculatedCost(null); }} 
+                                                        className="w-full border border-border-color bg-white rounded-lg px-4 py-3 font-body-md focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-colors pr-10 text-left" 
+                                                        dir="ltr" 
+                                                    />
+                                                    <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">schedule</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <p className="font-caption text-caption text-on-surface-variant mt-4">بإمكانك حصر ساعات البث في فترات الذروة المحددة. يترك فارغاً للبث على مدار 24 ساعة.</p>
+                                    </div>
+
+                                    <div className="h-px bg-border-color w-full mb-8"></div>
+
+                                    <div>
+                                        <div className="flex items-center gap-2 mb-6">
+                                            <span className="material-symbols-outlined text-primary text-xl">insights</span>
+                                            <h3 className="font-title-lg text-title-lg text-on-background">باقات التكرار وكثافة البث</h3>
+                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            {frequencyPackages.map(pkg => {
+                                                const isSelected = form.interval_minutes == pkg.display_interval;
+                                                return (
+                                                    <label key={pkg.id || pkg.display_interval} className="cursor-pointer relative block">
+                                                        <input 
+                                                            type="radio" 
+                                                            name="package" 
+                                                            className="peer sr-only"
+                                                            checked={isSelected}
+                                                            onChange={() => {
                                                                 setForm(p => ({ ...p, interval_minutes: pkg.display_interval, package_name: pkg.name }));
                                                                 if (calculatedCost) setCalculatedCost(null);
                                                             }}
-                                                            className={`p-5 rounded-2xl border-2 cursor-pointer transition-all relative overflow-hidden group
-                                                                ${isSelected ? 'border-[var(--color-dark-turquoise)] bg-[var(--color-dark-turquoise)]/5 shadow-md' : 'border-slate-200 bg-white hover:border-[var(--color-dark-turquoise)]/40 hover:bg-slate-50'}`}
-                                                        >
-                                                            {isSelected && (
-                                                                <div className="absolute top-0 right-0 w-12 h-12 bg-[var(--color-dark-turquoise)]/10 rounded-bl-[40px] flex items-start justify-end p-2">
-                                                                    <CheckCircle2 className="w-5 h-5 text-[var(--color-dark-turquoise)]" />
-                                                                </div>
-                                                            )}
-                                                            <div className="mb-2">
-                                                                <span className={`text-base font-black ${isSelected ? 'text-[var(--color-dark-turquoise)]' : 'text-slate-900'}`}>{pkg.name}</span>
+                                                        />
+                                                        <div className={`rounded-xl p-6 text-center transition-all duration-200 hover:shadow-md ${isSelected ? 'border border-primary-container ring-1 ring-primary-container bg-surface-container' : 'border border-border-color bg-white'}`}>
+                                                            <h4 className="font-headline-md text-headline-md text-on-background mb-2">{pkg.name}</h4>
+                                                            <div className="flex items-center justify-center gap-1 text-on-surface-variant">
+                                                                <span className="material-symbols-outlined text-sm">schedule</span>
+                                                                <span className="font-body-md text-body-md">يعرض كل {pkg.display_interval} دقيقة</span>
                                                             </div>
-                                                            <p className="text-xs font-bold text-slate-500 flex items-center gap-1.5">
-                                                                <Clock className={`w-3.5 h-3.5 ${isSelected ? 'text-[var(--color-dark-turquoise)]' : 'text-slate-400'}`} /> يعرض كل {pkg.display_interval} دقيقة
-                                                            </p>
                                                         </div>
-                                                    );
-                                                })}
-                                            </div>
-                                            <input type="hidden" value={form.package_name} readOnly />
+                                                    </label>
+                                                );
+                                            })}
                                         </div>
+                                        <input type="hidden" value={form.package_name} readOnly />
                                     </div>
                                 </motion.div>
                             )}
 
                             {/* STEP 3: SCREEN TARGETING */}
                             {currentStep === 3 && (
-                                <motion.div 
-                                    key="step3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }}
-                                    className="bg-white rounded-3xl p-6 md:p-10 shadow-[0_8px_30px_-4px_rgba(0,0,0,0.03)] border border-slate-100"
-                                >
-                                    <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                <motion.div key="step3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }}>
+                                    {/* Header */}
+                                    <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
                                         <div>
-                                            <h2 className="text-2xl font-black text-slate-900 flex items-center gap-3">
-                                                <MapPin className="w-6 h-6 text-[var(--color-dark-turquoise)]" /> الاستهداف المكاني
-                                            </h2>
-                                            <p className="text-slate-500 font-bold text-sm mt-2">قم بتمكين الشاشات المستهدفة لبث الحملة عليها.</p>
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <span className="material-symbols-outlined text-primary text-xl">location_on</span>
+                                                <h3 className="font-title-lg text-title-lg text-on-background">الاستهداف المكاني</h3>
+                                            </div>
+                                            <p className="font-body-md text-body-md text-on-surface-variant">ابحث عن الشاشات أو صفّها حسب الموقع الجغرافي.</p>
                                         </div>
-                                        <div className="bg-[var(--color-dark-turquoise)]/10 text-[var(--color-dark-turquoise)] font-black text-sm px-4 py-2 rounded-xl flex items-center gap-2">
-                                            <Monitor className="w-4 h-4" /> تم اختيار {selectedScreens.length} شاشات
+                                        <div className="flex items-center gap-2">
+                                            {selectedScreens.length > 0 && (
+                                                <span className="bg-primary text-white font-label-md text-label-md px-4 py-2 rounded-lg flex items-center gap-2 shadow-sm">
+                                                    <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: '"FILL" 1' }}>check_circle</span>
+                                                    {selectedScreens.length} شاشة مختارة
+                                                </span>
+                                            )}
+                                            <div className="bg-surface-container-low border border-border-color text-on-surface-variant font-label-md px-4 py-2 rounded-lg flex items-center gap-2">
+                                                <span className="material-symbols-outlined text-[18px]">desktop_windows</span>
+                                                {filteredScreensForAd.length} / {screens.length}
+                                            </div>
                                         </div>
                                     </div>
-                                    
-                                    <div className="bg-slate-50 border border-slate-200 rounded-2xl overflow-hidden">
-                                        <div className="p-1">
-                                            <div className="max-h-[500px] overflow-y-auto custom-scrollbar p-3">
-                                                {screens.length === 0 ? (
-                                                    <div className="text-center py-16">
-                                                        <Monitor className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                                                        <p className="text-base font-black text-slate-500 mb-2">لا تتوفر شاشات في النظام</p>
-                                                        <p className="text-xs font-bold text-slate-400">يرجى إضافة شاشات جديدة من قسم إدارة الشاشات.</p>
-                                                    </div>
-                                                ) : (
-                                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                                                        {screens.map(screen => {
-                                                            const isSelected = selectedScreens.includes(screen.screen_id);
-                                                            return (
-                                                                <div key={screen.screen_id} 
-                                                                    onClick={() => toggleScreen(screen.screen_id)}
-                                                                    className={`flex flex-col p-4 rounded-xl border-2 transition-all cursor-pointer relative group
-                                                                        ${isSelected ? 'border-[var(--color-dark-turquoise)] bg-white shadow-md' : 'border-slate-200 bg-white hover:border-[var(--color-dark-turquoise)]/40'}`}>
-                                                                    
-                                                                    <div className="flex justify-between items-start mb-3">
-                                                                        <div className="flex-1 pr-1">
-                                                                            <h5 className={`text-sm font-black mb-1 truncate ${isSelected ? 'text-[var(--color-dark-turquoise)]' : 'text-slate-800'}`} title={screen.screen_name}>
-                                                                                {screen.screen_name}
-                                                                            </h5>
-                                                                            <p className="text-[10px] font-bold text-slate-400 flex items-center gap-1 truncate">
-                                                                                <MapPin className="w-3 h-3 shrink-0" /> {screen.street?.name || 'موقع غير محدد'}
-                                                                            </p>
-                                                                        </div>
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={(e) => { e.stopPropagation(); setAvailabilityScreen(screen); }}
-                                                                            className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors
-                                                                                ${isSelected ? 'bg-[var(--color-dark-turquoise)]/10 text-[var(--color-dark-turquoise)] hover:bg-[var(--color-dark-turquoise)] hover:text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
-                                                                            title="التأكد من توفر المساحة الزمنية"
-                                                                        >
-                                                                            <Info className="w-4 h-4" />
-                                                                        </button>
-                                                                    </div>
 
-                                                                    <div className="flex items-center justify-between mt-auto pt-3 border-t border-slate-100">
-                                                                        <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider">الحالة</span>
-                                                                        {isSelected ? (
-                                                                            <span className="flex items-center gap-1.5 text-xs font-black text-[var(--color-dark-turquoise)]">
-                                                                                <CheckCircle2 className="w-3.5 h-3.5" /> مستهدفة
-                                                                            </span>
-                                                                        ) : (
-                                                                            <span className="text-xs font-bold text-slate-400">تخطي</span>
-                                                                        )}
-                                                                    </div>
-                                                                </div>
-                                                            );
-                                                        })}
-                                                    </div>
-                                                )}
+                                    {/* ── Search + Geo Filters ── */}
+                                    <div className="bg-surface-container-low border border-border-color rounded-2xl p-4 mb-4 flex flex-col gap-3">
+                                        {/* Text search */}
+                                        <div className="relative">
+                                            <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-[20px]">search</span>
+                                            <input
+                                                type="text"
+                                                value={screenSearch}
+                                                onChange={e => setScreenSearch(e.target.value)}
+                                                placeholder="ابحث باسم الشاشة أو الشارع أو المنطقة..."
+                                                className="w-full bg-white border border-border-color rounded-xl pr-10 pl-4 py-2.5 font-body-md focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-colors"
+                                            />
+                                            {screenSearch && (
+                                                <button type="button" onClick={() => setScreenSearch('')}
+                                                    className="absolute left-3 top-1/2 -translate-y-1/2 text-outline hover:text-error transition-colors">
+                                                    <span className="material-symbols-outlined text-[18px]">close</span>
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        {/* Cascade dropdowns */}
+                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                            {/* المحافظة */}
+                                            <div className="relative">
+                                                <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-[18px]">map</span>
+                                                <select
+                                                    value={filterGov}
+                                                    onChange={e => handleFilterGovChange(e.target.value)}
+                                                    className="w-full bg-white border border-border-color rounded-xl pr-10 pl-4 py-2.5 font-body-md focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-colors appearance-none cursor-pointer"
+                                                >
+                                                    <option value="">كل المحافظات</option>
+                                                    {govList.map(g => <option key={g.gov_id} value={g.gov_id}>{g.name}</option>)}
+                                                </select>
+                                                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-[16px]">expand_more</span>
                                             </div>
+
+                                            {/* المنطقة */}
+                                            <div className="relative">
+                                                <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-[18px]">location_city</span>
+                                                <select
+                                                    value={filterRegion}
+                                                    onChange={e => handleFilterRegionChange(e.target.value)}
+                                                    disabled={!filterGov || geoFilterLoading}
+                                                    className="w-full bg-white border border-border-color rounded-xl pr-10 pl-4 py-2.5 font-body-md focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-colors appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                    <option value="">{geoFilterLoading ? 'جاري التحميل...' : 'كل المناطق'}</option>
+                                                    {regionList.map(r => <option key={r.region_id} value={r.region_id}>{r.name}</option>)}
+                                                </select>
+                                                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-[16px]">expand_more</span>
+                                            </div>
+
+                                            {/* الشارع */}
+                                            <div className="relative">
+                                                <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-[18px]">fork_right</span>
+                                                <select
+                                                    value={filterStreet}
+                                                    onChange={e => setFilterStreet(e.target.value)}
+                                                    disabled={!filterRegion || geoFilterLoading}
+                                                    className="w-full bg-white border border-border-color rounded-xl pr-10 pl-4 py-2.5 font-body-md focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-colors appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                    <option value="">{geoFilterLoading ? 'جاري التحميل...' : 'كل الشوارع'}</option>
+                                                    {streetList.map(s => <option key={s.street_id} value={s.street_id}>{s.name}</option>)}
+                                                </select>
+                                                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-[16px]">expand_more</span>
+                                            </div>
+                                        </div>
+
+                                        {/* Clear filters */}
+                                        {(screenSearch || filterGov || filterRegion || filterStreet) && (
+                                            <button type="button" onClick={clearGeoFilters}
+                                                className="self-start flex items-center gap-1.5 text-error font-label-md text-label-md hover:bg-error-container/20 px-3 py-1.5 rounded-lg transition-colors">
+                                                <span className="material-symbols-outlined text-[16px]">filter_alt_off</span>
+                                                مسح جميع الفلاتر
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    {/* ── Screen Cards Grid ── */}
+                                    <div className="bg-surface-container-lowest border border-border-color rounded-xl overflow-hidden p-4">
+                                        <div className="max-h-[480px] overflow-y-auto custom-scrollbar">
+                                            {screens.length === 0 ? (
+                                                <div className="text-center py-16">
+                                                    <span className="material-symbols-outlined text-6xl text-outline-variant mb-4">desktop_windows</span>
+                                                    <p className="font-title-lg text-title-lg text-on-surface-variant mb-2">لا تتوفر شاشات في النظام</p>
+                                                    <p className="font-body-md text-body-md text-outline">يرجى إضافة شاشات جديدة من قسم إدارة الشاشات.</p>
+                                                </div>
+                                            ) : filteredScreensForAd.length === 0 ? (
+                                                <div className="text-center py-16">
+                                                    <span className="material-symbols-outlined text-5xl text-outline-variant mb-3">search_off</span>
+                                                    <p className="font-title-md text-title-md text-on-surface-variant mb-1">لا توجد شاشات مطابقة</p>
+                                                    <p className="font-body-md text-body-md text-outline">جرّب تعديل كلمة البحث أو الفلاتر الجغرافية.</p>
+                                                </div>
+                                            ) : (
+                                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 p-2">
+                                                    {filteredScreensForAd.map(screen => {
+                                                        const isSelected = selectedScreens.includes(screen.screen_id);
+                                                        return (
+                                                            <div key={screen.screen_id}
+                                                                onClick={() => toggleScreen(screen.screen_id)}
+                                                                className={`flex flex-col p-5 rounded-xl border transition-all cursor-pointer relative
+                                                                    ${isSelected ? 'border-primary-container bg-surface-container shadow-sm ring-1 ring-primary-container' : 'border-border-color bg-white hover:border-primary-container/40 hover:shadow-sm'}`}>
+
+                                                                <div className="flex justify-between items-start mb-3">
+                                                                    <div className="flex-1 pr-1 min-w-0">
+                                                                        <h5 className={`font-label-md text-label-md mb-1 truncate ${isSelected ? 'text-primary' : 'text-on-background'}`} title={screen.screen_name}>
+                                                                            {screen.screen_name}
+                                                                        </h5>
+                                                                        {screen.street?.region?.name && (
+                                                                            <p className="font-caption text-caption text-outline flex items-center gap-1 truncate">
+                                                                                <span className="material-symbols-outlined text-[12px]">map</span>
+                                                                                {screen.street.region.name}
+                                                                            </p>
+                                                                        )}
+                                                                        <p className="font-caption text-caption text-on-surface-variant flex items-center gap-1 truncate mt-0.5">
+                                                                            <span className="material-symbols-outlined text-[13px]">fork_right</span>
+                                                                            {screen.street?.name || 'موقع غير محدد'}
+                                                                        </p>
+                                                                    </div>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={(e) => { e.stopPropagation(); setAvailabilityScreen(screen); }}
+                                                                        className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-colors
+                                                                            ${isSelected ? 'bg-primary text-white hover:bg-on-primary-fixed-variant' : 'bg-surface-container text-on-surface-variant hover:bg-outline-variant'}`}
+                                                                        title="التأكد من توفر المساحة الزمنية"
+                                                                    >
+                                                                        <span className="material-symbols-outlined text-[18px]">info</span>
+                                                                    </button>
+                                                                </div>
+
+                                                                <div className="flex items-center justify-between mt-auto pt-3 border-t border-border-color">
+                                                                    <span className="font-caption text-caption text-outline">الحالة</span>
+                                                                    {isSelected ? (
+                                                                        <span className="flex items-center gap-1 font-label-md text-label-md text-primary bg-primary-container/10 px-2 py-0.5 rounded">
+                                                                            <span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: '"FILL" 1' }}>check_circle</span> مستهدفة
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span className="font-label-md text-label-md text-outline">تخطي</span>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </motion.div>
@@ -496,56 +718,54 @@ const CreateAdPage = () => {
 
                             {/* STEP 4: MEDIA UPLOAD EXPERIENCE */}
                             {currentStep === 4 && (
-                                <motion.div 
-                                    key="step4" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }}
-                                    className="bg-white rounded-3xl p-6 md:p-10 shadow-[0_8px_30px_-4px_rgba(0,0,0,0.03)] border border-slate-100"
-                                >
+                                <motion.div key="step4" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }}>
                                     <div className="mb-8">
-                                        <h2 className="text-2xl font-black text-slate-900 flex items-center gap-3">
-                                            <ImageIcon className="w-6 h-6 text-[var(--color-dark-turquoise)]" /> الإنتاج الإعلاني
-                                        </h2>
-                                        <p className="text-slate-500 font-bold text-sm mt-2">رفع المادة المرئية ومستندات الاعتماد المالي.</p>
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <span className="material-symbols-outlined text-primary text-xl">image</span>
+                                            <h3 className="font-title-lg text-title-lg text-on-background">الإنتاج الإعلاني</h3>
+                                        </div>
+                                        <p className="font-body-md text-body-md text-on-surface-variant">رفع المادة المرئية ومستندات الاعتماد المالي.</p>
                                     </div>
                                     
                                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                                         <div className="space-y-6">
                                             <div>
-                                                <label className="text-[12px] font-black text-slate-700 uppercase tracking-wider mb-2 block flex items-center gap-1.5">
-                                                    <Upload className="w-4 h-4 text-[var(--color-dark-turquoise)]" /> المادة الإعلانية <span className="text-red-500">*</span>
+                                                <label className="font-label-md text-label-md font-bold text-on-background mb-3 flex items-center gap-1.5">
+                                                    <span className="material-symbols-outlined text-[18px] text-primary">upload</span> المادة الإعلانية <span className="text-error">*</span>
                                                 </label>
                                                 <div className="relative group">
                                                     <input type="file" accept="video/*,image/*" onChange={handleFileChange}
                                                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
-                                                    <div className={`p-8 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center text-center transition-all bg-slate-50 
-                                                        ${form.file ? 'border-[var(--color-dark-turquoise)] bg-[var(--color-dark-turquoise)]/5' : 'border-slate-300 group-hover:border-[var(--color-dark-turquoise)] group-hover:bg-slate-100/50'}`}>
-                                                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-4 transition-colors shadow-sm
-                                                            ${form.file ? 'bg-[var(--color-dark-turquoise)] text-white' : 'bg-white border-2 border-slate-200 text-slate-400 group-hover:border-[var(--color-dark-turquoise)] group-hover:text-[var(--color-dark-turquoise)]'}`}>
-                                                            <Upload className="w-6 h-6" />
+                                                    <div className={`p-8 rounded-2xl border border-dashed flex flex-col items-center justify-center text-center transition-all bg-surface-container-lowest 
+                                                        ${form.file ? 'border-primary ring-1 ring-primary bg-primary-container/10' : 'border-outline group-hover:border-primary group-hover:bg-surface-container-low'}`}>
+                                                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-4 transition-colors
+                                                            ${form.file ? 'bg-primary text-white shadow-sm' : 'bg-surface-container text-on-surface-variant group-hover:bg-primary-container group-hover:text-primary'}`}>
+                                                            <span className="material-symbols-outlined text-[24px]">cloud_upload</span>
                                                         </div>
-                                                        <p className="text-sm font-black text-slate-900 mb-1">
+                                                        <p className="font-title-md text-title-md text-on-background mb-1 font-bold">
                                                             {form.file ? form.file.name : 'انقر أو اسحب الملف هنا للرفع'}
                                                         </p>
-                                                        <p className="text-[11px] font-bold text-slate-500">MP4, MOV, JPEG, PNG (الحد الأقصى 50MB)</p>
+                                                        <p className="font-caption text-caption text-outline">MP4, MOV, JPEG, PNG (الحد الأقصى 50MB)</p>
                                                     </div>
                                                 </div>
                                             </div>
 
                                             <div>
-                                                <label className="text-[12px] font-black text-slate-700 uppercase tracking-wider mb-2 block flex items-center gap-1.5">
-                                                    <FileText className="w-4 h-4 text-emerald-600" /> إيصال الدفع <span className="text-slate-400 font-bold ml-2">(اختياري)</span>
+                                                <label className="font-label-md text-label-md font-bold text-on-background mb-3 flex items-center gap-1.5">
+                                                    <span className="material-symbols-outlined text-[18px] text-outline">receipt_long</span> إيصال الدفع <span className="text-outline font-normal ml-2">(اختياري)</span>
                                                 </label>
                                                 <div className="relative group">
                                                     <input type="file" accept="image/*,.pdf" onChange={(e) => setForm(p => ({ ...p, receipt: e.target.files[0] }))}
                                                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
-                                                    <div className={`p-4 rounded-xl border-2 border-dashed flex items-center gap-4 transition-all bg-slate-50 
-                                                        ${form.receipt ? 'border-emerald-500 bg-emerald-50' : 'border-slate-300 group-hover:border-emerald-500'}`}>
+                                                    <div className={`p-4 rounded-xl border border-dashed flex items-center gap-4 transition-all bg-surface-container-lowest 
+                                                        ${form.receipt ? 'border-secondary ring-1 ring-secondary bg-surface-container' : 'border-outline group-hover:border-secondary'}`}>
                                                         <div className={`w-10 h-10 shrink-0 rounded-lg flex items-center justify-center transition-colors shadow-sm
-                                                            ${form.receipt ? 'bg-emerald-500 text-white' : 'bg-white border border-slate-200 text-slate-400'}`}>
-                                                            <FileText className="w-5 h-5" />
+                                                            ${form.receipt ? 'bg-secondary text-white' : 'bg-surface-container text-on-surface-variant'}`}>
+                                                            <span className="material-symbols-outlined text-[20px]">description</span>
                                                         </div>
                                                         <div className="flex-1 min-w-0">
-                                                            <p className="text-xs font-black text-slate-900 truncate">{form.receipt ? form.receipt.name : 'إرفاق المستند المالي'}</p>
-                                                            {!form.receipt && <p className="text-[10px] font-bold text-slate-500">JPG, PNG, PDF</p>}
+                                                            <p className="font-label-md text-label-md font-bold text-on-background truncate">{form.receipt ? form.receipt.name : 'إرفاق المستند المالي'}</p>
+                                                            {!form.receipt && <p className="font-caption text-caption text-outline mt-0.5">JPG, PNG, PDF</p>}
                                                         </div>
                                                     </div>
                                                 </div>
@@ -553,24 +773,24 @@ const CreateAdPage = () => {
                                         </div>
 
                                         {/* Media Preview Box */}
-                                        <div className="rounded-2xl bg-black overflow-hidden flex items-center justify-center relative min-h-[300px] shadow-2xl ring-1 ring-white/10 group">
+                                        <div className="rounded-2xl bg-surface-container-low overflow-hidden flex items-center justify-center relative min-h-[300px] border border-border-color shadow-sm group">
                                             {previewUrl ? (
                                                 <>
                                                     {form.file?.type.startsWith('video/') ? (
-                                                        <video src={previewUrl} controls className="w-full h-full object-contain absolute inset-0 z-0" autoPlay muted loop />
+                                                        <video src={previewUrl} controls className="w-full h-full object-contain absolute inset-0 z-0 bg-black" autoPlay muted loop />
                                                     ) : (
-                                                        <img src={previewUrl} alt="Preview" className="w-full h-full object-contain absolute inset-0 z-0" />
+                                                        <img src={previewUrl} alt="Preview" className="w-full h-full object-contain absolute inset-0 z-0 bg-surface-container-lowest" />
                                                     )}
-                                                    <div className="absolute top-4 right-4 z-10 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20">
-                                                        <span className="text-[10px] font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
-                                                            <CheckCircle2 className="w-3 h-3 text-emerald-400" /> معاينة العرض
+                                                    <div className="absolute top-4 right-4 z-10 bg-surface/80 backdrop-blur-md px-3 py-1.5 rounded-full border border-border-color shadow-sm">
+                                                        <span className="font-caption text-caption font-bold text-on-background flex items-center gap-1.5">
+                                                            <span className="material-symbols-outlined text-[14px] text-primary">visibility</span> معاينة العرض
                                                         </span>
                                                     </div>
                                                 </>
                                             ) : (
-                                                <div className="text-center p-6 z-10">
-                                                    <ImageIcon className="w-16 h-16 text-white/20 mx-auto mb-4" />
-                                                    <p className="text-sm font-bold text-white/40">نافذة المعاينة المباشرة</p>
+                                                <div className="text-center p-6 z-10 bg-surface-container-lowest w-full h-full flex flex-col items-center justify-center rounded-2xl">
+                                                    <span className="material-symbols-outlined text-6xl text-surface-container mb-4">image</span>
+                                                    <p className="font-label-md text-label-md font-bold text-outline">نافذة المعاينة المباشرة</p>
                                                 </div>
                                             )}
                                         </div>
@@ -580,58 +800,56 @@ const CreateAdPage = () => {
 
                             {/* STEP 5: COST REVIEW & SUBMISSION */}
                             {currentStep === 5 && (
-                                <motion.div 
-                                    key="step5" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }}
-                                    className="bg-slate-900 rounded-3xl p-6 md:p-10 shadow-2xl relative overflow-hidden"
-                                >
-                                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[var(--color-dark-turquoise)] to-transparent opacity-50"></div>
-                                    <div className="mb-8">
-                                        <h2 className="text-2xl font-black text-white flex items-center gap-3">
-                                            <Calculator className="w-6 h-6 text-[var(--color-dark-turquoise)]" /> التسعير والاعتماد النهائي
-                                        </h2>
-                                        <p className="text-slate-400 font-bold text-sm mt-2">استعراض التكلفة واعتماد تقديم البيانات للخادم.</p>
+                                <motion.div key="step5" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }}
+                                    className="bg-surface-container border border-border-color rounded-3xl p-6 md:p-10 shadow-sm relative overflow-hidden">
+                                    <div className="mb-8 flex items-center gap-3">
+                                        <span className="material-symbols-outlined text-primary text-3xl">receipt_long</span>
+                                        <div>
+                                            <h2 className="font-headline-sm text-headline-sm text-on-background font-bold">التسعير والاعتماد النهائي</h2>
+                                            <p className="font-body-md text-body-md text-on-surface-variant mt-1">استعراض التكلفة واعتماد تقديم البيانات للخادم.</p>
+                                        </div>
                                     </div>
                                     
-                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
                                         <div className="space-y-6 z-10">
                                             <button type="button" onClick={handleCalculateCost} disabled={costLoading} 
-                                                className="w-full bg-white/10 hover:bg-white/20 border border-white/20 text-white font-black py-4 rounded-2xl transition-all shadow-lg flex items-center justify-center gap-2 group outline-none">
-                                                <Calculator className="w-5 h-5 text-[var(--color-gold)] group-hover:rotate-12 transition-transform" />
+                                                className="w-full bg-surface hover:bg-surface-container-low border border-border-color text-on-background font-label-lg py-4 rounded-xl transition-all shadow-sm flex items-center justify-center gap-2 group outline-none">
+                                                <span className="material-symbols-outlined text-primary">calculate</span>
                                                 {costLoading ? 'جاري المحاكاة...' : 'حساب التكلفة الإجمالية'}
                                             </button>
 
                                             <AnimatePresence>
                                                 {calculatedCost !== null && costDetails && (
                                                     <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="overflow-hidden">
-                                                        <div className="bg-black/40 p-6 rounded-2xl border border-white/10 backdrop-blur-md">
-                                                            <div className="flex justify-between items-center mb-6 border-b border-white/10 pb-4">
-                                                                <span className="text-sm font-bold text-slate-400">الإجمالي النهائي المستقطب:</span>
-                                                                <span className="font-black text-5xl text-[var(--color-gold)] tracking-tighter">${calculatedCost.toFixed(2)}</span>
+                                                        <div className="bg-surface p-6 rounded-2xl border border-border-color shadow-sm">
+                                                            <div className="flex justify-between items-center mb-6 border-b border-border-color pb-4">
+                                                                <span className="font-label-md text-label-md text-outline">الإجمالي النهائي المستقطب:</span>
+                                                                <span className="font-display-sm text-display-sm text-primary font-bold tracking-tighter" dir="ltr">${calculatedCost.toFixed(2)}</span>
                                                             </div>
 
                                                             <div className="grid grid-cols-3 gap-3 mb-6">
-                                                                <div className="bg-white/5 rounded-xl p-3 text-center border border-white/5">
-                                                                    <span className="block text-[10px] text-slate-400 font-bold uppercase mb-1">الرسوم</span>
-                                                                    <span className="font-black text-slate-200">${costDetails.base_price}</span>
+                                                                <div className="bg-surface-container-lowest rounded-xl p-3 text-center border border-border-color">
+                                                                    <span className="block font-caption text-caption text-outline mb-1">الرسوم</span>
+                                                                    <span className="font-headline-sm text-headline-sm text-on-background font-bold" dir="ltr">${costDetails.base_price}</span>
                                                                 </div>
-                                                                <div className="bg-white/5 rounded-xl p-3 text-center border border-white/5">
-                                                                    <span className="block text-[10px] text-slate-400 font-bold uppercase mb-1">المدة</span>
-                                                                    <span className="font-black text-slate-200">{costDetails.days} يوم</span>
+                                                                <div className="bg-surface-container-lowest rounded-xl p-3 text-center border border-border-color">
+                                                                    <span className="block font-caption text-caption text-outline mb-1">المدة</span>
+                                                                    <span className="font-headline-sm text-headline-sm text-on-background font-bold">{costDetails.days} يوم</span>
                                                                 </div>
-                                                                <div className="bg-white/5 rounded-xl p-3 text-center border border-white/5">
-                                                                    <span className="block text-[10px] text-slate-400 font-bold uppercase mb-1">الانتشار</span>
-                                                                    <span className="font-black text-slate-200">{costDetails.screens?.length} موقع</span>
+                                                                <div className="bg-surface-container-lowest rounded-xl p-3 text-center border border-border-color">
+                                                                    <span className="block font-caption text-caption text-outline mb-1">الانتشار</span>
+                                                                    <span className="font-headline-sm text-headline-sm text-on-background font-bold">{costDetails.screens?.length} موقع</span>
                                                                 </div>
                                                             </div>
 
                                                             {costDetails.screens && costDetails.screens.length > 0 && (
-                                                                <div className="max-h-40 overflow-y-auto custom-scrollbar border border-white/5 rounded-xl bg-black/30 p-2 space-y-1">
+                                                                <div className="max-h-40 overflow-y-auto custom-scrollbar border border-border-color rounded-xl bg-surface-container-lowest p-2 space-y-1">
                                                                     {costDetails.screens.map(s => (
-                                                                        <div key={s.screen_id} className="flex justify-between items-center text-xs px-3 py-2.5 rounded-lg bg-white/5 hover:bg-white/10 transition-colors">
-                                                                            <span className="font-bold text-slate-300 truncate" title={s.screen_name}>{s.screen_name}</span>
+                                                                        <div key={s.screen_id} className="flex justify-between items-center px-3 py-2.5 rounded-lg bg-surface hover:bg-surface-container transition-colors">
+                                                                            <span className="font-label-md text-label-md text-on-background font-bold truncate" title={s.screen_name}>{s.screen_name}</span>
                                                                             <div className="flex items-center gap-3 shrink-0">
-                                                                                <span className="text-[10px] text-slate-500 bg-white/5 px-1.5 py-0.5 rounded">{s.multiplier}x معامل</span>
-                                                                                <span className="font-black text-white bg-[var(--color-dark-turquoise)]/20 text-[var(--color-dark-turquoise)] px-2 py-0.5 rounded">${s.screen_total}</span>
+                                                                                <span className="font-caption text-caption text-outline bg-surface-container px-2 py-1 rounded-md">{s.multiplier}x معامل</span>
+                                                                                <span className="font-label-md text-label-md text-primary bg-primary-container/20 px-2 py-1 rounded-md" dir="ltr">${s.screen_total}</span>
                                                                             </div>
                                                                         </div>
                                                                     ))}
@@ -643,49 +861,46 @@ const CreateAdPage = () => {
                                             </AnimatePresence>
                                         </div>
 
-                                        <div className="z-10 bg-black/20 p-6 rounded-3xl border border-white/5">
+                                        <div className="z-10 bg-surface-container-low p-6 rounded-2xl border border-border-color flex flex-col justify-between h-full">
                                             {/* Upload Progress Display */}
                                             {loading && uploadProgress > 0 && (
-                                                <div className="bg-black/60 border border-emerald-500/30 rounded-xl p-5 shadow-lg mb-6 backdrop-blur-md">
+                                                <div className="bg-surface border border-secondary/30 rounded-xl p-5 shadow-sm mb-6">
                                                     <div className="flex justify-between items-center mb-3">
-                                                        <span className="text-xs font-black text-emerald-400 flex items-center gap-2">
-                                                            <Upload className="w-4 h-4 animate-bounce" /> جاري التشفير والرفع...
+                                                        <span className="font-label-md text-label-md text-secondary flex items-center gap-2">
+                                                            <span className="material-symbols-outlined text-[18px] animate-bounce">cloud_upload</span> جاري التشفير والرفع...
                                                         </span>
-                                                        <span className="text-sm font-black text-white bg-emerald-500/20 px-2 py-1 rounded-lg">{uploadProgress}%</span>
+                                                        <span className="font-label-md text-label-md text-on-background bg-secondary/10 px-2 py-1 rounded-lg font-bold">{uploadProgress}%</span>
                                                     </div>
-                                                    <div className="w-full bg-white/5 rounded-full h-3 overflow-hidden border border-white/5 shadow-inner">
+                                                    <div className="w-full bg-surface-container rounded-full h-3 overflow-hidden border border-border-color shadow-inner">
                                                         <div 
-                                                            className="bg-gradient-to-r from-emerald-600 to-emerald-400 h-full rounded-full transition-all duration-300 ease-out" 
+                                                            className="bg-secondary h-full rounded-full transition-all duration-300 ease-out" 
                                                             style={{ width: `${uploadProgress}%` }}
                                                         ></div>
                                                     </div>
                                                 </div>
                                             )}
 
-                                            <div className="text-center mb-6">
-                                                <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4 relative">
-                                                    <ShieldCheck className="w-8 h-8 text-[var(--color-dark-turquoise)]" />
+                                            <div className="text-center mb-6 flex-1 flex flex-col items-center justify-center min-h-[140px]">
+                                                <div className="w-16 h-16 bg-surface rounded-full flex items-center justify-center mx-auto mb-4 border border-border-color relative shadow-sm">
+                                                    <span className="material-symbols-outlined text-3xl text-outline">verified_user</span>
                                                     {calculatedCost !== null && (
-                                                        <div className="absolute -bottom-1 -right-1 bg-emerald-500 w-5 h-5 rounded-full border-2 border-slate-900 flex items-center justify-center">
-                                                            <Check className="w-3 h-3 text-white" />
+                                                        <div className="absolute -bottom-1 -right-1 bg-secondary w-6 h-6 rounded-full border-2 border-surface flex items-center justify-center shadow-sm">
+                                                            <span className="material-symbols-outlined text-white text-[14px]" style={{ fontVariationSettings: '"FILL" 1' }}>check</span>
                                                         </div>
                                                     )}
                                                 </div>
-                                                <p className="text-sm font-bold text-slate-300">يجب استخراج التسعيرة قبل تفعيل الإرسال النهائي.</p>
+                                                <p className="font-body-md text-body-md text-outline">يجب استخراج التسعيرة قبل تفعيل الإرسال النهائي.</p>
                                             </div>
 
                                             <button type="submit" disabled={loading || calculatedCost === null}
-                                                className="w-full bg-[var(--color-dark-turquoise)] hover:bg-[#0c4c58] text-white font-black py-4 rounded-xl shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed text-base flex items-center justify-center gap-2 group border border-transparent">
+                                                className="w-full bg-primary hover:bg-on-primary-fixed-variant text-white font-label-lg py-4 rounded-xl shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 group outline-none">
                                                 {loading ? (
                                                     <>
-                                                        <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                        </svg>
+                                                        <span className="material-symbols-outlined animate-spin text-[20px]">autorenew</span>
                                                         <span>جاري المعالجة {uploadProgress > 0 ? `(${uploadProgress}%)` : ''}</span>
                                                     </>
                                                 ) : (
-                                                    <>اعتماد النظام ورفع المعاملة <CheckCircle2 className="w-5 h-5" /></>
+                                                    <>اعتماد النظام ورفع المعاملة <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: '"FILL" 1' }}>done_all</span></>
                                                 )}
                                             </button>
                                         </div>
@@ -695,29 +910,107 @@ const CreateAdPage = () => {
                         </AnimatePresence>
 
                         {/* Navigation Buttons Footer */}
-                        <div className="mt-8 flex justify-between items-center border-t border-slate-200 pt-6">
+                        {/* Footer Navigation - التالي left, السابقة right (Stitch layout) */}
+                        <div className="flex items-center justify-between pt-4 border-t border-outline-variant mt-6">
+                            {/* التالي - LEFT side (primary action) */}
+                            {currentStep < 5 ? (
+                                <button 
+                                    type="button" 
+                                    onClick={nextStep}
+                                    className="bg-on-background text-white font-label-md text-label-md px-8 py-3 rounded-lg flex items-center gap-2 hover:bg-opacity-90 transition-colors shadow-sm"
+                                >
+                                    التالي <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+                                </button>
+                            ) : (
+                                <div className="px-8 py-3 w-1 opacity-0"></div>
+                            )}
+
+                            {/* الخطوة السابقة - RIGHT side */}
                             <button 
                                 type="button" 
                                 onClick={prevStep} 
                                 disabled={currentStep === 1 || loading}
-                                className="px-6 py-3 rounded-xl border border-slate-200 text-slate-600 font-black text-sm flex items-center gap-2 hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="bg-surface-container-lowest border border-outline-variant text-on-background font-label-md text-label-md px-6 py-3 rounded-lg flex items-center gap-2 hover:bg-surface-container transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                <ArrowRight className="w-4 h-4" /> الخطوة السابقة
+                                الخطوة السابقة <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
                             </button>
-
-                            {currentStep < 5 && (
-                                <button 
-                                    type="button" 
-                                    onClick={nextStep}
-                                    className="px-8 py-3 rounded-xl bg-slate-900 text-white font-black text-sm flex items-center gap-2 hover:bg-slate-800 transition-all shadow-md active:scale-95"
-                                >
-                                    التالي <ArrowRight className="w-4 h-4 rotate-180" />
-                                </button>
-                            )}
                         </div>
                     </form>
+                    </div>
+                    </div>
+
+                    {/* CAMPAIGN STEPPER - Right side (order-2 on desktop) */}
+                    <aside className="w-full lg:w-[300px] flex-shrink-0 order-1 lg:order-2">
+                        <div className="bg-surface/60 backdrop-blur-2xl rounded-2xl border border-white/40 shadow-sm sticky top-24 p-6 relative overflow-hidden">
+                            {/* Decorative background glow inside stepper */}
+                            <div className="absolute -top-10 -right-10 w-32 h-32 bg-primary/5 rounded-full blur-2xl pointer-events-none"></div>
+
+                            <h3 className="font-title-lg text-title-lg text-on-surface border-b border-border-color pb-4 mb-6 flex items-center gap-2 relative z-10">
+                                <div className="w-8 h-8 rounded-lg bg-surface-container-low flex items-center justify-center border border-border-color text-primary">
+                                    <span className="material-symbols-outlined text-[18px]">flag</span>
+                                </div>
+                                مسار الحملة
+                            </h3>
+
+                            <div className="relative z-10">
+                                {/* Static connector line */}
+                                <div className="absolute right-[15px] top-4 bottom-4 w-px bg-outline-variant/50 -z-10"></div>
+
+                                {/* Animated progress fill */}
+                                <div className="absolute right-[15px] top-4 w-px -z-10 overflow-hidden" style={{ height: `${((currentStep - 1) / (steps.length - 1)) * 100}%` }}>
+                                    <motion.div
+                                        className="w-full h-full bg-gradient-to-b from-primary to-secondary"
+                                        initial={{ scaleY: 0 }}
+                                        animate={{ scaleY: 1 }}
+                                        style={{ transformOrigin: 'top' }}
+                                        transition={{ duration: 0.5, ease: 'easeInOut' }}
+                                    />
+                                </div>
+
+                                <ul className="space-y-8">
+                                    {steps.map((step) => {
+                                        const current = isStepCurrent(step.id);
+                                        const done = isStepDone(step.id);
+                                        return (
+                                            <li
+                                                key={step.id}
+                                                onClick={() => { if (step.id < currentStep || done) setCurrentStep(step.id); }}
+                                                className={`flex items-start gap-4 cursor-pointer transition-all duration-300 group
+                                                    ${current ? 'bg-surface p-3 -m-3 rounded-xl border border-border-color shadow-sm' : ''}
+                                                    ${!current && !done ? 'opacity-60 hover:opacity-100' : ''}`}
+                                            >
+                                                <div className="flex-shrink-0 relative">
+                                                    {done ? (
+                                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-md transform group-hover:scale-110 transition-transform text-white">
+                                                            <span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: '"FILL" 1' }}>check</span>
+                                                        </div>
+                                                    ) : current ? (
+                                                        <>
+                                                            <div className="absolute inset-0 bg-primary/20 rounded-full animate-ping"></div>
+                                                            <div className="w-8 h-8 rounded-full border-2 border-primary bg-surface flex items-center justify-center shadow-md relative z-10 text-primary">
+                                                                <span className="font-label-md text-label-md font-bold">{step.id}</span>
+                                                            </div>
+                                                        </>
+                                                    ) : (
+                                                        <div className="w-8 h-8 rounded-full border border-outline-variant bg-surface-container-lowest flex items-center justify-center text-outline group-hover:border-primary group-hover:text-primary transition-colors">
+                                                            <span className="font-label-md text-label-md">{step.id}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="pt-1 text-right min-w-0">
+                                                    <h4 className={`font-label-md text-label-md font-bold truncate transition-colors ${current ? 'text-primary' : done ? 'text-on-surface' : 'text-outline group-hover:text-on-surface'}`}>
+                                                        {step.title}
+                                                    </h4>
+                                                    <p className="font-caption text-caption text-on-surface-variant mt-0.5 truncate">{step.subtitle}</p>
+                                                </div>
+                                            </li>
+                                        );
+                                    })}
+                                </ul>
+                            </div>
+                        </div>
+                    </aside>
                 </div>
-            </div>
 
             <ScreenAvailabilityModal
                 isOpen={!!availabilityScreen}
@@ -725,6 +1018,7 @@ const CreateAdPage = () => {
                 screen={availabilityScreen}
                 selectedDate={form.start_date}
             />
+            </main>
         </div>
     );
 };

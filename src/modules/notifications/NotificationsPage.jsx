@@ -1,19 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { 
-    Bell, CheckCircle2, Trash2, CheckSquare, Sparkles, Inbox, BellRing, BellOff, Info
-} from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axiosClient from '../../core/api/axiosClient';
 import { ENDPOINTS } from '../../core/api/endpoints';
 import useToastStore from '../../store/useToastStore';
-import PageHeader from '../../shared/components/PageHeader';
 import { parseNotificationContent, getNotificationIconInfo } from './utils/notificationTranslator';
 
 const NotificationsPage = () => {
     const [notifications, setNotifications] = useState([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const [loading, setLoading] = useState(true);
+    const [loadingMessageIdx, setLoadingMessageIdx] = useState(0);
     const addToast = useToastStore(state => state.addToast);
+
+    const loadingMessages = [
+        "جاري الاتصال الآمن بالسيرفر...",
+        "يتم الآن تجميع إشعاراتك الحديثة...",
+        "جاري مزامنة التحديثات المالية والأمنية...",
+        "لحظات وننتهي من ترتيب واجهتك..."
+    ];
 
     const fetchNotifications = async () => {
         setLoading(true);
@@ -39,6 +43,17 @@ const NotificationsPage = () => {
     useEffect(() => {
         fetchNotifications();
     }, []);
+
+    useEffect(() => {
+        let interval;
+        if (loading) {
+            setLoadingMessageIdx(0);
+            interval = setInterval(() => {
+                setLoadingMessageIdx((prev) => (prev + 1) % loadingMessages.length);
+            }, 1800);
+        }
+        return () => clearInterval(interval);
+    }, [loading]);
 
     const markAsRead = async (id) => {
         try {
@@ -81,179 +96,173 @@ const NotificationsPage = () => {
     const readNotifications = totalNotifications - unreadCount;
 
     return (
-        <div className="space-y-8 max-w-5xl mx-auto font-sans pb-20" dir="rtl">
-            <div className="sticky top-0 bg-[#f8fafc]/90 z-30 pt-6 pb-4 border-b border-gray-200/50 mb-8 backdrop-blur-xl">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <PageHeader 
-                        title={
-                            <span className="flex items-center gap-3">
-                                <span className="bg-gradient-to-br from-[var(--color-dark-turquoise)] to-[#0c4c58] text-white p-2.5 rounded-xl shadow-lg ring-4 ring-[var(--color-dark-turquoise)]/10">
-                                    <Bell className="w-6 h-6 shrink-0" />
-                                </span>
-                                <span className="text-3xl font-black tracking-tight text-slate-900">مركز الإشعارات</span>
-                            </span>
-                        }
-                        description="متابعة جميع أنشطة النظام، التنبيهات، والتحديثات المالية والعملياتية."
-                    />
-                    
+        <div className="p-margin-mobile md:p-gutter max-w-7xl mx-auto w-full font-sans pb-20" dir="rtl">
+            {/* Header Section */}
+            <div className="mb-xl text-right">
+                <h2 className="text-2xl md:text-3xl font-bold text-on-surface mb-xs">مركز الإشعارات</h2>
+                <p className="text-base md:text-lg text-on-surface-variant font-medium">مراقبة الأنشطة، التنبيهات، والتحديثات المالية لنظامك.</p>
+            </div>
+
+            {/* Summary Statistics Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-md mb-xl">
+                {/* Total */}
+                <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-md shadow-sm flex flex-col items-center justify-center text-center">
+                    <div className="w-16 h-16 bg-surface-container rounded-full flex items-center justify-center mb-sm text-primary">
+                        <span className="material-symbols-outlined text-3xl" data-icon="mark_email_read">mark_email_read</span>
+                    </div>
+                    <p className="text-sm md:text-base text-on-surface-variant mb-xs font-semibold">إجمالي الرسائل الإشعارية</p>
+                    <p className="text-3xl md:text-4xl font-bold text-on-surface">{totalNotifications}</p>
+                </div>
+                
+                {/* New/Unread */}
+                <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-md shadow-sm flex flex-col items-center justify-center text-center relative overflow-hidden">
+                    <div className="w-16 h-16 bg-error-container rounded-full flex items-center justify-center mb-sm text-error relative">
+                        <span className="material-symbols-outlined text-3xl" data-icon="mail">mail</span>
+                        {unreadCount > 0 && (
+                            <span className="absolute top-1 right-1 w-3.5 h-3.5 bg-error rounded-full border-2 border-white animate-pulse"></span>
+                        )}
+                    </div>
+                    <p className="text-sm md:text-base text-on-surface-variant mb-xs font-semibold">الرسائل الجديدة (غير مقروءة)</p>
+                    <p className="text-3xl md:text-4xl font-bold text-error">{unreadCount}</p>
+                </div>
+                
+                {/* Archived/Read */}
+                <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-md shadow-sm flex flex-col items-center justify-center text-center">
+                    <div className="w-16 h-16 bg-surface-container-high rounded-full flex items-center justify-center mb-sm text-on-surface-variant">
+                        <span className="material-symbols-outlined text-3xl" data-icon="archive">archive</span>
+                    </div>
+                    <p className="text-sm md:text-base text-on-surface-variant mb-xs font-semibold">الرسائل المؤرشفة (مقروءة)</p>
+                    <p className="text-3xl md:text-4xl font-bold text-on-surface">{readNotifications}</p>
+                </div>
+            </div>
+
+            {/* Notification List Area */}
+            <div className="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm overflow-hidden min-h-[400px]">
+                <div className="px-lg py-md border-b border-outline-variant bg-surface-bright flex justify-between items-center">
+                    <h3 className="text-xl font-bold text-on-surface">أحدث الإشعارات</h3>
                     {unreadCount > 0 && (
                         <button 
-                            onClick={markAllAsRead}
-                            className="bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-black px-5 py-2.5 rounded-xl flex items-center gap-2 text-sm transition-all shadow-sm active:scale-95 group"
+                            onClick={markAllAsRead} 
+                            className="text-primary hover:bg-primary-container/20 px-3 py-2 rounded-lg font-semibold text-sm md:text-base transition-colors flex items-center gap-xs"
                         >
-                            <CheckSquare className="w-5 h-5 text-[var(--color-dark-turquoise)] group-hover:scale-110 transition-transform" /> تحديد الكل كمقروء
+                            <span className="material-symbols-outlined text-xl" data-icon="done_all">done_all</span>
+                            تحديد الكل كمقروء
                         </button>
                     )}
                 </div>
-            </div>
 
-            {/* SUMMARY METRICS */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-                <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-[0_8px_30px_-4px_rgba(0,0,0,0.03)] flex items-center gap-5 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-20 h-20 bg-blue-50 rounded-bl-[100px] z-0"></div>
-                    <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center shrink-0 z-10 relative">
-                        <Inbox className="w-6 h-6" />
-                    </div>
-                    <div className="z-10 relative">
-                        <p className="text-[11px] uppercase font-black text-slate-400 mb-1 tracking-wider">إجمالي الرسائل الإشعارية</p>
-                        <h4 className="text-3xl font-black text-slate-800">{totalNotifications}</h4>
-                    </div>
-                </div>
-
-                <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-[0_8px_30px_-4px_rgba(0,0,0,0.03)] flex items-center gap-5 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-20 h-20 bg-red-50 rounded-bl-[100px] z-0"></div>
-                    <div className="w-12 h-12 bg-red-100 text-red-500 rounded-xl flex items-center justify-center shrink-0 z-10 relative">
-                        <BellRing className="w-6 h-6" />
-                        {unreadCount > 0 && (
-                            <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-ping"></span>
-                        )}
-                        {unreadCount > 0 && (
-                            <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
-                        )}
-                    </div>
-                    <div className="z-10 relative">
-                        <p className="text-[11px] uppercase font-black text-slate-400 mb-1 tracking-wider">الرسائل الجديدة (غير مقروءة)</p>
-                        <h4 className="text-3xl font-black text-red-500">{unreadCount}</h4>
-                    </div>
-                </div>
-
-                <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-[0_8px_30px_-4px_rgba(0,0,0,0.03)] flex items-center gap-5 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-20 h-20 bg-emerald-50 rounded-bl-[100px] z-0"></div>
-                    <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center shrink-0 z-10 relative">
-                        <BellOff className="w-6 h-6" />
-                    </div>
-                    <div className="z-10 relative">
-                        <p className="text-[11px] uppercase font-black text-slate-400 mb-1 tracking-wider">الرسائل المؤرشفة (مقروءة)</p>
-                        <h4 className="text-3xl font-black text-slate-800">{readNotifications}</h4>
-                    </div>
-                </div>
-            </div>
-
-            {/* NOTIFICATIONS CONTENT */}
-            {loading ? (
-                <div className="space-y-4">
-                    {[1, 2, 3].map(i => (
-                        <div key={i} className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm flex items-start gap-4 animate-pulse">
-                            <div className="w-12 h-12 bg-slate-100 rounded-full shrink-0"></div>
-                            <div className="flex-1 space-y-3 py-1">
-                                <div className="h-4 bg-slate-100 rounded w-1/4"></div>
-                                <div className="h-3 bg-slate-100 rounded w-3/4"></div>
-                                <div className="h-3 bg-slate-100 rounded w-1/2"></div>
-                            </div>
+                {loading ? (
+                    <div className="flex flex-col items-center justify-center p-10 md:p-16 space-y-8 min-h-[400px]">
+                        <div className="relative flex items-center justify-center mb-2">
+                            <span className="absolute w-24 h-24 rounded-full border-[3px] border-surface-variant border-t-primary animate-spin"></span>
+                            <span className="absolute w-20 h-20 rounded-full border-[3px] border-surface-variant border-b-primaryContainer animate-spin" style={{ animationDirection: 'reverse', animationDuration: '1.5s' }}></span>
+                            <span className="material-symbols-outlined text-4xl text-primary animate-pulse" data-icon="cloud_sync">cloud_sync</span>
                         </div>
-                    ))}
-                </div>
-            ) : notifications.length === 0 ? (
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-3xl border border-slate-100 py-20 px-8 text-center shadow-[0_8px_30px_-4px_rgba(0,0,0,0.03)] flex flex-col items-center justify-center min-h-[400px]">
-                    <div className="w-24 h-24 bg-gradient-to-br from-slate-50 to-slate-100 rounded-full flex items-center justify-center mb-6 shadow-inner relative">
-                        <Sparkles className="w-10 h-10 text-slate-300 absolute -top-2 -right-2 rotate-12" />
-                        <Inbox className="w-12 h-12 text-[var(--color-dark-turquoise)] opacity-80" />
-                    </div>
-                    <h3 className="text-2xl font-black text-slate-800 mb-2">صندوق الوارد فارغ تماماً 🌟</h3>
-                    <p className="text-slate-500 font-bold max-w-md mx-auto">أنت متصل تماماً ولا توجد إشعارات معلقة. يمكنك الاسترخاء الآن، وسنقوم بتنبيهك عند توفر أي جديد.</p>
-                </motion.div>
-            ) : (
-                <div className="space-y-4">
-                    <AnimatePresence mode="popLayout">
-                        {notifications.map(notif => {
-                            const isUnread = notif.read_at === null || notif.is_read === false || notif.is_read === 'false';
-                            const { Icon, colorClass } = getNotificationIconInfo(notif.title);
-                            
-                            return (
-                                <motion.div 
-                                    layout
-                                    initial={{ opacity: 0, y: 10 }}
+                        <div className="text-center h-16 w-full relative overflow-hidden flex flex-col items-center">
+                            <AnimatePresence mode="wait">
+                                <motion.p 
+                                    key={loadingMessageIdx}
+                                    initial={{ opacity: 0, y: 15 }}
                                     animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }}
-                                    key={notif.notification_id} 
-                                    className={`relative flex flex-col md:flex-row md:items-start p-5 rounded-2xl transition-all group overflow-hidden border ${
-                                        isUnread 
-                                        ? 'bg-white border-[var(--color-dark-turquoise)]/20 shadow-[0_8px_20px_-4px_rgba(0,0,0,0.05)]' 
-                                        : 'bg-slate-50/50 border-slate-100 hover:bg-white hover:shadow-sm'
-                                    }`}
+                                    exit={{ opacity: 0, y: -15 }}
+                                    transition={{ duration: 0.3, ease: 'easeOut' }}
+                                    className="text-lg md:text-xl font-bold text-on-surface absolute top-0"
                                 >
-                                    {isUnread && (
-                                        <div className="absolute top-0 right-0 bottom-0 w-1.5 bg-[var(--color-dark-turquoise)]" />
-                                    )}
-
-                                    <div className="flex-1 flex gap-5 items-start">
-                                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm ${
+                                    {loadingMessages[loadingMessageIdx]}
+                                </motion.p>
+                            </AnimatePresence>
+                            <p className="text-sm font-medium text-outline mt-8 md:mt-10">يرجى الانتظار، لا تقم بتحديث الصفحة...</p>
+                        </div>
+                        <div className="w-full max-w-2xl space-y-4 pt-4 opacity-40 pointer-events-none hidden md:block">
+                            <div className="w-full h-24 bg-surface-variant rounded-2xl animate-pulse"></div>
+                            <div className="w-full h-24 bg-surface-variant rounded-2xl animate-pulse opacity-70" style={{ animationDelay: '0.2s' }}></div>
+                            <div className="w-full h-24 bg-surface-variant rounded-2xl animate-pulse opacity-40" style={{ animationDelay: '0.4s' }}></div>
+                        </div>
+                    </div>
+                ) : notifications.length === 0 ? (
+                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="p-20 text-center flex flex-col items-center justify-center">
+                        <div className="w-24 h-24 bg-surface-container rounded-full flex items-center justify-center mb-6 relative">
+                            <span className="material-symbols-outlined text-5xl text-outline-variant absolute -top-2 -right-2 rotate-12">sparkles</span>
+                            <span className="material-symbols-outlined text-6xl text-primary opacity-80">inbox</span>
+                        </div>
+                        <h3 className="text-2xl font-bold text-on-surface mb-2">صندوق الوارد فارغ تماماً 🌟</h3>
+                        <p className="text-base text-on-surface-variant font-medium max-w-md mx-auto leading-relaxed">
+                            أنت متصل تماماً ولا توجد إشعارات معلقة. يمكنك الاسترخاء الآن، وسنقوم بتنبيهك عند توفر أي جديد.
+                        </p>
+                    </motion.div>
+                ) : (
+                    <ul className="divide-y divide-outline-variant">
+                        <AnimatePresence mode="popLayout">
+                            {notifications.map(notif => {
+                                const isUnread = notif.read_at === null || notif.is_read === false || notif.is_read === 'false';
+                                const { Icon } = getNotificationIconInfo(notif.title);
+                                
+                                return (
+                                    <motion.li 
+                                        layout
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, scale: 0.98, transition: { duration: 0.2 } }}
+                                        key={notif.notification_id} 
+                                        className={`p-lg transition-colors flex items-start gap-md md:gap-lg group relative ${
+                                            isUnread ? 'bg-[#F8FAFC] hover:bg-surface-container-low' : 'bg-surface-container-lowest hover:bg-surface-container-low'
+                                        }`}
+                                    >
+                                        {/* Status Icon (Right flex position in RTL) */}
+                                        <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 mt-1 shadow-sm ${
                                             isUnread 
-                                            ? `bg-gradient-to-br from-white to-slate-50 border ${colorClass.replace('bg-', 'border-').replace('/10', '/20')} ${colorClass.replace('bg-', 'text-').replace('/10', '')}` 
-                                            : 'bg-white border border-slate-200 text-slate-400'
+                                                ? 'bg-primary-container/20 text-primary border border-primary/10' 
+                                                : 'bg-surface-container text-on-surface-variant border border-outline-variant/30'
                                         }`}>
-                                            <Icon className={`w-6 h-6 w-full ${isUnread ? colorClass : 'text-slate-400'}`} />
+                                            <Icon className="w-6 h-6" />
                                         </div>
-                                        <div className="flex-1 pr-1 pb-2 md:pb-0">
-                                            <div className="flex items-center gap-3 mb-1.5">
-                                                <h4 className={`text-base font-black ${isUnread ? 'text-slate-900' : 'text-slate-600'}`}>
-                                                    {parseNotificationContent(notif.title)}
-                                                </h4>
-                                                {isUnread && (
-                                                    <span className="bg-red-100 text-red-600 text-[10px] font-black px-2 py-0.5 rounded-full">
-                                                        جديد
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <p className={`text-sm leading-relaxed mb-3 ${isUnread ? 'text-slate-700 font-bold' : 'text-slate-500 font-medium'}`}>
-                                                {parseNotificationContent(notif.message)}
-                                            </p>
-                                            <div className="flex items-center gap-2">
-                                                <span className="bg-slate-100/80 text-slate-500 text-[11px] font-bold px-2.5 py-1 rounded-md flex items-center gap-1.5 min-w-max" dir="ltr">
+
+                                        {/* Content */}
+                                        <div className="flex-1 text-right pt-1">
+                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-2 sm:mb-1 gap-1">
+                                                <div className="flex items-center gap-2">
+                                                    <h4 className={`text-lg font-bold ${isUnread ? 'text-on-surface' : 'text-on-surface-variant'}`}>
+                                                        {parseNotificationContent(notif.title)}
+                                                    </h4>
+                                                    {isUnread && (
+                                                        <span className="w-2 h-2 bg-error rounded-full block self-center"></span>
+                                                    )}
+                                                </div>
+                                                <span className="text-sm font-medium text-outline shrink-0 order-first sm:order-last" dir="ltr">
                                                     {new Date(notif.created_at).toLocaleString('ar-EG', { dateStyle: 'medium', timeStyle: 'short' })}
                                                 </span>
                                             </div>
+                                            <p className={`text-base leading-relaxed ${isUnread ? 'text-on-surface-variant font-medium' : 'text-outline font-normal'}`}>
+                                                {parseNotificationContent(notif.message)}
+                                            </p>
                                         </div>
-                                    </div>
 
-                                    {/* Actions */}
-                                    <div className="flex items-center gap-2 self-end md:self-center mt-4 md:mt-0 pt-3 md:pt-0 border-t md:border-none border-slate-100 w-full md:w-auto shrink-0 justify-end">
-                                        {isUnread ? (
+                                        {/* Action Icons (Left visible on hover or mobile) */}
+                                        <div className="flex flex-col gap-2 items-center mt-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                                            {isUnread && (
+                                                <button 
+                                                    onClick={() => markAsRead(notif.notification_id)} 
+                                                    className="text-on-surface-variant hover:text-primary transition-colors p-2 rounded-lg hover:bg-primary/10" 
+                                                    title="تحديد كمقروء"
+                                                >
+                                                    <span className="material-symbols-outlined text-xl" data-icon="visibility">visibility</span>
+                                                </button>
+                                            )}
                                             <button 
-                                                onClick={() => markAsRead(notif.notification_id)}
-                                                className="bg-[var(--color-dark-turquoise)]/10 text-[var(--color-dark-turquoise)] hover:bg-[var(--color-dark-turquoise)] hover:text-white font-black text-xs px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
+                                                onClick={() => deleteNotification(notif.notification_id)} 
+                                                className="text-on-surface-variant hover:text-error transition-colors p-2 rounded-lg hover:bg-error-container/50" 
+                                                title="حذف"
                                             >
-                                                <CheckCircle2 className="w-4 h-4" /> تحديد مقروء
+                                                <span className="material-symbols-outlined text-xl" data-icon="delete">delete</span>
                                             </button>
-                                        ) : (
-                                            <div className="hidden md:flex bg-slate-100 text-slate-400 font-black text-xs px-4 py-2 rounded-lg items-center gap-2 cursor-default">
-                                                <CheckCircle2 className="w-4 h-4" /> مقروء
-                                            </div>
-                                        )}
-                                        <button 
-                                            onClick={() => deleteNotification(notif.notification_id)}
-                                            className="bg-slate-100 text-slate-500 hover:text-white hover:bg-red-500 font-black px-3 py-2 rounded-lg transition-colors flex items-center gap-2"
-                                            title="حذف نهائي"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
-                                    </div>
-                                </motion.div>
-                            );
-                        })}
-                    </AnimatePresence>
-                </div>
-            )}
+                                        </div>
+                                    </motion.li>
+                                );
+                            })}
+                        </AnimatePresence>
+                    </ul>
+                )}
+            </div>
         </div>
     );
 };

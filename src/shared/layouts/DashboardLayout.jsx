@@ -1,14 +1,31 @@
 import React, { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { Bell, User as UserIcon, Menu } from 'lucide-react';
+import { Bell, User as UserIcon, Menu, LogOut, Grid } from 'lucide-react';
 import useAuthStore from '../../store/useAuthStore';
 import usePermission from '../../hooks/usePermission';
 import { getNavItems } from '../../core/routes/navigation';
 
-/* Original brand turquoise */
-const TEAL = '#145D6A';
-const TEAL_DARK = '#0e4450';
-const GOLD = '#C4A052';
+/* ─── Stitch colour tokens ─── */
+const S = {
+    primary: '#004ac6',
+    primaryContainer: '#2563eb',
+    surface: '#f9f9ff',
+    surfaceContainerLowest: '#ffffff',
+    surfaceContainerLow: '#f1f3ff',
+    surfaceContainer: '#e9edff',
+    surfaceContainerHigh: '#e1e8fd',
+    surfaceContainerHighest: '#dce2f7',
+    onBackground: '#141b2b',
+    onSurface: '#141b2b',
+    onSurfaceVariant: '#434655',
+    outline: '#737686',
+    outlineVariant: '#c3c6d7',
+    error: '#ba1a1a',
+    sidebarBg: '#141b2b',   /* on-background used as dark sidebar */
+    sidebarText: 'rgba(220,226,247,0.85)',
+    sidebarTextActive: '#ffffff',
+    sidebarActiveAccent: '#2563eb',
+};
 
 const DashboardLayout = () => {
     const { user, logout } = useAuthStore();
@@ -23,49 +40,55 @@ const DashboardLayout = () => {
 
     const navItems = getNavItems(roleName);
 
+    /* ── Sidebar inner content (shared by desktop + mobile drawer) ── */
     const SidebarInner = () => (
         <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-            {/* Logo/Brand header */}
+
+            {/* ── Brand header: centred SC circle + title ── */}
             <div style={{
-                padding: '20px 16px',
-                borderBottom: '1px solid rgba(255,255,255,0.12)',
+                padding: '28px 16px 20px',
+                borderBottom: '1px solid rgba(220,226,247,0.12)',
                 display: 'flex',
+                flexDirection: 'column',
                 alignItems: 'center',
-                gap: '12px',
+                gap: '8px',
             }}>
                 <div style={{
-                    width: 42, height: 42, borderRadius: '50%',
-                    background: '#fff',
-                    border: `2px solid ${GOLD}`,
-                    overflow: 'hidden',
+                    width: 64, height: 64, borderRadius: '50%',
+                    background: '#dce2f7',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    flexShrink: 0,
+                    overflow: 'hidden',
+                    marginBottom: '2px',
                 }}>
                     <img
                         src="/src/assets/images/Main_app_logo.png"
                         alt="Logo"
                         style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                        onError={e => { e.target.onerror = null; e.target.style.display = 'none'; }}
+                        onError={e => {
+                            e.target.onerror = null;
+                            e.target.style.display = 'none';
+                            e.target.parentNode.innerHTML =
+                                '<span style="color:#004ac6;font-size:22px;font-weight:800;font-family:sans-serif">SC</span>';
+                        }}
                     />
                 </div>
-                <div>
-                    <p style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: '#fff', letterSpacing: '0.02em' }}>
-                        SabaControl
-                    </p>
-                    <p style={{ margin: 0, fontSize: '10px', color: 'rgba(255,255,255,0.5)', direction: 'rtl' }}>
-                        {user?.full_name || 'لوحة التحكم'}
-                    </p>
-                </div>
+                <h1 style={{
+                    margin: 0, fontSize: '22px', fontWeight: 700,
+                    color: '#ffffff', textAlign: 'center',
+                    fontFamily: "'IBM Plex Sans Arabic', sans-serif",
+                }}>SabaControl</h1>
+                <p style={{
+                    margin: 0, fontSize: '13px',
+                    color: 'rgba(220,226,247,0.65)', textAlign: 'center',
+                    fontFamily: "'IBM Plex Sans Arabic', sans-serif",
+                }}>لوحة تحكم سبأ</p>
             </div>
 
-            {/* Nav links */}
+            {/* ── Nav links ── */}
             <nav style={{
-                flex: 1,
-                overflowY: 'auto',
-                padding: '12px 10px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '3px',
+                flex: 1, overflowY: 'auto',
+                padding: '16px 0',
+                display: 'flex', flexDirection: 'column', gap: '1px',
             }}>
                 {navItems.map((item) => (
                     <NavLink
@@ -74,68 +97,57 @@ const DashboardLayout = () => {
                         end={item.path === '/dashboard'}
                         onClick={() => setIsMobileMenuOpen(false)}
                         style={({ isActive }) => ({
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '10px',
-                            padding: '10px 14px',
-                            borderRadius: '12px',
-                            fontSize: '13px',
+                            display: 'flex', alignItems: 'center', gap: '14px',
+                            padding: '14px 24px',
+                            fontSize: '16px',
                             fontWeight: isActive ? 700 : 500,
-                            color: isActive ? '#fff' : 'rgba(255,255,255,0.7)',
-                            background: isActive ? 'rgba(255,255,255,0.15)' : 'transparent',
+                            color: isActive ? '#ffffff' : 'rgba(220,226,247,0.75)',
+                            background: isActive ? 'rgba(220,226,247,0.10)' : 'transparent',
                             textDecoration: 'none',
-                            transition: 'all 0.18s ease',
+                            transition: 'all 0.15s ease',
                             direction: 'rtl',
-                            borderLeft: isActive ? `3px solid ${GOLD}` : '3px solid transparent',
+                            borderRight: isActive ? '4px solid #2563eb' : '4px solid transparent',
+                            fontFamily: "'IBM Plex Sans Arabic', sans-serif",
                         })}
                         onMouseEnter={e => {
-                            if (!e.currentTarget.classList.contains('active')) {
-                                e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
-                                e.currentTarget.style.color = '#fff';
-                            }
+                            const el = e.currentTarget;
+                            if (el.style.fontWeight === '700') return;
+                            el.style.background = 'rgba(220,226,247,0.07)';
+                            el.style.color = '#fff';
                         }}
                         onMouseLeave={e => {
-                            if (!e.currentTarget.style.borderRight.includes(GOLD)) {
-                                e.currentTarget.style.background = 'transparent';
-                                e.currentTarget.style.color = 'rgba(255,255,255,0.7)';
-                            }
+                            const el = e.currentTarget;
+                            if (el.style.fontWeight === '700') return;
+                            el.style.background = 'transparent';
+                            el.style.color = 'rgba(220,226,247,0.75)';
                         }}
                     >
-                        <item.icon style={{ width: 17, height: 17, flexShrink: 0 }} />
+                        <item.icon style={{ width: 22, height: 22, flexShrink: 0 }} />
                         <span>{item.label}</span>
                     </NavLink>
                 ))}
             </nav>
 
-            {/* Logout button */}
-            <div style={{
-                padding: '12px 14px 16px',
-                borderTop: '1px solid rgba(255,255,255,0.1)',
-            }}>
+            {/* ── Logout ── */}
+            <div style={{ padding: '12px 16px 20px', borderTop: '1px solid rgba(220,226,247,0.10)' }}>
                 <button
                     onClick={handleLogout}
                     style={{
-                        width: '100%',
-                        padding: '10px',
-                        borderRadius: '10px',
-                        border: '1px solid rgba(255,255,255,0.2)',
-                        background: 'rgba(255,255,255,0.08)',
-                        color: 'rgba(255,255,255,0.65)',
-                        fontSize: '12px',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        transition: 'all 0.18s',
+                        width: '100%', padding: '9px 12px',
+                        borderRadius: '6px',
+                        border: '1px solid rgba(195,198,215,0.25)',
+                        background: 'transparent',
+                        color: 'rgba(220,226,247,0.65)',
+                        fontSize: '15px', fontWeight: 500,
+                        cursor: 'pointer', transition: 'all 0.15s',
                         direction: 'rtl',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
+                        fontFamily: "'IBM Plex Sans Arabic', sans-serif",
                     }}
-                    onMouseEnter={e => {
-                        e.target.style.background = 'rgba(255,255,255,0.18)';
-                        e.target.style.color = '#fff';
-                    }}
-                    onMouseLeave={e => {
-                        e.target.style.background = 'rgba(255,255,255,0.08)';
-                        e.target.style.color = 'rgba(255,255,255,0.65)';
-                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(220,226,247,0.08)'; e.currentTarget.style.color = '#fff'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(220,226,247,0.65)'; }}
                 >
+                    <LogOut style={{ width: 18, height: 18 }} />
                     تسجيل الخروج
                 </button>
             </div>
@@ -143,141 +155,236 @@ const DashboardLayout = () => {
     );
 
     return (
-        /* ── Outer wrapper: RTL so sidebar stays on RIGHT ── */
         <div style={{
             display: 'flex',
             minHeight: '100svh',
-            background: '#F9F9F9',
-            direction: 'rtl',          /* sidebar RIGHT, content LEFT */
+            background: S.surface,
+            direction: 'rtl',
+            fontFamily: "'IBM Plex Sans Arabic', sans-serif",
         }}>
-            {/* ════ Desktop Sidebar (RIGHT) ════ */}
-            <aside style={{
-                width: '230px',
-                flexShrink: 0,
-                background: `linear-gradient(180deg, ${TEAL} 0%, ${TEAL_DARK} 100%)`,
-                display: 'flex',
-                flexDirection: 'column',
-                position: 'sticky',
-                top: 0,
-                height: '100svh',
-                overflowY: 'auto',
-                boxShadow: '-2px 0 16px rgba(0,0,0,0.15)',
-                zIndex: 50,
-            }} className="ds-sidebar">
+            {/* ════ Desktop Sidebar ════ */}
+            <aside
+                className="ds-sidebar"
+                style={{
+                    width: '250px',
+                    flexShrink: 0,
+                    background: S.sidebarBg,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    position: 'sticky',
+                    top: 0,
+                    height: '100svh',
+                    overflowY: 'auto',
+                    boxShadow: '-2px 0 20px rgba(0,0,0,0.18)',
+                    zIndex: 50,
+                }}
+            >
                 <SidebarInner />
             </aside>
 
-            {/* ════ Left column: header + content ════ */}
+            {/* ════ Main column: header + content ════ */}
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, direction: 'ltr' }}>
 
                 {/* ── Top Header ── */}
                 <header style={{
                     height: '64px',
-                    background: `linear-gradient(90deg, ${TEAL} 0%, ${TEAL_DARK} 100%)`,
-                    borderBottom: `2px solid rgba(255,255,255,0.1)`,
+                    background: S.surfaceContainerLowest,
+                    borderBottom: `1px solid ${S.outlineVariant}`,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    padding: '0 20px',
+                    padding: '0 24px',
                     position: 'sticky',
                     top: 0,
                     zIndex: 40,
-                    boxShadow: '0 2px 12px rgba(0,0,0,0.15)',
+                    boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+                    direction: 'rtl',
                 }}>
-                    {/* Left: mobile hamburger */}
+                    {/* Right: mobile hamburger */}
                     <button
                         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                        className="mob-toggle"
                         style={{
-                            background: 'rgba(255,255,255,0.12)',
-                            border: '1px solid rgba(255,255,255,0.2)',
+                            background: S.surfaceContainerLow,
+                            border: `1px solid ${S.outlineVariant}`,
                             borderRadius: '10px',
                             padding: '8px',
                             cursor: 'pointer',
-                            display: 'flex',
+                            display: 'none',
                             alignItems: 'center',
                             justifyContent: 'center',
                         }}
-                        className="mob-toggle"
                     >
-                        <Menu style={{ width: 18, height: 18, color: '#fff' }} />
+                        <Menu style={{ width: 18, height: 18, color: S.onSurfaceVariant }} />
                     </button>
 
-                    {/* Center: logo */}
+                    {/* Center logo (mobile) / App brand (desktop show) */}
                     <div
                         onClick={() => navigate('/dashboard')}
                         style={{
-                            position: 'absolute',
-                            left: '50%',
-                            transform: 'translateX(-50%)',
                             cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '10px',
                         }}
                     >
                         <div style={{
-                            width: 46, height: 46, borderRadius: '50%',
-                            background: '#fff',
-                            border: `2.5px solid ${GOLD}`,
-                            overflow: 'hidden',
+                            width: 38, height: 38,
+                            borderRadius: '10px',
+                            background: S.primaryContainer,
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
+                            overflow: 'hidden',
+                            boxShadow: '0 2px 8px rgba(37,99,235,0.30)',
                         }}>
                             <img
                                 src="/src/assets/images/Main_app_logo.png"
                                 alt="Logo"
                                 style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                                onError={e => { e.target.onerror = null; e.target.style.display = 'none'; }}
+                                onError={e => {
+                                    e.target.onerror = null;
+                                    e.target.style.display = 'none';
+                                    e.target.parentNode.innerHTML = '<span style="color:#fff;font-size:13px;font-weight:800">SC</span>';
+                                }}
                             />
+                        </div>
+                        <div>
+                            <p style={{
+                                margin: 0,
+                                fontSize: '15px', fontWeight: 700,
+                                color: S.primary,
+                                fontFamily: "'IBM Plex Sans Arabic', sans-serif",
+                                lineHeight: 1.1,
+                            }}>
+                                SabaControl
+                            </p>
+                            <p style={{
+                                margin: 0, fontSize: '9px',
+                                color: S.outline, textTransform: 'uppercase', letterSpacing: '0.12em',
+                                fontFamily: "'IBM Plex Sans Arabic', sans-serif",
+                            }}>
+                                Smart Advertising
+                            </p>
                         </div>
                     </div>
 
-                    {/* Right: actions */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    {/* Left: action icons + profile */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', direction: 'ltr' }}>
+
                         {/* Notifications */}
                         <button
                             onClick={() => navigate('/dashboard/notifications')}
+                            title="الإشعارات"
                             style={{
                                 position: 'relative',
-                                background: 'rgba(255,255,255,0.12)',
-                                border: '1px solid rgba(255,255,255,0.2)',
-                                borderRadius: '10px',
-                                padding: '8px',
+                                background: 'transparent',
+                                border: 'none',
+                                borderRadius: '50%',
+                                width: 38, height: 38,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
                                 cursor: 'pointer',
-                                display: 'flex', alignItems: 'center',
+                                transition: 'background 0.15s',
+                                color: S.onSurfaceVariant,
                             }}
-                            title="الإشعارات"
+                            onMouseEnter={e => e.currentTarget.style.background = S.surfaceContainerLow}
+                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                         >
-                            <Bell style={{ width: 18, height: 18, color: '#fff' }} />
+                            <Bell style={{ width: 20, height: 20 }} />
+                            {/* red dot */}
                             <span style={{
-                                position: 'absolute', top: 7, right: 8,
+                                position: 'absolute', top: 8, right: 8,
                                 width: 7, height: 7, borderRadius: '50%',
-                                background: '#ff4d4d',
-                                border: `1.5px solid ${TEAL}`,
+                                background: S.error,
+                                border: `1.5px solid ${S.surfaceContainerLowest}`,
                             }} />
                         </button>
 
-                        {/* Profile avatar */}
+                        {/* Grid / apps */}
                         <button
-                            onClick={() => navigate('/dashboard/profile')}
                             style={{
-                                width: 36, height: 36, borderRadius: '50%',
-                                border: `2px solid ${GOLD}`,
-                                background: 'rgba(255,255,255,0.15)',
+                                background: 'transparent',
+                                border: 'none',
+                                borderRadius: '50%',
+                                width: 38, height: 38,
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                 cursor: 'pointer',
+                                transition: 'background 0.15s',
+                                color: S.onSurfaceVariant,
                             }}
-                            title="الملف الشخصي"
+                            onMouseEnter={e => e.currentTarget.style.background = S.surfaceContainerLow}
+                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                         >
-                            <UserIcon style={{ width: 17, height: 17, color: GOLD }} />
+                            <Grid style={{ width: 18, height: 18 }} />
+                        </button>
+
+                        {/* Divider */}
+                        <div style={{
+                            width: 1, height: 28,
+                            background: S.outlineVariant,
+                            margin: '0 4px',
+                        }} />
+
+                        {/* Profile chip */}
+                        <button
+                            onClick={() => navigate('/dashboard/profile')}
+                            title="الملف الشخصي"
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '10px',
+                                background: 'transparent',
+                                border: `1px solid ${S.outlineVariant}`,
+                                borderRadius: '999px',
+                                padding: '4px 14px 4px 4px',
+                                cursor: 'pointer',
+                                transition: 'background 0.15s',
+                                direction: 'rtl',
+                            }}
+                            onMouseEnter={e => e.currentTarget.style.background = S.surfaceContainerLow}
+                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                        >
+                            {/* text */}
+                            <div style={{ textAlign: 'right' }}>
+                                <p style={{
+                                    margin: 0, fontSize: '13px', fontWeight: 600,
+                                    color: S.onSurface,
+                                    fontFamily: "'IBM Plex Sans Arabic', sans-serif",
+                                    lineHeight: 1.2,
+                                }}>
+                                    {user?.full_name || 'مدير النظام'}
+                                </p>
+                                <p style={{
+                                    margin: 0, fontSize: '10px',
+                                    color: S.onSurfaceVariant,
+                                    fontFamily: "'IBM Plex Sans Arabic', sans-serif",
+                                }}>
+                                    {roleName || 'Admin'}
+                                </p>
+                            </div>
+                            {/* avatar */}
+                            <div style={{
+                                width: 32, height: 32, borderRadius: '50%',
+                                background: S.surfaceContainerHigh,
+                                border: `1.5px solid ${S.outlineVariant}`,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                flexShrink: 0,
+                            }}>
+                                <UserIcon style={{ width: 16, height: 16, color: S.primary }} />
+                            </div>
                         </button>
                     </div>
                 </header>
 
                 {/* ── Page Content ── */}
-                <main style={{
-                    flex: 1,
-                    overflowY: 'auto',
-                    padding: '24px 24px 56px',
-                    direction: 'rtl',   /* page content is RTL/Arabic */
-                }} className="custom-scrollbar">
+                <main
+                    className="custom-scrollbar"
+                    style={{
+                        flex: 1,
+                        overflowY: 'auto',
+                        padding: '24px 28px 56px',
+                        direction: 'rtl',
+                        background: S.surface,
+                    }}
+                >
                     <div style={{ maxWidth: '1400px', margin: '0 auto', direction: 'rtl' }}>
                         <Outlet />
                     </div>
@@ -290,17 +397,18 @@ const DashboardLayout = () => {
                     onClick={() => setIsMobileMenuOpen(false)}
                     style={{
                         position: 'fixed', inset: 0, zIndex: 100,
-                        background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(2px)',
+                        background: 'rgba(0,0,0,0.45)',
+                        backdropFilter: 'blur(2px)',
                     }}
                 />
             )}
 
-            {/* ════ Mobile Drawer (slides from RIGHT) ════ */}
+            {/* ════ Mobile Drawer ════ */}
             <div style={{
                 position: 'fixed',
                 top: 0, right: 0, bottom: 0,
-                width: '240px',
-                background: `linear-gradient(180deg, ${TEAL} 0%, ${TEAL_DARK} 100%)`,
+                width: '250px',
+                background: S.sidebarBg,
                 zIndex: 110,
                 transform: isMobileMenuOpen ? 'translateX(0)' : 'translateX(100%)',
                 transition: 'transform 0.3s cubic-bezier(0.4,0,0.2,1)',
@@ -310,16 +418,19 @@ const DashboardLayout = () => {
             </div>
 
             {/* ════ Mobile Bottom Nav ════ */}
-            <div style={{
-                position: 'fixed', bottom: 0, left: 0, right: 0,
-                height: '60px',
-                background: TEAL,
-                borderTop: '1px solid rgba(255,255,255,0.15)',
-                display: 'none',
-                alignItems: 'center',
-                justifyContent: 'space-around',
-                zIndex: 90,
-            }} className="mob-bottom">
+            <div
+                className="mob-bottom"
+                style={{
+                    position: 'fixed', bottom: 0, left: 0, right: 0,
+                    height: '60px',
+                    background: S.sidebarBg,
+                    borderTop: `1px solid rgba(220,226,247,0.12)`,
+                    display: 'none',
+                    alignItems: 'center',
+                    justifyContent: 'space-around',
+                    zIndex: 90,
+                }}
+            >
                 {navItems.slice(0, 5).map((item) => (
                     <NavLink
                         key={item.path}
@@ -333,12 +444,13 @@ const DashboardLayout = () => {
                             justifyContent: 'center',
                             gap: '3px',
                             textDecoration: 'none',
-                            color: isActive ? GOLD : 'rgba(255,255,255,0.55)',
+                            color: isActive ? S.primaryContainer : 'rgba(220,226,247,0.5)',
                             fontSize: '9px',
                             fontWeight: isActive ? 700 : 400,
-                            borderTop: isActive ? `2px solid ${GOLD}` : '2px solid transparent',
+                            borderTop: isActive ? `2px solid ${S.primaryContainer}` : '2px solid transparent',
                             padding: '6px 0',
-                            transition: 'all 0.18s',
+                            transition: 'all 0.15s',
+                            fontFamily: "'IBM Plex Sans Arabic', sans-serif",
                         })}
                     >
                         <item.icon style={{ width: 20, height: 20 }} />
@@ -347,8 +459,9 @@ const DashboardLayout = () => {
                 ))}
             </div>
 
-            {/* Responsive rules */}
+            {/* Responsive CSS */}
             <style>{`
+                @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap');
                 @media (min-width: 768px) {
                     .ds-sidebar   { display: flex !important; }
                     .mob-toggle   { display: none !important; }
@@ -358,6 +471,7 @@ const DashboardLayout = () => {
                     .ds-sidebar   { display: none !important; }
                     .mob-bottom   { display: flex !important; }
                     main { padding-bottom: 72px !important; }
+                    .mob-toggle   { display: flex !important; }
                 }
             `}</style>
         </div>

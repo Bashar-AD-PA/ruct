@@ -164,12 +164,8 @@ const AppRoutes = () => {
                     </RoleRoute>
                 } />
 
-                {/* Sessions Management */}
-                <Route path="sessions" element={
-                    <RoleRoute allowedRoles={[ROLES.SUPER_ADMIN]}>
-                        <SessionsPage />
-                    </RoleRoute>
-                } />
+                {/* Sessions Management — available to ALL authenticated users */}
+                <Route path="sessions" element={<SessionsPage />} />
 
                 {/* Settings */}
                 <Route path="settings" element={<SettingsPage />} />

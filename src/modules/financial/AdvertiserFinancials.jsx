@@ -4,6 +4,8 @@ import axiosClient from '../../core/api/axiosClient';
 import { ENDPOINTS } from '../../core/api/endpoints';
 import PageHeader from '../../shared/components/PageHeader';
 import DataTable from '../../shared/components/DataTable';
+import DynamicPageLoader from '../../shared/components/DynamicPageLoader';
+import { motion } from 'framer-motion';
 
 const AdvertiserFinancials = () => {
     const [data, setData] = useState({ approved_balance: 0, total_payments: 0, transactions: [] });
@@ -38,6 +40,19 @@ const AdvertiserFinancials = () => {
         )},
     ];
 
+    if (loading) return (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-center py-20" dir="rtl">
+            <DynamicPageLoader 
+                messages={[
+                    "جاري معالجة سجلاتك المالية...", 
+                    "يتم تدقيق أرصدة الحملات الإعلانية...",
+                    "لحظات ونعرض واجهة الدفع الخاصة بك..."
+                ]}
+                icon="account_balance_wallet"
+            />
+        </motion.div>
+    );
+
     return (
         <div className="space-y-6" dir="rtl">
             <PageHeader 
@@ -71,7 +86,7 @@ const AdvertiserFinancials = () => {
                 </div>
             </div>
 
-            <DataTable columns={columns} data={data.transactions} loading={loading} emptyMessage="لا توجد عمليات مالية" />
+            <DataTable columns={columns} data={data.transactions} loading={false} emptyMessage="لا توجد عمليات مالية" />
         </div>
     );
 };

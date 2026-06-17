@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Layers, Plus, Edit2, Trash2 } from 'lucide-react';
 import axiosClient from '../../core/api/axiosClient';
 import useToastStore from '../../store/useToastStore';
-import PageHeader from '../../shared/components/PageHeader';
 import Modal from '../../shared/components/Modal';
-import DataTable from '../../shared/components/DataTable';
+import ConfirmDialog from '../../shared/components/ConfirmDialog';
 import { ENDPOINTS } from '../../core/api/endpoints';
 import usePermission from '../../hooks/usePermission';
 
@@ -15,6 +13,7 @@ const FrequencyPackagesPage = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingPackage, setEditingPackage] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [deleteDialog, setDeleteDialog] = useState({ open: false, id: null });
     const { can } = usePermission();
 
     const [form, setForm] = useState({
@@ -96,94 +95,141 @@ const FrequencyPackagesPage = () => {
         }
     };
 
-    const handleDelete = async (id) => {
-        if (window.confirm('هل أنت متأكد من حذف هذه الباقة؟')) {
-            try {
-                await axiosClient.delete(ENDPOINTS.FREQUENCY_PACKAGES.DELETE(id));
-                addToast('تم حذف الباقة بنجاح', 'success');
-                fetchData();
-            } catch (error) {
-                addToast(error.response?.data?.message || 'فشل الحذف', 'error');
-            }
+    const handleDelete = async () => {
+        const { id } = deleteDialog;
+        try {
+            await axiosClient.delete(ENDPOINTS.FREQUENCY_PACKAGES.DELETE(id));
+            addToast('تم حذف الباقة بنجاح', 'success');
+            fetchData();
+        } catch (error) {
+            addToast(error.response?.data?.message || 'فشل الحذف', 'error');
+        } finally {
+            setDeleteDialog({ open: false, id: null });
         }
     };
 
-    const columns = [
-        {
-            header: 'اسم الباقة',
-            accessorKey: 'name',
-            cell: (row) => <span className="font-bold whitespace-nowrap">{row.name}</span>
-        },
-        {
-            header: 'تكرار العرض',
-            accessorKey: 'display_interval',
-            cell: (row) => <span className="text-gray-600">كل {row.display_interval} دقيقة</span>
-        },
-        {
-            header: 'مضاعف السعر',
-            accessorKey: 'price_multiplier',
-            cell: (row) => (
-                <span className="px-3 py-1 bg-green-100 text-green-700 rounded-md text-xs font-black inline-block">
-                    {row.price_multiplier}x
-                </span>
-            )
-        }
-    ];
+    const getMultiplierStyle = (multiplier) => {
+        const val = parseFloat(multiplier);
+        if (val <= 1.0) return "bg-[#DCFCE7] text-[#166534] border-[#bbf7d0]";
+        if (val < 2.0) return "bg-[#FEF9C3] text-[#854D0E] border-[#fef08a]";
+        return "bg-orange-50 text-orange-700 border-orange-200";
+    };
 
-    if (can('manage_all')) {
-        columns.push({
-            header: 'إجراءات',
-            accessorKey: 'actions',
-            cell: (row) => (
-                <div className="flex justify-center gap-2">
-                    <button onClick={() => openModal(row)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-                        <Edit2 className="w-4 h-4" />
-                    </button>
-                    <button onClick={() => handleDelete(row.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors">
-                        <Trash2 className="w-4 h-4" />
-                    </button>
-                </div>
-            )
-        });
-    }
-
-    const inputClass = "w-full bg-gray-50 border-[1.5px] border-gray-200 rounded-xl py-2.5 px-4 text-sm text-gray-800 focus:outline-none focus:border-[var(--color-dark-turquoise)] focus:bg-white transition-all text-right";
-    const labelClass = "text-xs font-bold text-[var(--color-dark-turquoise)] mb-1.5 block px-1";
+    const inputClass = "w-full bg-background border border-outline-variant rounded-lg py-2.5 px-4 font-body-md text-on-surface placeholder-on-surface-variant focus:outline-none focus:border-primary focus:bg-surface transition-all text-right";
+    const labelClass = "font-label-md text-label-md text-on-surface-variant mb-1.5 block px-1";
 
     return (
-        <div className="space-y-6 animate-fade-in pb-12" dir="rtl">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <PageHeader
-                    title="باقات التكرار"
-                    description="إدارة معدل تكرار ظهور الإعلانات ومضاعفات أسعارها"
-                    icon={Layers}
-                />
+        <div className="space-y-6 pb-12" dir="rtl">
+            {/* Header Section */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 py-4 mb-2">
+                <div className="flex flex-col">
+                    <h1 className="font-headline-lg text-headline-lg font-bold text-on-surface mb-1 flex items-center gap-3">
+                        باقات التكرار
+                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                            <span className="material-symbols-outlined text-xl">replay</span>
+                        </div>
+                    </h1>
+                    <p className="text-on-surface-variant font-body-md text-body-md">إدارة معدل تكرار ظهور الإعلانات ومضاعفات أسعارها.</p>
+                </div>
                 {can('manage_all') && (
                     <button
                         onClick={() => openModal()}
-                        className="bg-[var(--color-dark-turquoise)] hover:opacity-90 text-white px-5 py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-sm shrink-0"
+                        className="bg-primary hover:bg-primary/90 text-on-primary font-label-md text-label-md px-6 py-2.5 rounded-lg flex items-center justify-center gap-2 shadow-sm transition-all whitespace-nowrap"
                     >
-                        <Plus className="w-5 h-5" /> إضافة باقة جديدة
+                        <span className="material-symbols-outlined text-xl">add</span>
+                        إضافة باقة جديدة
                     </button>
                 )}
             </div>
 
-            <DataTable
-                columns={columns}
-                data={packages}
-                loading={isLoading}
-                emptyMessage="لا توجد باقات تكرار مضافة بعد."
-            />
+            {/* Table Card */}
+            <div className="bg-surface rounded-2xl border border-outline-variant shadow-sm overflow-hidden flex flex-col min-h-[300px] mt-8">
+                <div className="p-5 border-b border-outline-variant flex justify-between items-center bg-surface">
+                    <h3 className="font-title-lg text-title-lg text-on-surface font-semibold flex items-center gap-2">
+                        قائمة باقات التكرار
+                    </h3>
+                </div>
+                
+                {isLoading ? (
+                    <div className="flex justify-center items-center flex-1 bg-surface/50 z-10 py-20">
+                        <div className="w-8 h-8 border-4 border-outline-variant border-t-primary rounded-full animate-spin"></div>
+                    </div>
+                ) : packages.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center p-12 text-center my-auto">
+                        <div className="w-16 h-16 bg-surface-container-lowest rounded-full flex items-center justify-center mb-4 border border-outline-variant">
+                            <span className="material-symbols-outlined text-outline text-3xl">info</span>
+                        </div>
+                        <h4 className="font-headline-md text-headline-md text-on-surface mb-2">لا توجد باقات تكرار</h4>
+                        <p className="font-body-md text-body-md text-on-surface-variant">أضف باقات تكرار جديدة للبدء.</p>
+                    </div>
+                ) : (
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-right border-collapse">
+                            <thead className="bg-surface-container-low border-b border-outline-variant">
+                                <tr>
+                                    <th className="py-4 px-6 font-label-md text-label-md text-on-surface-variant font-medium whitespace-nowrap">اسم الباقة</th>
+                                    <th className="py-4 px-6 font-label-md text-label-md text-on-surface-variant font-medium whitespace-nowrap text-center">تكرار العرض</th>
+                                    <th className="py-4 px-6 font-label-md text-label-md text-on-surface-variant font-medium whitespace-nowrap text-center">مضاعف السعر</th>
+                                    {can('manage_all') && <th className="py-4 px-6 font-label-md text-label-md text-on-surface-variant font-medium whitespace-nowrap text-left">إجراءات</th>}
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-outline-variant font-body-md text-body-md">
+                                {packages.map((pkg, index) => {
+                                    const id = pkg.id || index;
+                                    return (
+                                        <tr key={id} className="hover:bg-surface-container-lowest transition-colors group">
+                                            <td className="py-4 px-6 font-medium text-on-surface whitespace-nowrap">
+                                                {pkg.name}
+                                            </td>
+                                            <td className="py-4 px-6 text-center text-on-surface-variant font-mono whitespace-nowrap">
+                                                كل {pkg.display_interval} دقيقة
+                                            </td>
+                                            <td className="py-4 px-6 text-center whitespace-nowrap">
+                                                <span className={`inline-flex items-center justify-center px-2.5 py-1 rounded-md border font-bold text-xs tracking-wide ${getMultiplierStyle(pkg.price_multiplier)}`}>
+                                                    {parseFloat(pkg.price_multiplier).toFixed(2)}x
+                                                </span>
+                                            </td>
+                                            {can('manage_all') && (
+                                                <td className="py-4 px-6 text-left whitespace-nowrap">
+                                                    <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <button 
+                                                            type="button" 
+                                                            onClick={(e) => { e.stopPropagation(); openModal(pkg); }} 
+                                                            className="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-primary/10 hover:text-primary transition-colors" 
+                                                            title="تعديل"
+                                                        >
+                                                            <span className="material-symbols-outlined text-sm">edit</span>
+                                                        </button>
+                                                        <button 
+                                                            type="button" 
+                                                            onClick={(e) => { e.stopPropagation(); setDeleteDialog({ open: true, id: pkg.id }); }} 
+                                                            className="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-error/10 hover:text-error transition-colors" 
+                                                            title="حذف"
+                                                        >
+                                                            <span className="material-symbols-outlined text-sm">delete</span>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            )}
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </div>
 
+            {/* Modal */}
             <Modal
                 isOpen={isModalOpen}
                 onClose={closeModal}
                 title={editingPackage ? 'تعديل باقة تكرار' : 'إضافة باقة تكرار جديدة'}
-                icon={Layers}
+                size="md"
             >
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleSubmit} className="space-y-4 mt-4" dir="rtl">
                     <div>
-                        <label className={labelClass}>اسم الباقة *</label>
+                        <label className={labelClass}>اسم الباقة <span className="text-error">*</span></label>
                         <input
                             type="text"
                             required
@@ -197,53 +243,71 @@ const FrequencyPackagesPage = () => {
 
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className={labelClass}>تكرار العرض (بالدقائق) *</label>
-                            <input
-                                type="number"
-                                required
-                                min="1"
-                                value={form.display_interval}
-                                onChange={(e) => setForm({ ...form, display_interval: e.target.value })}
-                                className={inputClass}
-                                placeholder="1"
-                            />
+                            <label className={labelClass}>تكرار العرض (بالدقائق) <span className="text-error">*</span></label>
+                            <div className="relative">
+                                <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm">timer</span>
+                                <input
+                                    type="number"
+                                    required
+                                    min="1"
+                                    value={form.display_interval}
+                                    onChange={(e) => setForm({ ...form, display_interval: e.target.value })}
+                                    className={`${inputClass} pr-9`}
+                                    placeholder="1"
+                                />
+                            </div>
                         </div>
                         <div>
-                            <label className={labelClass}>مضاعف السعر *</label>
-                            <input
-                                type="number"
-                                step="0.01"
-                                required
-                                min="0.01"
-                                value={form.price_multiplier}
-                                onChange={(e) => setForm({ ...form, price_multiplier: e.target.value })}
-                                className={inputClass}
-                                placeholder="1.0"
-                            />
+                            <label className={labelClass}>مضاعف السعر <span className="text-error">*</span></label>
+                            <div className="relative">
+                                <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm">close</span>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    required
+                                    min="0.01"
+                                    value={form.price_multiplier}
+                                    onChange={(e) => setForm({ ...form, price_multiplier: e.target.value })}
+                                    className={`${inputClass} pr-9`}
+                                    placeholder="1.0"
+                                />
+                            </div>
                         </div>
                     </div>
-                    <p className="text-[10px] text-gray-500 px-1">
-                        تكرار العرض: كل كم دقيقة يتم عرض الإعلان. مضاعف السعر: القيمة التي يضرب بها السعر الأساسي.
+                    
+                    <p className="font-body-sm text-body-sm text-on-surface-variant px-1 pt-1">
+                        تكرار العرض: كل كم دقيقة يتم عرض الإعلان. <br />
+                        مضاعف السعر: القيمة التي يضرب بها السعر الأساسي.
                     </p>
 
                     <div className="pt-4 flex gap-3">
                         <button
                             type="submit"
                             disabled={isSubmitting}
-                            className="flex-1 bg-[var(--color-dark-turquoise)] text-white py-3 rounded-xl font-bold hover:opacity-90 transition-opacity disabled:opacity-50"
+                            className="flex-1 bg-primary text-on-primary py-3 rounded-lg font-label-md text-label-md hover:bg-primary/90 shadow-sm transition-colors disabled:opacity-50"
                         >
-                            {isSubmitting ? 'جاري الحفظ...' : 'حفظ'}
+                            {isSubmitting ? 'جاري المعالجة...' : 'تخزين واعتماد'}
                         </button>
                         <button
                             type="button"
                             onClick={closeModal}
-                            className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-xl font-bold hover:bg-gray-200 transition-colors"
+                            className="flex-1 bg-surface-variant text-on-surface-variant py-3 rounded-lg font-label-md text-label-md hover:bg-surface-container-highest border border-outline-variant transition-colors"
                         >
                             إلغاء
                         </button>
                     </div>
                 </form>
             </Modal>
+
+            {/* Delete Confirmation */}
+            <ConfirmDialog 
+                isOpen={deleteDialog.open} 
+                onClose={() => setDeleteDialog({ open: false, id: null })}
+                onConfirm={handleDelete} 
+                title="تأكيد الحذف" 
+                message="هل أنت متأكد من حذف باقة التكرار هذه؟ قد يؤثر ذلك على الإعلانات المستقبلية." 
+                confirmText="تأكيد الحذف" 
+            />
         </div>
     );
 };
