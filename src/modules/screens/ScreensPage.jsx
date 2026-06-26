@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, Suspense, lazy } from 'react';
 import {
   Monitor, Plus, Trash2, TerminalSquare, Edit2, Image as ImageIcon,
   Eye, Activity, Info, MapPin, UploadCloud, AlertCircle, Layers,
-  ChevronDown, Wifi, WifiOff, Wrench, Navigation, Star, X, Building
+  ChevronDown, Wifi, WifiOff, Wrench, Navigation, Star, X, Building, Clock, Zap
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axiosClient from '../../core/api/axiosClient';
@@ -71,10 +71,15 @@ const ScreensPage = () => {
   const [isNewLocation, setIsNewLocation] = useState(false);
   const [newLocation, setNewLocation] = useState({ governorate: '', region: '', street: '' });
 
+  // Peak Hours State
+  const [peakSlots, setPeakSlots] = useState([]);
+  const [slotsLoading, setSlotsLoading] = useState(false);
+
   // Form state
   const [form, setForm] = useState({
     screen_name: '', mac_address: '', type_id: '', street_id: '',
-    owner_id: '', status: 'Online', photo: null
+    owner_id: '', status: 'Online', photo: null,
+    base_price: '10', screen_size_inch: '55'
   });
 
   useEffect(() => {
@@ -233,7 +238,8 @@ const ScreensPage = () => {
     if (regionId) fetchFormStreets(regionId);
   };
 
-  const handleOpenModal = (isEdit = false, screen = null) => {
+  const handleOpenModal = async (isEdit = false, screen = null) => {
+    setPeakSlots([]); // Reset
     if (isEdit && screen) {
       setForm({
         screen_name: screen.screen_name || '',
@@ -243,6 +249,8 @@ const ScreensPage = () => {
         owner_id: screen.owner_id || '',
         status: screen.status || 'Online',
         photo: null,
+        base_price: screen.base_price ?? '10',
+        screen_size_inch: screen.screen_size_inch ?? '55',
       });
 
       const initialRegionId = screen.street?.region_id || '';
@@ -251,8 +259,24 @@ const ScreensPage = () => {
       setFormRegionId(initialRegionId);
       if (initialGovId) fetchFormRegions(initialGovId);
       if (initialRegionId) fetchFormStreets(initialRegionId);
+
+      setSlotsLoading(true);
+      try {
+        const slotsRes = await axiosClient.get(ENDPOINTS.SCREEN_PRICING.ALL);
+        const allSlots = Array.isArray(slotsRes.data?.data) ? slotsRes.data.data : slotsRes.data || [];
+        setPeakSlots(allSlots.filter(s => s.screen_id === screen.screen_id).map(s => ({
+           id: s.slot_id || s.id,
+           start_time: s.start_time ? s.start_time.substring(0, 5) : '16:00',
+           end_time: s.end_time ? s.end_time.substring(0, 5) : '22:00',
+           price_multiplier: s.price_multiplier,
+           isSaved: true
+        })));
+      } catch (e) {
+        console.error('Failed to load slots', e);
+      }
+      setSlotsLoading(false);
     } else {
-      setForm({ screen_name: '', mac_address: '', type_id: '', street_id: '', owner_id: '', status: 'Online', photo: null });
+      setForm({ screen_name: '', mac_address: '', type_id: '', street_id: '', owner_id: '', status: 'Online', photo: null, base_price: '10', screen_size_inch: '55' });
       setFormGovId('');
       setFormRegionId('');
       setFormRegions([]);
@@ -261,6 +285,18 @@ const ScreensPage = () => {
     setIsNewLocation(false);
     setNewLocation({ governorate: '', region: '', street: '' });
     setModalConfig({ open: true, isEdit, screen });
+  };
+
+  const handleAddSlot = () => {
+    setPeakSlots([...peakSlots, { id: 'new_' + Date.now(), start_time: '16:00', end_time: '22:00', price_multiplier: '1.5', isSaved: false }]);
+  };
+
+  const handleUpdateSlot = (id, field, value) => {
+    setPeakSlots(peakSlots.map(s => s.id === id ? { ...s, [field]: value } : s));
+  };
+
+  const handleRemoveSlot = (id) => {
+    setPeakSlots(peakSlots.filter(s => s.id !== id));
   };
 
   const handleSubmit = async (e) => {
@@ -290,16 +326,51 @@ const ScreensPage = () => {
       const payload = { ...form, street_id: finalStreetId };
       Object.entries(payload).forEach(([k, v]) => { if (v) fd.append(k, v); });
 
+      let screenIdStr = null;
+
       if (modalConfig.isEdit) {
         fd.append('_method', 'PUT'); // Fallback logic
         await axiosClient.post(ENDPOINTS.SCREENS.UPDATE(modalConfig.screen.screen_id), fd, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
+        screenIdStr = modalConfig.screen.screen_id;
         addToast('تم تحديث بيانات الشاشة بنجاح', 'success');
       } else {
-        await axiosClient.post(ENDPOINTS.SCREENS.ALL, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+        const res = await axiosClient.post(ENDPOINTS.SCREENS.ALL, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+        screenIdStr = res.data?.data?.screen_id || res.data?.screen_id;
         addToast('تمت إضافة الشاشة الجديدة بنجاح', 'success');
       }
+
+      // Sync Peak Slots
+      if (screenIdStr) {
+        if (modalConfig.isEdit) {
+           const slotsRes = await axiosClient.get(ENDPOINTS.SCREEN_PRICING.ALL);
+           const allSlots = Array.isArray(slotsRes.data?.data) ? slotsRes.data.data : slotsRes.data || [];
+           const oldScreenSlots = allSlots.filter(s => s.screen_id === modalConfig.screen.screen_id);
+           
+           for (const oldSlot of oldScreenSlots) {
+              const stillExists = peakSlots.find(ps => ps.id === (oldSlot.slot_id || oldSlot.id));
+              if (!stillExists) {
+                 await axiosClient.delete(ENDPOINTS.SCREEN_PRICING.DELETE(oldSlot.slot_id || oldSlot.id)).catch(() => {});
+              }
+           }
+        }
+        
+        for (const slot of peakSlots) {
+           const payload = {
+              screen_id: parseInt(screenIdStr),
+              start_time: slot.start_time,
+              end_time: slot.end_time,
+              price_multiplier: parseFloat(slot.price_multiplier)
+           };
+           if (slot.isSaved && slot.id && String(slot.id).indexOf('new_') === -1) {
+              await axiosClient.put(ENDPOINTS.SCREEN_PRICING.UPDATE(slot.id), payload).catch(() => {});
+           } else {
+              await axiosClient.post(ENDPOINTS.SCREEN_PRICING.ALL, payload).catch(() => {});
+           }
+        }
+      }
+
       setModalConfig({ open: false, isEdit: false, screen: null });
       fetchScreens();
     } catch (e) {
@@ -746,6 +817,97 @@ const ScreensPage = () => {
                 </select>
               </div>
             </div>
+
+            {/* ── Pricing Fields ── */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2 pt-4 border-t border-[#c3c6d7]">
+              <div>
+                <label className="text-[12px] font-medium text-[#434655] mb-2 flex items-center gap-1">
+                  <span>💰</span> السعر الأساسي اليومي ($) <span className="text-[#ba1a1a]">*</span>
+                </label>
+                <input
+                  type="number" min="0" step="0.5"
+                  value={form.base_price}
+                  onChange={(e) => setForm(p => ({ ...p, base_price: e.target.value }))}
+                  placeholder="مثال: 15"
+                  className="w-full bg-[#ffffff] border border-[#c3c6d7] rounded-xl py-2 px-3 text-[14px] text-[#141b2b] focus:outline-none focus:border-[#004ac6] transition-all"
+                />
+                <p className="text-[11px] text-[#737686] mt-1">سعر عرض الإعلان لمدة يوم كامل على هذه الشاشة</p>
+              </div>
+              <div>
+                <label className="text-[12px] font-medium text-[#434655] mb-2 flex items-center gap-1">
+                  <span>📺</span> حجم الشاشة (إنش)
+                </label>
+                <select
+                  value={form.screen_size_inch}
+                  onChange={(e) => setForm(p => ({ ...p, screen_size_inch: e.target.value }))}
+                  className="w-full bg-[#ffffff] border border-[#c3c6d7] rounded-xl py-2 px-3 text-[14px] text-[#141b2b] focus:outline-none focus:border-[#004ac6] transition-all"
+                >
+                  <option value="32">32 إنش (1.0x)</option>
+                  <option value="43">43 إنش (1.0x)</option>
+                  <option value="55">55 إنش (1.0x)</option>
+                  <option value="65">65 إنش (1.1x)</option>
+                  <option value="75">75 إنش (1.2x)</option>
+                  <option value="86">86 إنش (1.35x)</option>
+                  <option value="98">98 إنش (1.5x)</option>
+                </select>
+                <p className="text-[11px] text-[#737686] mt-1">يؤثر على مضاعف السعر في حاسبة التكلفة</p>
+              </div>
+            </div>
+
+            {/* ── Peak Hours / Pricing Slots ── */}
+            <div className="bg-[#f9f9ff] p-5 rounded-2xl border border-[#c3c6d7] space-y-4">
+              <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-[#ba1a1a]" />
+                  <h4 className="text-[14px] font-semibold text-[#141b2b]">أوقات الذروة والتسعير الديناميكي</h4>
+                </div>
+                <button type="button" onClick={handleAddSlot} className="text-[#004ac6] text-[12px] font-medium flex items-center gap-1 hover:bg-[#e1e8fd] px-2 py-1 rounded transition-colors shadow-sm bg-[#ffffff] border border-[#c3c6d7]">
+                  <Plus className="w-4 h-4" /> إضافة فترة ذروة
+                </button>
+              </div>
+              <p className="text-[11px] text-[#737686] mb-2 leading-relaxed">
+                حدد الأوقات التي يتضاعف فيها السعر تلقائياً بناءً على وقت عرض الإعلان. سعر ما بعد الانتهاء من الذروة يعود للسعر الأساسي (${form.base_price || 0}) كالمعتاد ولن تحتاج لإضافة فترة لذلك.
+              </p>
+
+              {slotsLoading ? (
+                <div className="text-center py-4 text-[#434655] text-[12px]">جاري تحميل أوقات الذروة...</div>
+              ) : peakSlots.length === 0 ? (
+                <div className="text-center py-4 bg-[#f1f3ff] rounded-xl border border-dashed border-[#c3c6d7] mt-2">
+                  <p className="text-[12px] text-[#737686]">لم يتم إضافة أوقات ذروة لهذه الشاشة. (التسعيرة الأساسية هي المعتمدة دائماً)</p>
+                </div>
+              ) : (
+                <div className="space-y-3 mt-2">
+                  {peakSlots.map((slot, index) => (
+                    <div key={slot.id} className="grid grid-cols-1 sm:grid-cols-12 gap-3 bg-[#ffffff] p-3 rounded-xl border border-[#c3c6d7] items-center text-right shadow-sm hover:border-[#004ac6] transition-colors">
+                      <div className="sm:col-span-3">
+                        <label className="text-[11px] font-medium text-[#434655] mb-1 block">وقت البدء</label>
+                        <input type="time" value={slot.start_time} onChange={(e) => handleUpdateSlot(slot.id, 'start_time', e.target.value)} required
+                          className="w-full bg-[#f9f9ff] border border-[#dce2f7] rounded-lg py-1.5 px-2 text-[12px] text-[#141b2b] focus:outline-none focus:border-[#004ac6]" />
+                      </div>
+                      <div className="sm:col-span-3">
+                        <label className="text-[11px] font-medium text-[#434655] mb-1 block">وقت الانتهاء</label>
+                        <input type="time" value={slot.end_time} onChange={(e) => handleUpdateSlot(slot.id, 'end_time', e.target.value)} required
+                          className="w-full bg-[#f9f9ff] border border-[#dce2f7] rounded-lg py-1.5 px-2 text-[12px] text-[#141b2b] focus:outline-none focus:border-[#004ac6]" />
+                      </div>
+                      <div className="sm:col-span-5 border-r border-[#dce2f7] pr-3">
+                        <label className="text-[11px] font-medium text-[#434655] mb-1 flex items-center gap-1"><Zap className="w-3 h-3 text-[#eab308]" /> السعر فترة الذروة</label>
+                        <div className="flex items-center gap-2">
+                          <input type="number" step="0.1" min="1.1" title="مضاعف السعر" placeholder="مثال 1.5x" value={slot.price_multiplier} onChange={(e) => handleUpdateSlot(slot.id, 'price_multiplier', e.target.value)} required
+                            className="w-20 bg-[#fef9c3] border border-[#eab308] rounded-lg py-1.5 px-2 text-[12px] font-bold text-[#854d0e] focus:outline-none focus:ring-1 focus:ring-[#eab308]" />
+                          <span className="text-[11px] text-[#737686]">= ${(parseFloat(form.base_price || 0) * parseFloat(slot.price_multiplier || 1)).toFixed(2)}</span>
+                        </div>
+                      </div>
+                      <div className="sm:col-span-1 flex justify-end">
+                        <button type="button" onClick={() => handleRemoveSlot(slot.id)} className="w-8 h-8 flex items-center justify-center rounded-lg text-[#ba1a1a] bg-[#ffdad6] hover:bg-[#93000a] hover:text-white transition-colors" title="حذف">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {!modalConfig.isEdit && (
               <div>
                 <label className="text-[12px] font-medium text-[#434655] mb-2 block">مالك الشاشة</label>

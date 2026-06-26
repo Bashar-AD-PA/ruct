@@ -36,6 +36,12 @@ export const ENDPOINTS = {
         STATUS: (id) => `/ads/${id}/status`,
         DELETE: (id) => `/ads/${id}`
     },
+    DURATION_DISCOUNTS: {
+        ALL: '/duration-discounts',
+        CREATE: '/duration-discounts',
+        UPDATE: (id) => `/duration-discounts/${id}`,
+        DELETE: (id) => `/duration-discounts/${id}`
+    },
     FREQUENCY_PACKAGES: {
         ALL: '/frequency-packages',
         CREATE: '/frequency-packages',

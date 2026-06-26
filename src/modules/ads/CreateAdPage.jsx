@@ -12,6 +12,7 @@ import useToastStore from '../../store/useToastStore';
 import PageHeader from '../../shared/components/PageHeader';
 import ScreenAvailabilityModal from './components/ScreenAvailabilityModal';
 import usePermission from '../../hooks/usePermission';
+import ScreenMapView from '../screens/components/ScreenMapView';
 
 const CreateAdPage = () => {
     const navigate = useNavigate();
@@ -25,8 +26,7 @@ const CreateAdPage = () => {
     const [currentStep, setCurrentStep] = useState(1);
 
     const [form, setForm] = useState({
-        title: '', category_id: '', duration: '', start_date: '', end_date: '',
-        target_start_time: '', target_end_time: '',
+        title: '', start_date: '', end_date: '', target_start_time: '00:00', target_end_time: '23:59', daily_shift: '24h',
         interval_minutes: '', total_cost: '', package_name: '', file: null, receipt: null,
         advertiser_id: ''
     });
@@ -161,22 +161,42 @@ const CreateAdPage = () => {
         }
     };
 
+    const addDays = (days) => {
+        if (!form.start_date) {
+            addToast('الرجاء تحديد تاريخ الانطلاق أولاً', 'warning');
+            return;
+        }
+        const start = new Date(form.start_date);
+        start.setDate(start.getDate() + days - 1);
+        
+        const y = start.getFullYear();
+        const m = String(start.getMonth() + 1).padStart(2, '0');
+        const d = String(start.getDate()).padStart(2, '0');
+        const formattedDate = `${y}-${m}-${d}`;
+        
+        setForm(p => ({ ...p, end_date: formattedDate }));
+        if (calculatedCost) setCalculatedCost(null);
+    };
+
     const handleCalculateCost = async () => {
-        if (!form.category_id || selectedScreens.length === 0 || !form.start_date || !form.end_date || !form.interval_minutes) {
-            addToast('يرجى التأكد من تعبئة: التصنيف، الشاشات، جدول العرض التاريخي، وباقة التكرار قبل حاسبة التكلفة', 'warning');
+        if (selectedScreens.length === 0 || !form.start_date || !form.end_date || !form.interval_minutes) {
+            addToast('يرجى التأكد من تعبئة: الشاشات، جدول العرض التاريخي، وباقة التكرار قبل حاسبة التكلفة', 'warning');
             return;
         }
         setCostLoading(true);
         try {
+            let sd = '', ed = '';
+            if (form.start_date) sd = form.start_date.split('T')[0];
+            if (form.end_date) ed = form.end_date.split('T')[0];
+
             const payload = {
-                category_id: form.category_id,
                 screen_ids: selectedScreens,
-                start_date: form.start_date,
-                end_date: form.end_date,
+                start_date: sd,
+                target_start_time: form.target_start_time,
+                end_date: ed,
+                target_end_time: form.target_end_time,
                 interval_minutes: form.interval_minutes
             };
-            if (form.target_start_time) payload.target_start_time = form.target_start_time;
-            if (form.target_end_time) payload.target_end_time = form.target_end_time;
 
             const res = await axiosClient.post(ENDPOINTS.ADS.CALCULATE_COST, payload);
             const data = res.data.data;
@@ -206,14 +226,24 @@ const CreateAdPage = () => {
         setUploadProgress(0);
         const formData = new FormData();
         Object.entries(form).forEach(([key, val]) => {
-            if (val !== '' && val !== null) {
-                if (['duration', 'interval_minutes', 'total_cost'].includes(key)) {
+            if (val !== '' && val !== null && !['start_date', 'end_date'].includes(key)) {
+                if (['interval_minutes', 'total_cost'].includes(key)) {
                     formData.append(key, Number(val));
                 } else {
                     formData.append(key, val);
                 }
             }
         });
+        
+        let sd = '', ed = '';
+        if (form.start_date) sd = form.start_date.split('T')[0];
+        if (form.end_date) ed = form.end_date.split('T')[0];
+
+        formData.append('start_date', sd);
+        formData.append('end_date', ed);
+        formData.append('target_start_time', form.target_start_time);
+        formData.append('target_end_time', form.target_end_time);
+
         selectedScreens.forEach(id => formData.append('screen_ids[]', id));
 
         try {
@@ -371,21 +401,11 @@ const CreateAdPage = () => {
                                             </div>
                                         )}
                                         
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                        <div className="grid grid-cols-1 gap-8">
                                             <div>
                                                 <label className={labelClass}>عنوان الحملة الترويجي <span className="text-error">*</span></label>
                                                 <input type="text" value={form.title} onChange={(e) => setForm(p => ({ ...p, title: e.target.value }))} placeholder="مثال: إطلاق منتج صيف 2026..." className={inputClass} />
                                                 <p className="font-caption text-caption text-on-surface-variant mt-1.5 px-1">الاسم المرجعي الداخلي للحملة (لن يظهر للجمهور).</p>
-                                            </div>
-                                            <div>
-                                                <label className={labelClass}>تصنيف القطاع الإعلاني <span className="text-error">*</span></label>
-                                                <div className="relative">
-                                                    <select value={form.category_id} onChange={(e) => setForm(p => ({ ...p, category_id: e.target.value }))} className={`${inputClass} appearance-none cursor-pointer pl-10 pr-4 text-left`} dir="ltr">
-                                                        <option value="" dir="rtl">-- اختر التصنيف التسعيري المناسب --</option>
-                                                        {categories.map(c => <option key={c.category_id} value={c.category_id} dir="rtl">{c.category_name} - {c.price}$ (معامل تصنيف)</option>)}
-                                                    </select>
-                                                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">expand_content</span>
-                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -406,25 +426,9 @@ const CreateAdPage = () => {
                                         <p className="font-body-md text-body-md text-on-surface-variant">تحديد المواصفات الزمنية لعمر الحملة، وفترات البث خلال اليوم.</p>
                                     </div>
                                     
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 mb-10 bg-surface-container-low/50 p-6 rounded-2xl border border-border-color">
                                         <div>
-                                            <label className="block font-label-md text-label-md text-on-background mb-2">
-                                                طول المادة الإعلانية <span className="text-error">*</span>
-                                            </label>
-                                            <div className="relative">
-                                                <input 
-                                                    type="number" min="1"
-                                                    value={form.duration} 
-                                                    onChange={(e) => { setForm(p => ({ ...p, duration: e.target.value })); if (calculatedCost) setCalculatedCost(null); }} 
-                                                    className="w-full border border-border-color rounded-lg px-4 py-3 font-body-md focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-colors pl-12 text-left" 
-                                                    dir="ltr" 
-                                                    placeholder="مثال : 15" 
-                                                />
-                                                <span className="absolute left-4 top-1/2 -translate-y-1/2 font-body-md text-on-surface-variant pointer-events-none">ثانية</span>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className="block font-label-md text-label-md text-on-background mb-2">
+                                            <label className="block font-title-sm text-title-sm text-on-background mb-3">
                                                 تاريخ الانطلاق <span className="text-error">*</span>
                                             </label>
                                             <div className="relative">
@@ -432,75 +436,107 @@ const CreateAdPage = () => {
                                                     type="date" 
                                                     value={form.start_date} 
                                                     onChange={(e) => { setForm(p => ({ ...p, start_date: e.target.value })); if (calculatedCost) setCalculatedCost(null); }} 
-                                                    className="w-full border border-border-color rounded-lg px-4 py-3 font-body-md focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-colors pr-10 text-left" 
+                                                    className="w-full border border-border-color bg-white rounded-xl px-5 py-4 font-title-sm text-[16px] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all pr-14 text-left shadow-sm" 
                                                     dir="ltr" 
                                                 />
-                                                <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">calendar_today</span>
+                                                <span className="material-symbols-outlined text-[26px] absolute right-4 top-1/2 -translate-y-1/2 text-primary pointer-events-none">calendar_month</span>
                                             </div>
+                                            <p className="font-caption text-caption text-on-surface-variant mt-2 px-1">حدد تاريخ بدء انطلاق الحملة الإعلانية.</p>
                                         </div>
                                         <div>
-                                            <label className="block font-label-md text-label-md text-on-background mb-2">
-                                                تاريخ الانتهاء <span className="text-error">*</span>
+                                            <label className="block font-title-sm text-title-sm text-on-background mb-3 flex items-center justify-between">
+                                                <span>تاريخ الانتهاء <span className="text-error">*</span></span>
+                                                {form.start_date && (
+                                                    <span className="font-caption text-caption text-primary bg-primary/10 px-2 py-0.5 rounded-md">خيار سريع متاح</span>
+                                                )}
                                             </label>
-                                            <div className="relative">
+                                            <div className="relative mb-5">
                                                 <input 
                                                     type="date" 
                                                     value={form.end_date} 
                                                     onChange={(e) => { setForm(p => ({ ...p, end_date: e.target.value })); if (calculatedCost) setCalculatedCost(null); }} 
-                                                    className="w-full border border-border-color rounded-lg px-4 py-3 font-body-md focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-colors pr-10 text-left" 
+                                                    className="w-full border border-border-color bg-white rounded-xl px-5 py-4 font-title-sm text-[16px] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all pr-14 text-left shadow-sm" 
                                                     dir="ltr" 
                                                 />
-                                                <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">calendar_today</span>
+                                                <span className="material-symbols-outlined text-[26px] absolute right-4 top-1/2 -translate-y-1/2 text-error pointer-events-none">event_busy</span>
+                                            </div>
+                                            <div className="flex flex-wrap gap-2">
+                                                <button type="button" onClick={() => addDays(7)} className="px-4 py-2.5 bg-primary-container/30 text-primary hover:bg-primary hover:text-white text-sm font-bold rounded-xl transition-all border border-primary/20 shadow-sm flex-1 text-center break-keep min-w-[70px]">أسبوع</button>
+                                                <button type="button" onClick={() => addDays(14)} className="px-4 py-2.5 bg-primary-container/30 text-primary hover:bg-primary hover:text-white text-sm font-bold rounded-xl transition-all border border-primary/20 shadow-sm flex-1 text-center break-keep min-w-[70px]">أسبوعين</button>
+                                                <button type="button" onClick={() => addDays(30)} className="px-4 py-2.5 bg-primary-container/30 text-primary hover:bg-primary hover:text-white text-sm font-bold rounded-xl transition-all border border-primary/20 shadow-sm flex-1 text-center break-keep min-w-[70px]">شهر</button>
+                                                <button type="button" onClick={() => addDays(60)} className="px-4 py-2.5 bg-primary-container/30 text-primary hover:bg-primary hover:text-white text-sm font-bold rounded-xl transition-all border border-primary/20 shadow-sm flex-1 text-center break-keep min-w-[70px]">شهرين</button>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <div className="bg-surface-container-low border border-border-color rounded-xl p-6 mb-10">
-                                        <div className="flex items-center justify-between mb-6">
-                                            <div className="flex items-center gap-2">
-                                                <span className="material-symbols-outlined text-outline">routine</span>
-                                                <h4 className="font-label-md text-label-md font-bold text-on-background">توجيه البث النهاري/الليلي (اختياري)</h4>
-                                            </div>
-                                            <button type="button" onClick={() => {
-                                                if (form.target_start_time || form.target_end_time) {
-                                                    setForm(p => ({ ...p, target_start_time: '', target_end_time: '' }));
-                                                    if (calculatedCost) setCalculatedCost(null);
-                                                } else {
-                                                    setForm(p => ({ ...p, target_start_time: '08:00', target_end_time: '23:00' }));
-                                                }
-                                            }} className={`w-10 h-6 inline-flex rounded-full relative transition-colors duration-300 ${(form.target_start_time || form.target_end_time) ? 'bg-primary' : 'bg-outline-variant'}`}>
-                                                <span className={`w-4 h-4 bg-white rounded-full absolute top-[4px] shadow-sm transition-all duration-300 ${(form.target_start_time || form.target_end_time) ? 'left-1' : 'right-1'}`}></span>
+                                    {/* Daily Shift Buttons */}
+                                    <div className="bg-surface-container-low border border-border-color rounded-2xl p-6 mb-10 text-center shadow-sm">
+                                        <h4 className="font-title-sm text-title-sm text-on-background mb-2 flex items-center justify-center gap-2">
+                                            <span className="material-symbols-outlined text-outline">schedule</span>
+                                            ساعات العرض اليومية (نطاق البث)
+                                        </h4>
+                                        <p className="font-body-md text-body-md text-on-surface-variant mb-6">
+                                            اختر في أي الأوقات سيظهر إعلانك يومياً على الشاشات المستهدفة
+                                        </p>
+                                        <div className="flex flex-wrap items-center justify-center gap-4">
+                                            <button type="button" 
+                                                onClick={() => { setForm(p => ({ ...p, target_start_time: '08:00', target_end_time: '18:00', daily_shift: 'day' })); if (calculatedCost) setCalculatedCost(null); }}
+                                                className={`px-6 py-3.5 rounded-xl border flex items-center gap-2.5 transition-all shadow-sm ${form.daily_shift === 'day' ? 'bg-primary text-white border-primary ring-2 ring-primary/20 scale-[1.02]' : 'bg-white text-on-surface-variant border-border-color hover:bg-primary-container/20 hover:text-primary hover:border-primary/40'}`}>
+                                                <span className="material-symbols-outlined text-[24px]">light_mode</span>
+                                                <span className="font-bold text-[15px]">بث نهاري (8ص - 6م)</span>
+                                            </button>
+                                            <button type="button" 
+                                                onClick={() => { setForm(p => ({ ...p, target_start_time: '18:00', target_end_time: '23:59', daily_shift: 'night' })); if (calculatedCost) setCalculatedCost(null); }}
+                                                className={`px-6 py-3.5 rounded-xl border flex items-center gap-2.5 transition-all shadow-sm ${form.daily_shift === 'night' ? 'bg-primary text-white border-primary ring-2 ring-primary/20 scale-[1.02]' : 'bg-white text-on-surface-variant border-border-color hover:bg-primary-container/20 hover:text-primary hover:border-primary/40'}`}>
+                                                <span className="material-symbols-outlined text-[24px]">dark_mode</span>
+                                                <span className="font-bold text-[15px]">بث مسائي (6م - 12ص)</span>
+                                            </button>
+                                            <button type="button" 
+                                                onClick={() => { setForm(p => ({ ...p, target_start_time: '00:00', target_end_time: '23:59', daily_shift: '24h' })); if (calculatedCost) setCalculatedCost(null); }}
+                                                className={`px-6 py-3.5 rounded-xl border flex items-center gap-2.5 transition-all shadow-sm ${form.daily_shift === '24h' ? 'bg-primary text-white border-primary ring-2 ring-primary/20 scale-[1.02]' : 'bg-white text-on-surface-variant border-border-color hover:bg-primary-container/20 hover:text-primary hover:border-primary/40'}`}>
+                                                <span className="material-symbols-outlined text-[24px]">all_inclusive</span>
+                                                <span className="font-bold text-[15px]">على مدار 24 ساعة</span>
+                                            </button>
+                                            <button type="button" 
+                                                onClick={() => { setForm(p => ({ ...p, daily_shift: 'custom' })); if (calculatedCost) setCalculatedCost(null); }}
+                                                className={`px-6 py-3.5 rounded-xl border flex items-center gap-2.5 transition-all shadow-sm ${form.daily_shift === 'custom' ? 'bg-primary text-white border-primary ring-2 ring-primary/20 scale-[1.02]' : 'bg-white text-on-surface-variant border-border-color hover:bg-primary-container/20 hover:text-primary hover:border-primary/40'}`}>
+                                                <span className="material-symbols-outlined text-[24px]">tune</span>
+                                                <span className="font-bold text-[15px]">تحديد مخصص</span>
                                             </button>
                                         </div>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                            <div>
-                                                <label className="block font-label-md text-label-md text-on-background mb-2">يبدأ البث في الساعة</label>
-                                                <div className="relative">
-                                                    <input 
-                                                        type="time" 
-                                                        value={form.target_start_time} 
-                                                        onChange={(e) => { setForm(p => ({ ...p, target_start_time: e.target.value })); if (calculatedCost) setCalculatedCost(null); }} 
-                                                        className="w-full border border-border-color bg-white rounded-lg px-4 py-3 font-body-md focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-colors pr-10 text-left" 
-                                                        dir="ltr" 
-                                                    />
-                                                    <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">schedule</span>
+
+                                        {form.daily_shift === 'custom' && (
+                                            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="mt-6 pt-6 border-t border-border-color">
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-2xl mx-auto">
+                                                    <div>
+                                                        <label className="block font-title-sm text-title-sm text-on-background mb-3 text-right">يبدأ العرض الساعة <span className="text-error">*</span></label>
+                                                        <div className="relative">
+                                                            <input 
+                                                                type="time" 
+                                                                value={form.target_start_time} 
+                                                                onChange={(e) => { setForm(p => ({ ...p, target_start_time: e.target.value })); if (calculatedCost) setCalculatedCost(null); }} 
+                                                                className="w-full border border-border-color bg-white rounded-xl px-4 py-3 font-title-sm text-[16px] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all pr-12 text-left shadow-sm" 
+                                                                dir="ltr" 
+                                                            />
+                                                            <span className="material-symbols-outlined text-[24px] absolute right-3 top-1/2 -translate-y-1/2 text-primary pointer-events-none">schedule</span>
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <label className="block font-title-sm text-title-sm text-on-background mb-3 text-right">ينتهي العرض الساعة <span className="text-error">*</span></label>
+                                                        <div className="relative">
+                                                            <input 
+                                                                type="time" 
+                                                                value={form.target_end_time} 
+                                                                onChange={(e) => { setForm(p => ({ ...p, target_end_time: e.target.value })); if (calculatedCost) setCalculatedCost(null); }} 
+                                                                className="w-full border border-border-color bg-white rounded-xl px-4 py-3 font-title-sm text-[16px] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all pr-12 text-left shadow-sm" 
+                                                                dir="ltr" 
+                                                            />
+                                                            <span className="material-symbols-outlined text-[24px] absolute right-3 top-1/2 -translate-y-1/2 text-error pointer-events-none">schedule</span>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                            <div>
-                                                <label className="block font-label-md text-label-md text-on-background mb-2">يتوقف البث في الساعة</label>
-                                                <div className="relative">
-                                                    <input 
-                                                        type="time" 
-                                                        value={form.target_end_time} 
-                                                        onChange={(e) => { setForm(p => ({ ...p, target_end_time: e.target.value })); if (calculatedCost) setCalculatedCost(null); }} 
-                                                        className="w-full border border-border-color bg-white rounded-lg px-4 py-3 font-body-md focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-colors pr-10 text-left" 
-                                                        dir="ltr" 
-                                                    />
-                                                    <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">schedule</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <p className="font-caption text-caption text-on-surface-variant mt-4">بإمكانك حصر ساعات البث في فترات الذروة المحددة. يترك فارغاً للبث على مدار 24 ساعة.</p>
+                                            </motion.div>
+                                        )}
                                     </div>
 
                                     <div className="h-px bg-border-color w-full mb-8"></div>
@@ -644,24 +680,40 @@ const CreateAdPage = () => {
                                         )}
                                     </div>
 
-                                    {/* ── Screen Cards Grid ── */}
-                                    <div className="bg-surface-container-lowest border border-border-color rounded-xl overflow-hidden p-4">
-                                        <div className="max-h-[480px] overflow-y-auto custom-scrollbar">
-                                            {screens.length === 0 ? (
-                                                <div className="text-center py-16">
-                                                    <span className="material-symbols-outlined text-6xl text-outline-variant mb-4">desktop_windows</span>
-                                                    <p className="font-title-lg text-title-lg text-on-surface-variant mb-2">لا تتوفر شاشات في النظام</p>
-                                                    <p className="font-body-md text-body-md text-outline">يرجى إضافة شاشات جديدة من قسم إدارة الشاشات.</p>
-                                                </div>
-                                            ) : filteredScreensForAd.length === 0 ? (
-                                                <div className="text-center py-16">
-                                                    <span className="material-symbols-outlined text-5xl text-outline-variant mb-3">search_off</span>
-                                                    <p className="font-title-md text-title-md text-on-surface-variant mb-1">لا توجد شاشات مطابقة</p>
-                                                    <p className="font-body-md text-body-md text-outline">جرّب تعديل كلمة البحث أو الفلاتر الجغرافية.</p>
-                                                </div>
-                                            ) : (
-                                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 p-2">
-                                                    {filteredScreensForAd.map(screen => {
+                                    {/* ── Screens Layout (Map + Cards) ── */}
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                                        
+                                        {/* Map View */}
+                                        <div className="h-[580px] bg-surface-container-lowest border border-border-color rounded-xl overflow-hidden shadow-sm relative z-0">
+                                            <ScreenMapView
+                                                screens={screens}
+                                                selectedGov={filterGov}
+                                                selectedRegion={filterRegion}
+                                                selectedStreet={filterStreet}
+                                                governorates={govList}
+                                                regions={regionList}
+                                                streets={streetList}
+                                            />
+                                        </div>
+
+                                        {/* Screen Cards Grid */}
+                                        <div className="h-[580px] bg-surface-container-lowest border border-border-color rounded-xl overflow-hidden p-4 shadow-sm flex flex-col">
+                                            <div className="h-full overflow-y-auto custom-scrollbar">
+                                                {screens.length === 0 ? (
+                                                    <div className="text-center py-16">
+                                                        <span className="material-symbols-outlined text-6xl text-outline-variant mb-4">desktop_windows</span>
+                                                        <p className="font-title-lg text-title-lg text-on-surface-variant mb-2">لا تتوفر شاشات في النظام</p>
+                                                        <p className="font-body-md text-body-md text-outline">يرجى إضافة شاشات جديدة من قسم إدارة الشاشات.</p>
+                                                    </div>
+                                                ) : filteredScreensForAd.length === 0 ? (
+                                                    <div className="text-center py-16">
+                                                        <span className="material-symbols-outlined text-5xl text-outline-variant mb-3">search_off</span>
+                                                        <p className="font-title-md text-title-md text-on-surface-variant mb-1">لا توجد شاشات مطابقة</p>
+                                                        <p className="font-body-md text-body-md text-outline">جرّب تعديل كلمة البحث أو الفلاتر الجغرافية.</p>
+                                                    </div>
+                                                ) : (
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-2">
+                                                        {filteredScreensForAd.map(screen => {
                                                         const isSelected = selectedScreens.includes(screen.screen_id);
                                                         return (
                                                             <div key={screen.screen_id}
@@ -711,6 +763,7 @@ const CreateAdPage = () => {
                                                     })}
                                                 </div>
                                             )}
+                                            </div>
                                         </div>
                                     </div>
                                 </motion.div>
@@ -826,6 +879,18 @@ const CreateAdPage = () => {
                                                                 <span className="font-label-md text-label-md text-outline">الإجمالي النهائي المستقطب:</span>
                                                                 <span className="font-display-sm text-display-sm text-primary font-bold tracking-tighter" dir="ltr">${calculatedCost.toFixed(2)}</span>
                                                             </div>
+
+                                                            {costDetails.discount_multiplier < 1.0 && (
+                                                                <div className="mb-6 bg-green-50/50 border border-green-200 p-4 rounded-xl flex items-start gap-3">
+                                                                    <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+                                                                        <span className="material-symbols-outlined text-green-600">celebration</span>
+                                                                    </div>
+                                                                    <div>
+                                                                        <h4 className="font-label-md text-label-md font-bold text-green-800 mb-1">مكافأة المدة الطويلة!</h4>
+                                                                        <p className="font-caption text-caption text-green-700">لقد تم تطبيق <strong>{costDetails.discount_label}</strong> على هذه التسعيرة بنجاح لإختيارك التعاقد معنا لمدة طويلة.</p>
+                                                                    </div>
+                                                                </div>
+                                                            )}
 
                                                             <div className="grid grid-cols-3 gap-3 mb-6">
                                                                 <div className="bg-surface-container-lowest rounded-xl p-3 text-center border border-border-color">
