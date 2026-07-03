@@ -3,12 +3,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import axiosClient from '../../core/api/axiosClient';
 import { ENDPOINTS } from '../../core/api/endpoints';
 import ConfirmDialog from '../../shared/components/ConfirmDialog';
+import Modal from '../../shared/components/Modal';
 import useToastStore from '../../store/useToastStore';
 import usePermission, { ROLES } from '../../hooks/usePermission';
 import SessionKpiCards from './components/SessionKpiCards';
 import SessionsTable from './components/SessionsTable';
 import DynamicPageLoader from '../../shared/components/DynamicPageLoader';
 import { guessDeviceType, DeviceIcon, formatDateTime, timeAgo } from './components/SessionsTable';
+import BlocklistTable from './components/BlocklistTable';
+import BlockDeviceModal from './components/BlockDeviceModal';
 
 /* ─── Animation Variants ─── */
 const containerVariants = {
@@ -200,6 +203,11 @@ const SessionsPage = () => {
     const [error, setError]               = useState(false);
     const [revoking, setRevoking]         = useState(false);
     const [revokeTarget, setRevokeTarget] = useState(null); // { session?, type: 'single'|'others' }
+    const [viewTarget, setViewTarget]     = useState(null);
+    const [blockTarget, setBlockTarget]   = useState(null);
+    const [unblockTarget, setUnblockTarget] = useState(null);
+    const [activeTab, setActiveTab]       = useState('sessions');
+    const [blockedList, setBlockedList]   = useState([]);
 
     const addToast     = useToastStore(state => state.addToast);
     const { roleName } = usePermission();
@@ -257,6 +265,36 @@ const SessionsPage = () => {
             setRevoking(false);
             setRevokeTarget(null);
         }
+    };
+
+    /* ── Block confirm ── */
+    const handleBlockConfirm = async (reason) => {
+        if (!blockTarget) return;
+        try {
+            // Add to mocked blocked list for UI demonstration
+            setBlockedList(prev => [...prev, {
+                id: blockTarget.id || Date.now(),
+                device_name: blockTarget.device_name,
+                ip_address: blockTarget.ip_address || '192.168.1.1',
+                reason: reason,
+                blocked_at: new Date().toISOString()
+            }]);
+            // Remove from current sessions to reflect UI change
+            setSessions(prev => prev.filter(s => s.id !== blockTarget.id));
+            
+            addToast(`تم حظر الجهاز (${blockTarget.device_name || 'الغير معروف'}) وعنوان الـ IP بنجاح`, 'success');
+        } catch (err) {
+            addToast('فشل حظر الجهاز', 'error');
+        } finally {
+            setBlockTarget(null);
+        }
+    };
+
+    const handleUnblockConfirm = () => {
+        if (!unblockTarget) return;
+        setBlockedList(prev => prev.filter(b => b.id !== unblockTarget.id));
+        addToast('تم فك الحظر بنجاح', 'success');
+        setUnblockTarget(null);
     };
 
     /* ── Derived ── */
@@ -347,7 +385,44 @@ const SessionsPage = () => {
                 <PageErrorState onRetry={() => fetchSessions(false)} />
             ) : (
                 <>
-                    {/* ── KPI Cards ── */}
+                    {/* ── Tabs ── */}
+                    <div className="flex items-center gap-4 border-b border-outline-variant pb-px mb-6">
+                        <button 
+                            onClick={() => setActiveTab('sessions')}
+                            className={`pb-3 px-2 font-bold text-sm transition-all border-b-2 flex items-center gap-2 ${activeTab === 'sessions' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface'}`}
+                        >
+                            <span className="material-symbols-outlined text-[18px]">devices</span>
+                            الجلسات النشطة
+                            <span className="bg-surface-container-high text-xs px-2 py-0.5 rounded-full">
+                                {sessions.length}
+                            </span>
+                        </button>
+                        <button 
+                            onClick={() => setActiveTab('blocklist')}
+                            className={`pb-3 px-2 font-bold text-sm transition-all border-b-2 flex items-center gap-2 ${activeTab === 'blocklist' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface'}`}
+                        >
+                            <span className="material-symbols-outlined text-[18px]">block</span>
+                            قائمة الحظر
+                            {blockedList.length > 0 && (
+                                <span className="bg-error/10 text-error text-xs px-2 py-0.5 rounded-full">
+                                    {blockedList.length}
+                                </span>
+                            )}
+                        </button>
+                    </div>
+
+                    {activeTab === 'blocklist' && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                        >
+                            <BlocklistTable blockedItems={blockedList} onUnblock={setUnblockTarget} />
+                        </motion.div>
+                    )}
+
+                    {activeTab === 'sessions' && (
+                        <>
+                            {/* ── KPI Cards ── */}
                     <SessionKpiCards sessions={sessions} loading={false} />
 
                     {/* ── Security Banner (other sessions present) ── */}
@@ -388,6 +463,8 @@ const SessionsPage = () => {
                             error={false}          /* error handled at page level */
                             isSuperAdmin={isSuperAdmin}
                             onRevoke={(sess) => setRevokeTarget({ session: sess, type: 'single' })}
+                            onViewDetails={(sess) => setViewTarget(sess)}
+                            onBlockDevice={(sess) => setBlockTarget(sess)}
                             onRetry={() => fetchSessions(false)}
                         />
                     </div>
@@ -450,10 +527,23 @@ const SessionsPage = () => {
                             </motion.div>
                         )}
                     </div>
+                        </>
+                    )}
                 </>
             )}
 
-            {/* ── Confirmation Dialog ── */}
+            {/* ── Unblock Device Confirmation Dialog ── */}
+            <ConfirmDialog
+                isOpen={!!unblockTarget}
+                onClose={() => setUnblockTarget(null)}
+                onConfirm={handleUnblockConfirm}
+                title="تأكيد فك الحظر"
+                message={`هل أنت متأكد من فك الحظر عن هذا الجهاز (${unblockTarget?.device_name || 'الغير معروف'})؟ سيتمكن من الوصول للنظام مجدداً.`}
+                confirmText="نعم، فك الحظر"
+                variant="primary"
+            />
+
+            {/* ── Revoke Confirmation Dialog ── */}
             <ConfirmDialog
                 isOpen={!!revokeTarget}
                 onClose={() => !revoking && setRevokeTarget(null)}
@@ -463,6 +553,80 @@ const SessionsPage = () => {
                 confirmText={dialogConfirmText}
                 variant="danger"
             />
+
+            {/* ── Block Device Modal (With Reason) ── */}
+            <BlockDeviceModal
+                isOpen={!!blockTarget}
+                onClose={() => setBlockTarget(null)}
+                onConfirm={handleBlockConfirm}
+                deviceName={blockTarget?.device_name}
+                ipAddress={blockTarget?.ip_address}
+            />
+
+            {/* ── View Details Modal ── */}
+            <Modal isOpen={!!viewTarget} onClose={() => setViewTarget(null)} title="التفاصيل الأمنية للجلسة">
+                {viewTarget && (
+                    <div className="flex flex-col pt-2" dir="rtl">
+                        <div className="flex items-center gap-4 mb-6 p-4 bg-surface-container-low rounded-2xl border border-outline-variant shadow-sm">
+                            <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0 border border-primary/20">
+                                <DeviceIcon deviceName={viewTarget.device_name} className="text-3xl" />
+                            </div>
+                            <div>
+                                <h4 className="font-bold text-on-surface text-lg mb-1">{viewTarget.device_name || 'جهاز غير معروف'}</h4>
+                                <p className="text-sm text-on-surface-variant font-mono bg-surface-container rounded px-2 py-0.5 inline-block" dir="ltr">
+                                    IP: {viewTarget.ip_address || '192.168.1.1 (افتراضي)'}
+                                </p>
+                            </div>
+                        </div>
+                        <div className="space-y-4">
+                            <div className="flex justify-between items-center border-b border-outline-variant/50 pb-3">
+                                <span className="text-sm text-on-surface-variant flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-[18px]">public</span> 
+                                    نظام التشغيل والمتصفح:
+                                </span>
+                                <span className="text-xs font-medium text-on-surface font-mono max-w-[200px] truncate" title={viewTarget.user_agent}>
+                                    {viewTarget.user_agent || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+                                </span>
+                            </div>
+                            <div className="flex justify-between items-center border-b border-outline-variant/50 pb-3">
+                                <span className="text-sm text-on-surface-variant flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-[18px]">login</span>
+                                    أول تسجيل دخول:
+                                </span>
+                                <span className="text-sm font-medium text-on-surface">{formatDateTime(viewTarget.created_at)}</span>
+                            </div>
+                            <div className="flex justify-between items-center border-b border-outline-variant/50 pb-3">
+                                <span className="text-sm text-on-surface-variant flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-[18px]">update</span>
+                                    آخر نشاط التقط:
+                                </span>
+                                <span className="text-sm font-medium text-on-surface">{viewTarget.last_used_at ? formatDateTime(viewTarget.last_used_at) : '—'}</span>
+                            </div>
+                            <div className="flex justify-between items-center pt-2">
+                                <span className="text-sm text-on-surface-variant flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-[18px]">policy</span>
+                                    حالة الجلسة:
+                                </span>
+                                {viewTarget.is_current ? (
+                                    <span className="text-xs font-bold text-emerald-700 bg-emerald-100 border border-emerald-200 px-3 py-1 rounded-full shadow-sm">
+                                        الحالية ومستقرة
+                                    </span>
+                                ) : (
+                                    <span className="text-xs font-bold text-orange-700 bg-orange-100 border border-orange-200 px-3 py-1 rounded-full shadow-sm">
+                                        تعمل بالخلفية متصلة
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                        <button 
+                            onClick={() => setViewTarget(null)} 
+                            className="mt-8 mb-2 w-full bg-surface-container text-on-surface py-3 rounded-xl font-bold text-sm hover:bg-outline-variant hover:text-surface-container-lowest transition-all"
+                        >
+                            إغلاق النافذة
+                        </button>
+                    </div>
+                )}
+            </Modal>
         </div>
     );
 };

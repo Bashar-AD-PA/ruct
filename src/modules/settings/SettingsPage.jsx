@@ -1,53 +1,70 @@
 import React, { useState } from 'react';
 import useAuthStore from '../../store/useAuthStore';
+import useToastStore from '../../store/useToastStore';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const SettingsPage = () => {
     const { user } = useAuthStore();
+    const addToast = useToastStore(state => state.addToast);
+
     const [emailNotif, setEmailNotif] = useState(true);
     const [systemNotif, setSystemNotif] = useState(true);
 
-    /* ── Field rows for personal info table ── */
-    const infoRows = [
-        {
-            id: 'full_name',
-            icon: 'person',
-            iconBg: 'bg-primary/10',
-            iconColor: 'text-primary',
-            label: 'الاسم الكامل',
-            value: user?.full_name || '—',
-            dir: 'rtl',
-        },
-        {
-            id: 'email',
-            icon: 'mail',
-            iconBg: 'bg-secondary/10',
-            iconColor: 'text-secondary',
-            label: 'البريد الإلكتروني',
-            value: user?.email || '—',
-            dir: 'ltr',
-        },
-        {
-            id: 'phone',
-            icon: 'call',
-            iconBg: 'bg-secondary/10',
-            iconColor: 'text-secondary',
-            label: 'رقم الهاتف',
-            value: user?.phone || '—',
-            dir: 'ltr',
-        },
-        {
-            id: 'role',
-            icon: 'admin_panel_settings',
-            iconBg: 'bg-primary/10',
-            iconColor: 'text-primary',
-            label: 'الصلاحية الإدارية',
-            value: user?.role?.role_name || '—',
-            dir: 'ltr',
-            highlight: true,
-        },
-    ];
+    // Profile States
+    const [formData, setFormData] = useState({
+        full_name: user?.full_name || 'مدير النظام المتقدم',
+        email: user?.email || 'admin@digitalsignage.com',
+        phone: user?.phone || '+967 777 123 456',
+    });
 
-    /* ── Notification rows ── */
+    const [originalData] = useState({ ...formData });
+
+    // UI States for verification
+    const [emailPending, setEmailPending] = useState(false);
+    const [phoneVerified, setPhoneVerified] = useState(false);
+
+    const isEmailChanged = formData.email !== originalData.email;
+    const isPhoneChanged = formData.phone !== originalData.phone;
+    const isNameChanged = formData.full_name !== originalData.full_name;
+    const isDirty = isEmailChanged || isPhoneChanged || isNameChanged;
+
+    const handleChange = (e) => {
+        setFormData({ ...formData, [e.target.name]: e.target.value });
+        if (e.target.name === 'email') setEmailPending(false);
+        if (e.target.name === 'phone') setPhoneVerified(false);
+    };
+
+    const handleRequestEmailVerification = () => {
+        addToast('تم إرسال رابط التفعيل للبريد الجديد. يرجى التحقق من صندوق الوارد.', 'primary');
+        setEmailPending(true);
+    };
+
+    const handleRequestPhoneVerification = () => {
+        // Mocking the OTP process
+        addToast('تم إرسال رمز OTP المكون من 6 أرقام إلى هاتفك.', 'primary');
+        setTimeout(() => {
+            setPhoneVerified(true);
+            addToast('تم تأكيد الرقم بنجاح (محاكاة)', 'success');
+        }, 1500);
+    };
+
+    const handleSaveProfile = () => {
+        if (!isDirty) return;
+        
+        // Security logic check before saving
+        if (isEmailChanged && !emailPending) {
+            addToast('عذراً، يجب إرسال رابط تأكيد للبريد الإلكتروني الجديد أولاً.', 'error');
+            return;
+        }
+        if (isPhoneChanged && !phoneVerified) {
+            addToast('عذراً، يجب تأكيد رقم الهاتف الجديد عبر رسالة (OTP) أولاً.', 'error');
+            return;
+        }
+
+        addToast('تم حفظ الملف الشخصي وتحديث بياناتك بنجاح!', 'success');
+        // Usually, here you update the global state or local original states
+    };
+
     const notifRows = [
         {
             id: 'email_notif',
@@ -55,9 +72,9 @@ const SettingsPage = () => {
             iconBg: 'bg-secondary/10',
             iconColor: 'text-secondary',
             label: 'إشعارات البريد الإلكتروني',
-            description: 'تلقي تحديثات أسبوعية حول أداء الإعلانات وحالة الحساب المالي.',
+            description: 'تلقي تقارير أمنية وإحصائيات أسبوعية حول نشاط النظام مباشرة لبريدك.',
             value: emailNotif,
-            onChange: () => setEmailNotif(p => !p),
+            onChange: () => setEmailNotif(!emailNotif),
         },
         {
             id: 'system_notif',
@@ -65,187 +82,274 @@ const SettingsPage = () => {
             iconBg: 'bg-primary/10',
             iconColor: 'text-primary',
             label: 'إشعارات النظام التفاعلية',
-            description: 'تنبيهات فورية متعلقة بالموافقات على الحملات والفواتير المصدرة.',
+            description: 'تنبيهات فورية تظهر داخل النظام عند حدوث أي حظر أمني أو عمليات مالية.',
             value: systemNotif,
-            onChange: () => setSystemNotif(p => !p),
+            onChange: () => setSystemNotif(!systemNotif),
         },
     ];
 
     return (
-        <div className="space-y-4 pb-8" dir="rtl">
+        <div className="space-y-6 pb-8 font-sans w-full max-w-5xl mx-auto" dir="rtl">
 
             {/* ══════════════════════════════════════
                 Page Header
             ══════════════════════════════════════ */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 py-2 mb-1">
-                <div className="flex flex-col">
-                    <h1 className="text-xl font-bold text-on-surface mb-0.5 flex items-center gap-2">
-                        إعدادات الحساب
-                        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-                            <span className="material-symbols-outlined text-base">settings</span>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-2">
+                <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-white shadow-lg shadow-primary/20">
+                        <span className="material-symbols-outlined text-[26px]">manage_accounts</span>
+                    </div>
+                    <div>
+                        <h1 className="text-2xl font-black text-on-surface mb-0.5 tracking-tight">
+                            الإعدادات الشخصية
+                        </h1>
+                        <p className="text-sm font-medium text-on-surface-variant">
+                            إدارة هويتك الرقمية، تخصيص الإشعارات، والتحكم بمفاتيح الأمان.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            {/* ══════════════════════════════════════
+                Section 1: Profile Editing (Global Standard)
+            ══════════════════════════════════════ */}
+            <div className="bg-surface-container-lowest rounded-3xl border border-outline-variant shadow-sm overflow-hidden mt-6 relative">
+                {/* Decorative Background Glow */}
+                <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-primary/5 rounded-full blur-[100px] -z-10 pointer-events-none" />
+
+                <div className="p-6 border-b border-outline-variant/60 flex items-center justify-between bg-surface-container-lowest">
+                    <div className="flex items-center gap-3">
+                        <span className="material-symbols-outlined text-2xl text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>person</span>
+                        <h3 className="text-lg font-extrabold text-on-surface tracking-tight">الهوية والمصادقة الأمنية</h3>
+                    </div>
+                    {isDirty && (
+                        <span className="text-xs font-bold text-orange-600 bg-orange-100 flex items-center gap-1.5 px-3 py-1.5 rounded-full animate-pulse border border-orange-200">
+                            <span className="w-1.5 h-1.5 rounded-full bg-orange-500" />
+                            يوجد تغييرات غير محفوظة!
+                        </span>
+                    )}
+                </div>
+
+                <div className="p-6 md:p-8 space-y-8 relative z-10">
+                    
+                    {/* Full Name */}
+                    <div className="flex flex-col md:flex-row md:items-start gap-4 border-b border-outline-variant/40 pb-8">
+                        <div className="md:w-1/3">
+                            <label className="text-[15px] font-bold text-on-surface flex items-center gap-2">
+                                <span className="material-symbols-outlined text-xl text-on-surface-variant">badge</span>
+                                الإسم الكامل
+                            </label>
+                            <p className="text-xs text-on-surface-variant mt-1.5 leading-relaxed font-medium">
+                                سيظهر هذا الاسم لباقي الموظفين والعملاء في النظام (يمكن تعديله فوراً).
+                            </p>
                         </div>
-                    </h1>
-                    <p className="text-sm text-on-surface-variant">
-                        إدارة ملفك الشخصي وتخصيص تفضيلات الإشعارات والأمان.
-                    </p>
-                </div>
-            </div>
+                        <div className="md:w-2/3">
+                            <input
+                                type="text"
+                                name="full_name"
+                                value={formData.full_name}
+                                onChange={handleChange}
+                                className="w-full bg-surface-container border border-outline-variant rounded-xl p-3.5 text-[15px] font-bold text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all shadow-inner"
+                            />
+                        </div>
+                    </div>
 
-            {/* ══════════════════════════════════════
-                Section 1: Personal Information Table
-            ══════════════════════════════════════ */}
-            <div className="bg-surface rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
-                {/* Table Header */}
-                <div className="p-4 border-b border-outline-variant flex items-center gap-2 bg-surface">
-                    <span className="material-symbols-outlined text-lg text-primary">person</span>
-                    <h3 className="text-base font-semibold text-on-surface">المعلومات الشخصية</h3>
-                    <span className="mr-auto text-xs text-on-surface-variant bg-surface-container-low px-2.5 py-1 rounded-full border border-outline-variant">
-                        للقراءة فقط
-                    </span>
-                </div>
-
-                {/* Table */}
-                <div className="overflow-x-auto">
-                    <table className="w-full text-right border-collapse">
-                        <thead className="bg-surface-container-low border-b border-outline-variant">
-                            <tr>
-                                <th className="py-3 px-5 text-xs text-on-surface-variant font-medium whitespace-nowrap">الحقل</th>
-                                <th className="py-3 px-5 text-xs text-on-surface-variant font-medium whitespace-nowrap">القيمة</th>
-                                <th className="py-3 px-5 text-xs text-on-surface-variant font-medium whitespace-nowrap text-left">الحالة</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-outline-variant text-sm">
-                            {infoRows.map((row) => (
-                                <tr key={row.id} className="hover:bg-surface-container-lowest transition-colors">
-                                    {/* Field label + icon */}
-                                    <td className="py-3 px-5">
-                                        <div className="flex items-center gap-2.5">
-                                            <div className={`w-8 h-8 rounded-full ${row.iconBg} ${row.iconColor} flex items-center justify-center flex-shrink-0`}>
-                                                <span className="material-symbols-outlined text-[16px]">{row.icon}</span>
-                                            </div>
-                                            <span className="font-medium text-on-surface-variant">{row.label}</span>
-                                        </div>
-                                    </td>
-
-                                    {/* Value */}
-                                    <td className="py-3 px-5">
-                                        {row.highlight ? (
-                                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold border border-primary/20">
-                                                <span className="material-symbols-outlined text-[13px]">verified_user</span>
-                                                {row.value}
-                                            </span>
-                                        ) : (
-                                            <span
-                                                className="font-medium text-on-surface"
-                                                style={{ direction: row.dir, display: 'inline-block' }}
-                                            >
-                                                {row.value}
-                                            </span>
-                                        )}
-                                    </td>
-
-                                    {/* Status badge */}
-                                    <td className="py-3 px-5 text-left">
-                                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-surface-container text-on-surface-variant text-xs border border-outline-variant">
-                                            <span className="material-symbols-outlined text-[12px]">lock</span>
-                                            مقفل
-                                        </span>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-
-                {/* Locked Notice inside the card */}
-                <div className="border-t border-outline-variant bg-error-container/40 px-5 py-3 flex items-start gap-3">
-                    <span className="material-symbols-outlined text-base text-error mt-0.5">info</span>
-                    <p className="text-xs text-on-error-container/80 leading-relaxed">
-                        <span className="font-bold">تعديل الملف الشخصي مقفل حالياً — </span>
-                        حسابك مرتبط بالنظام الإداري المركزي ولا يمكن تعديله يدوياً لأغراض أمنية. للتغيير يرجى التواصل مع الدعم الفني.
-                    </p>
-                </div>
-            </div>
-
-            {/* ══════════════════════════════════════
-                Section 2: Notification Preferences Table
-            ══════════════════════════════════════ */}
-            <div className="bg-surface rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
-                {/* Table Header */}
-                <div className="p-4 border-b border-outline-variant flex items-center gap-2 bg-surface">
-                    <span className="material-symbols-outlined text-lg text-primary">notifications_active</span>
-                    <h3 className="text-base font-semibold text-on-surface">تفضيلات الإشعارات</h3>
-                </div>
-
-                {/* Table */}
-                <div className="overflow-x-auto">
-                    <table className="w-full text-right border-collapse">
-                        <thead className="bg-surface-container-low border-b border-outline-variant">
-                            <tr>
-                                <th className="py-3 px-5 text-xs text-on-surface-variant font-medium whitespace-nowrap">نوع الإشعار</th>
-                                <th className="py-3 px-5 text-xs text-on-surface-variant font-medium whitespace-nowrap hidden md:table-cell">الوصف</th>
-                                <th className="py-3 px-5 text-xs text-on-surface-variant font-medium whitespace-nowrap text-left">تفعيل</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-outline-variant text-sm">
-                            {notifRows.map((row) => (
-                                <tr key={row.id} className="hover:bg-surface-container-lowest transition-colors">
-                                    {/* Label + icon */}
-                                    <td className="py-3 px-5">
-                                        <div className="flex items-center gap-2.5">
-                                            <div className={`w-8 h-8 rounded-full ${row.iconBg} ${row.iconColor} flex items-center justify-center flex-shrink-0`}>
-                                                <span className="material-symbols-outlined text-[16px]">{row.icon}</span>
-                                            </div>
-                                            <span className="font-medium text-on-surface">{row.label}</span>
-                                        </div>
-                                    </td>
-
-                                    {/* Description */}
-                                    <td className="py-3 px-5 text-on-surface-variant text-xs hidden md:table-cell max-w-xs">
-                                        {row.description}
-                                    </td>
-
-                                    {/* Toggle */}
-                                    <td className="py-3 px-5 text-left">
-                                        <button
-                                            type="button"
-                                            onClick={row.onChange}
-                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
-                                                row.value ? 'bg-primary' : 'bg-outline-variant'
-                                            }`}
-                                            role="switch"
-                                            aria-checked={row.value}
+                    {/* Phone Number */}
+                    <div className="flex flex-col md:flex-row md:items-start gap-4 border-b border-outline-variant/40 pb-8">
+                        <div className="md:w-1/3">
+                            <label className="text-[15px] font-bold text-on-surface flex items-center gap-2">
+                                <span className="material-symbols-outlined text-xl text-on-surface-variant">phone_iphone</span>
+                                رقم الهاتف
+                            </label>
+                            <p className="text-xs text-on-surface-variant mt-1.5 leading-relaxed font-medium">
+                                يستخدم لإرسال إشعارات وتأكيدات (OTP) الهامة.
+                            </p>
+                        </div>
+                        <div className="md:w-2/3">
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    name="phone"
+                                    dir="ltr"
+                                    value={formData.phone}
+                                    onChange={handleChange}
+                                    className={`w-full bg-surface-container border rounded-xl p-3.5 text-[15px] font-mono font-bold focus:outline-none transition-all shadow-inner pr-32 ${
+                                        isPhoneChanged && !phoneVerified 
+                                            ? 'border-orange-400 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 text-orange-700' 
+                                            : phoneVerified
+                                                ? 'border-emerald-400 text-emerald-700'
+                                                : 'border-outline-variant text-on-surface focus:border-primary focus:ring-1 focus:ring-primary'
+                                    }`}
+                                />
+                                <AnimatePresence>
+                                    {isPhoneChanged && !phoneVerified && (
+                                        <motion.button
+                                            initial={{ opacity: 0, scale: 0.9 }}
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            exit={{ opacity: 0, scale: 0.9 }}
+                                            onClick={handleRequestPhoneVerification}
+                                            className="absolute right-2 top-2 bottom-2 bg-gradient-to-r from-orange-500 to-orange-400 hover:from-orange-600 hover:to-orange-500 text-white text-xs font-bold px-4 rounded-lg shadow-sm transition-all flex items-center gap-1.5"
                                         >
-                                            <span
-                                                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${
-                                                    row.value ? 'translate-x-1' : 'translate-x-6'
-                                                }`}
-                                            />
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                                            <span className="material-symbols-outlined text-[16px]">sms</span>
+                                            جلب رمز التأكيد
+                                        </motion.button>
+                                    )}
+                                    {phoneVerified && isPhoneChanged && (
+                                        <motion.div
+                                            initial={{ opacity: 0, scale: 0.9 }}
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            className="absolute right-3 top-0 bottom-0 flex items-center text-emerald-600 text-xs font-bold gap-1.5"
+                                        >
+                                            <span className="material-symbols-outlined text-[18px]">verified</span>
+                                            تم التحقق من الرقم الجديد
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Email */}
+                    <div className="flex flex-col md:flex-row md:items-start gap-4">
+                        <div className="md:w-1/3">
+                            <label className="text-[15px] font-bold text-on-surface flex items-center gap-2">
+                                <span className="material-symbols-outlined text-xl text-on-surface-variant">mail</span>
+                                البريد الإلكتروني
+                            </label>
+                            <p className="text-xs text-on-surface-variant mt-1.5 leading-relaxed font-medium">
+                                المعرف الأساسي لحسابك. يتطلب تغييره التحقق عبر الايميل الجديد لضمان الأمان العالي.
+                            </p>
+                        </div>
+                        <div className="md:w-2/3">
+                            <div className="relative">
+                                <input
+                                    type="email"
+                                    name="email"
+                                    dir="ltr"
+                                    value={formData.email}
+                                    onChange={handleChange}
+                                    className={`w-full bg-surface-container border rounded-xl p-3.5 text-[15px] font-mono leading-none font-bold focus:outline-none transition-all shadow-inner pr-44 ${
+                                        isEmailChanged 
+                                            ? 'border-error/60 focus:border-error focus:ring-1 focus:ring-error text-error/90 bg-error/5' 
+                                            : 'border-outline-variant text-on-surface focus:border-primary focus:ring-1 focus:ring-primary'
+                                    }`}
+                                />
+                                <AnimatePresence>
+                                    {isEmailChanged && (
+                                        <motion.button
+                                            initial={{ opacity: 0, scale: 0.9 }}
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            exit={{ opacity: 0, scale: 0.9 }}
+                                            onClick={handleRequestEmailVerification}
+                                            disabled={emailPending}
+                                            className={`absolute right-2 top-2 bottom-2 text-white text-xs font-bold px-4 rounded-lg shadow-sm transition-all flex items-center gap-1.5 ${
+                                                emailPending 
+                                                    ? 'bg-emerald-500 hover:bg-emerald-600' 
+                                                    : 'bg-gradient-to-r from-error to-error/80 hover:from-error/90 hover:to-error hover:shadow-error/20'
+                                            }`}
+                                        >
+                                            <span className="material-symbols-outlined text-[16px]">
+                                                {emailPending ? 'mark_email_read' : 'outgoing_mail'}
+                                            </span>
+                                            {emailPending ? 'تم الإرسال.. (بانتظار التأكيد)' : 'إرسال رابط التفعيل'}
+                                        </motion.button>
+                                    )}
+                                </AnimatePresence>
+                            </div>
+                            
+                            {/* Email Hint Alert */}
+                            <AnimatePresence>
+                                {isEmailChanged && !emailPending && (
+                                    <motion.div 
+                                        initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }}
+                                        className="bg-error/10 border border-error/20 rounded-lg p-3 mt-3 flex items-start gap-2.5"
+                                    >
+                                        <span className="material-symbols-outlined text-error text-[18px] mt-0.5" style={{ fontVariationSettings: "'FILL' 1" }}>error</span>
+                                        <p className="text-xs font-bold text-error leading-relaxed">
+                                            إجراء أمني: سيبقى إيميلك القديم يعمل حتى تقوم بالضغط على الرابط الذي سنُرسله للإيميل التابع للحقل أعلاه.
+                                        </p>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
+                    </div>
                 </div>
             </div>
 
             {/* ══════════════════════════════════════
-                Save Bar
+                Section 2: Notification Preferences
             ══════════════════════════════════════ */}
-            <div className="bg-surface rounded-xl border border-outline-variant shadow-sm p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-                <p className="text-xs text-on-surface-variant">
-                    آخر تعديل على الإعدادات منذ وقت قريب.
-                </p>
-                <button
-                    type="button"
-                    className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-on-primary text-sm font-semibold py-2.5 px-6 rounded-lg shadow-sm transition-all active:scale-95"
-                >
-                    <span className="material-symbols-outlined text-base">save</span>
-                    حفظ التفضيلات
-                </button>
+            <div className="bg-surface-container-lowest rounded-3xl border border-outline-variant shadow-sm overflow-hidden">
+                <div className="p-6 border-b border-outline-variant/60 flex items-center gap-3 bg-surface-container-lowest">
+                    <span className="material-symbols-outlined text-2xl text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>notifications_active</span>
+                    <h3 className="text-lg font-extrabold text-on-surface tracking-tight">تخصيص الإشعارات</h3>
+                </div>
+
+                <div className="divide-y divide-outline-variant/40">
+                    {notifRows.map((row) => (
+                        <div key={row.id} className="p-6 flex items-center justify-between hover:bg-surface-container-lowest/50 transition-colors">
+                            <div className="flex items-center gap-4">
+                                <div className={`w-12 h-12 rounded-xl ${row.iconBg} ${row.iconColor} flex items-center justify-center flex-shrink-0 shadow-sm border border-outline-variant/30`}>
+                                    <span className="material-symbols-outlined text-[22px]">{row.icon}</span>
+                                </div>
+                                <div className="max-w-lg">
+                                    <h4 className="font-bold text-[15px] text-on-surface mb-1">{row.label}</h4>
+                                    <p className="text-xs text-on-surface-variant font-medium leading-relaxed">{row.description}</p>
+                                </div>
+                            </div>
+
+                            <button
+                                type="button"
+                                onClick={row.onChange}
+                                className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors duration-300 focus:outline-none shadow-inner shrink-0 ${
+                                    row.value ? 'bg-primary' : 'bg-surface-container-highest border border-outline-variant border-transparent'
+                                }`}
+                            >
+                                <span
+                                    className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform duration-300 ${
+                                        row.value ? 'translate-x-1' : 'translate-x-6'
+                                    }`}
+                                />
+                            </button>
+                        </div>
+                    ))}
+                </div>
             </div>
 
+            {/* ══════════════════════════════════════
+                Action / Save Bar
+            ══════════════════════════════════════ */}
+            <div className="sticky bottom-6 bg-surface/80 backdrop-blur-xl rounded-2xl border border-outline-variant shadow-lg shadow-black/5 p-4 flex flex-col sm:flex-row items-center justify-between gap-4 z-40">
+                <div className="flex items-center gap-3 text-sm text-on-surface-variant px-2">
+                    <span className="material-symbols-outlined text-emerald-500 animate-pulse">verified_user</span>
+                    <span className="font-medium">بياناتك مشفرة ومؤمنة بالكامل على خوادم النظام.</span>
+                </div>
+                
+                <div className="flex gap-3 w-full sm:w-auto">
+                    {isDirty && (
+                        <button
+                            type="button"
+                            onClick={() => setFormData({ ...originalData })}
+                            className="flex-[1] sm:w-auto px-5 py-3 rounded-xl font-bold text-sm bg-surface-container hover:bg-outline-variant/60 text-on-surface-variant transition-colors"
+                        >
+                            تراجع
+                        </button>
+                    )}
+                    <button
+                        type="button"
+                        disabled={!isDirty}
+                        onClick={handleSaveProfile}
+                        className={`flex-[2] sm:w-auto inline-flex items-center justify-center gap-2 text-[15px] font-bold py-3 px-8 rounded-xl shadow-lg transition-all active:scale-95 ${
+                            isDirty 
+                                ? 'bg-gradient-to-l from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-white shadow-primary/20' 
+                                : 'bg-surface-container text-on-surface-variant opacity-60 cursor-not-allowed'
+                        }`}
+                    >
+                        <span className="material-symbols-outlined text-[20px]">save</span>
+                        {isDirty ? 'تحديث الإعدادات' : 'لم يتم تعديل شيء'}
+                    </button>
+                </div>
+            </div>
         </div>
     );
 };

@@ -124,10 +124,10 @@ const FrequencyPackagesPage = () => {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 py-4 mb-2">
                 <div className="flex flex-col">
                     <h1 className="font-headline-lg text-headline-lg font-bold text-on-surface mb-1 flex items-center gap-3">
-                        باقات التكرار
                         <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
                             <span className="material-symbols-outlined text-xl">replay</span>
                         </div>
+                        باقات التكرار
                     </h1>
                     <p className="text-on-surface-variant font-body-md text-body-md">إدارة معدل تكرار ظهور الإعلانات ومضاعفات أسعارها.</p>
                 </div>

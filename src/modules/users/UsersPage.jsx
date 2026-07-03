@@ -31,6 +31,7 @@ const UsersPage = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 8;
+    const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
 
     const [form, setForm] = useState({
         full_name: '',
@@ -77,6 +78,27 @@ const UsersPage = () => {
         }
     };
 
+    const handleRowClick = (e, item) => {
+        if (e.detail === 3) {
+            handleOpenModal('details', item);
+        }
+    };
+
+    const handleToggleStatus = async (e, item) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const newStatus = (item.account_status === 'Active' || !item.account_status) ? 'Suspended' : 'Active';
+        try {
+            await axiosClient.put(ENDPOINTS.USERS.UPDATE_STATUS(item.user_id), {
+                account_status: newStatus
+            });
+            setUsers(prev => prev.map(u => u.user_id === item.user_id ? { ...u, account_status: newStatus } : u));
+            addToast(`تم ${newStatus === 'Active' ? 'تفعيل' : 'إيقاف'} الحساب بنجاح`, 'success');
+        } catch (error) {
+            addToast(error.response?.data?.message || 'واجه النظام مشكلة أثناء المعالجة', 'error');
+        }
+    };
+
     const handleOpenModal = (type, user = null) => {
         if (type === 'edit-role') {
             setForm({
@@ -85,6 +107,19 @@ const UsersPage = () => {
                 account_name: '',
                 account_number: ''
             });
+        } else if (type === 'edit') {
+            setForm({
+                full_name: user.full_name || '',
+                email: user.email || '',
+                phone: user.phone || '',
+                password: '', // Leave blank to not change password
+                role_id: user.role_id || user.role?.role_id || '',
+                location: user.location || '',
+                bank_name: user.bank_name || '',
+                account_name: user.account_name || '',
+                account_number: user.account_number || ''
+            });
+            setShowPassword(false);
         } else {
             setForm({
                 full_name: '',
@@ -109,6 +144,9 @@ const UsersPage = () => {
             if (modalConfig.type === 'add') {
                 await axiosClient.post(ENDPOINTS.USERS.ALL, form);
                 addToast('تم تنشيط الحساب الجديد بنجاح', 'success');
+            } else if (modalConfig.type === 'edit') {
+                await axiosClient.put(ENDPOINTS.USERS.UPDATE(modalConfig.user.user_id), form);
+                addToast('تم تعديل بيانات الحساب بنجاح', 'success');
             } else if (modalConfig.type === 'edit-role') {
                 await axiosClient.put(ENDPOINTS.USERS.UPDATE_ROLE(modalConfig.user.user_id), {
                     role_id: form.role_id,
@@ -138,7 +176,32 @@ const UsersPage = () => {
         owner: users.filter(u => u.role?.role_name === 'ScreenOwner').length,
     };
 
-    const filteredUsers = users.filter(u => 
+    const handleSort = (key) => {
+        let direction = 'asc';
+        if (sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
+    };
+
+    const sortedUsers = React.useMemo(() => {
+        let sortableUsers = [...users];
+        if (sortConfig.key !== null) {
+            sortableUsers.sort((a, b) => {
+                const getVal = (obj, path) => path.split('.').reduce((acc, part) => acc && acc[part], obj);
+                let aValue = getVal(a, sortConfig.key) || '';
+                let bValue = getVal(b, sortConfig.key) || '';
+                if (typeof aValue === 'string') aValue = aValue.toLowerCase();
+                if (typeof bValue === 'string') bValue = bValue.toLowerCase();
+                if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+                if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+        }
+        return sortableUsers;
+    }, [users, sortConfig]);
+
+    const filteredUsers = sortedUsers.filter(u => 
         (u.full_name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
         (u.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         (u.phone || '').includes(searchTerm)
@@ -147,38 +210,12 @@ const UsersPage = () => {
     const paginatedUsers = filteredUsers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
     const totalPages = Math.ceil(filteredUsers.length / itemsPerPage) || 1;
 
-    const handleExport = () => {
-        if (filteredUsers.length === 0) {
-            addToast('لا توجد بيانات للتصدير', 'error');
-            return;
-        }
-
-        const headers = ['الاسم', 'البريد الإلكتروني', 'رقم الهاتف', 'الموقع', 'حالة الحساب', 'الصلاحية'];
-        
-        const csvRows = filteredUsers.map(user => [
-            user.full_name || '',
-            user.email || '',
-            user.phone || '',
-            user.location || '',
-            user.account_status === 'Active' || !user.account_status ? 'نشط' : 'غير نشط',
-            user.role?.role_name || ''
-        ]);
-
-        const csvContent = [
-            headers.join(','),
-            ...csvRows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
-        ].join('\n');
-
-        const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.setAttribute('href', url);
-        link.setAttribute('download', `users_export_${new Date().toISOString().split('T')[0]}.csv`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
+    const SortIcon = ({ columnKey }) => {
+        if (sortConfig.key !== columnKey) return <span className="material-symbols-outlined text-[16px] text-on-surface-variant/30">unfold_more</span>;
+        return <span className="material-symbols-outlined text-[16px] text-primary transition-all duration-300">{sortConfig.direction === 'asc' ? 'keyboard_arrow_up' : 'keyboard_arrow_down'}</span>;
     };
+
+
 
     const renderRoleBadge = (roleName) => {
         if (roleName === 'Administrator' || roleName === 'SuperAdmin') {
@@ -228,16 +265,6 @@ const UsersPage = () => {
                             type="text" 
                         />
                     </div>
-                    <div className="flex items-center gap-2 w-full sm:w-auto">
-                        <button className="flex items-center gap-2 px-4 py-2 bg-background border border-outline-variant rounded-lg font-label-md text-label-md hover:bg-surface-container-low transition-colors w-full sm:w-auto justify-center text-on-surface">
-                            <span className="material-symbols-outlined">filter_list</span>
-                            <span>تصفية</span>
-                        </button>
-                        <button onClick={handleExport} className="flex items-center gap-2 px-4 py-2 bg-background border border-outline-variant rounded-lg font-label-md text-label-md hover:bg-surface-container-low transition-colors w-full sm:w-auto justify-center text-on-surface">
-                            <span className="material-symbols-outlined">download</span>
-                            <span>تصدير</span>
-                        </button>
-                    </div>
                 </div>
 
                 <div className="overflow-x-auto relative min-h-[300px]">
@@ -259,19 +286,33 @@ const UsersPage = () => {
                         <table className="w-full text-right border-collapse">
                             <thead className="bg-background/80 border-b border-outline-variant font-label-md text-label-md text-on-surface-variant whitespace-nowrap">
                                 <tr>
-                                    <th className="py-4 px-6 font-medium text-right">الاسم</th>
-                                    <th className="py-4 px-6 font-medium text-right">البريد الإلكتروني</th>
-                                    <th className="py-4 px-6 font-medium text-right">الصلاحية</th>
-                                    <th className="py-4 px-6 font-medium text-right">رقم الهاتف</th>
-                                    <th className="py-4 px-6 font-medium text-right">الموقع</th>
-                                    <th className="py-4 px-6 font-medium text-center">حالة الحساب</th>
-                                    <th className="py-4 px-6 font-medium text-center">نشط</th>
+                                    <th className="py-4 px-6 font-medium text-right cursor-pointer hover:bg-surface-container-low transition-colors" onClick={() => handleSort('full_name')}>
+                                        <div className="flex items-center gap-1">الاسم <SortIcon columnKey="full_name" /></div>
+                                    </th>
+                                    <th className="py-4 px-6 font-medium text-right cursor-pointer hover:bg-surface-container-low transition-colors" onClick={() => handleSort('email')}>
+                                        <div className="flex items-center gap-1">البريد الإلكتروني <SortIcon columnKey="email" /></div>
+                                    </th>
+                                    <th className="py-4 px-6 font-medium text-right cursor-pointer hover:bg-surface-container-low transition-colors" onClick={() => handleSort('role.role_name')}>
+                                        <div className="flex items-center gap-1">الصلاحية <SortIcon columnKey="role.role_name" /></div>
+                                    </th>
+                                    <th className="py-4 px-6 font-medium text-right cursor-pointer hover:bg-surface-container-low transition-colors" onClick={() => handleSort('phone')}>
+                                        <div className="flex items-center gap-1">رقم الهاتف <SortIcon columnKey="phone" /></div>
+                                    </th>
+                                    <th className="py-4 px-6 font-medium text-right cursor-pointer hover:bg-surface-container-low transition-colors" onClick={() => handleSort('location')}>
+                                        <div className="flex items-center gap-1">الموقع <SortIcon columnKey="location" /></div>
+                                    </th>
+                                    <th className="py-4 px-6 font-medium text-center cursor-pointer hover:bg-surface-container-low transition-colors" onClick={() => handleSort('account_status')}>
+                                        <div className="flex items-center justify-center gap-1">حالة الحساب <SortIcon columnKey="account_status" /></div>
+                                    </th>
+                                    <th className="py-4 px-6 font-medium text-center cursor-pointer hover:bg-surface-container-low transition-colors" onClick={() => handleSort('is_active')}>
+                                        <div className="flex items-center justify-center gap-1">نشط <SortIcon columnKey="is_active" /></div>
+                                    </th>
                                     <th className="py-4 px-6 font-medium text-center">إجراءات</th>
                                 </tr>
                             </thead>
                             <tbody className="font-body-md text-body-md text-on-surface divide-y divide-outline-variant">
                                 {paginatedUsers.map((item) => (
-                                    <tr key={item.user_id} className="hover:bg-surface-container-low/50 transition-colors">
+                                    <tr key={item.user_id} onClick={(e) => handleRowClick(e, item)} className="hover:bg-surface-container-low/50 transition-colors cursor-pointer">
                                         <td className="py-4 px-6">
                                             <div className="flex items-center gap-3">
                                                 <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold border border-primary/20">
@@ -309,15 +350,18 @@ const UsersPage = () => {
                                             )}
                                         </td>
                                         <td className="py-4 px-6 text-center">
-                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                <input readOnly type="checkbox" className="sr-only peer" checked={item.is_active !== false} />
+                                            <div className="relative inline-flex items-center cursor-pointer" onClick={(e) => handleToggleStatus(e, item)}>
+                                                <input readOnly type="checkbox" className="sr-only peer" checked={item.account_status === 'Active' || !item.account_status} />
                                                 <div className="w-11 h-6 bg-outline-variant peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-[-100%] peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                                            </label>
+                                            </div>
                                         </td>
                                         <td className="py-4 px-6">
                                             <div className="flex items-center justify-center gap-2">
-                                                <button onClick={(e) => { e.stopPropagation(); handleOpenModal('edit-role', item) }} className="text-on-surface-variant hover:text-primary transition-colors p-1" title="تعديل">
+                                                <button onClick={(e) => { e.stopPropagation(); handleOpenModal('edit', item) }} className="text-on-surface-variant hover:text-primary transition-colors p-1" title="تعديل الحساب">
                                                     <span className="material-symbols-outlined text-xl">edit</span>
+                                                </button>
+                                                <button onClick={(e) => { e.stopPropagation(); handleOpenModal('edit-role', item) }} className="text-on-surface-variant hover:text-secondary transition-colors p-1" title="إدارة الصلاحيات">
+                                                    <span className="material-symbols-outlined text-xl">manage_accounts</span>
                                                 </button>
                                                 <button onClick={(e) => { e.stopPropagation(); setDeleteTarget(item.user_id) }} className="text-on-surface-variant hover:text-error transition-colors p-1" title="حذف">
                                                     <span className="material-symbols-outlined text-xl">delete</span>
@@ -367,9 +411,61 @@ const UsersPage = () => {
                 )}
             </section>
 
-            <Modal isOpen={modalConfig.open} onClose={() => setModalConfig({ open: false, type: '', user: null })} title={modalConfig.type === 'add' ? 'تسجيل عضوية النظام' : 'تحديث الصلاحيات'} size="md">
+            <Modal isOpen={modalConfig.open} onClose={() => setModalConfig({ open: false, type: '', user: null })} title={modalConfig.type === 'add' ? 'تسجيل عضوية النظام' : modalConfig.type === 'details' ? 'استعراض تفاصيل المستخدم' : modalConfig.type === 'edit' ? 'تعديل بيانات المستخدم' : 'تحديث الصلاحيات'} size="md">
+                {modalConfig.type === 'details' && modalConfig.user ? (
+                    <div className="space-y-4 mt-4" dir="rtl">
+                        <div className="bg-surface-container-lowest p-5 rounded-xl border border-outline-variant flex flex-col md:flex-row items-center md:items-start gap-4">
+                            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-2xl border border-primary/20 shrink-0">
+                                {modalConfig.user.full_name?.charAt(0) || <span className="material-symbols-outlined text-3xl">person</span>}
+                            </div>
+                            <div className="text-center md:text-right">
+                                <h4 className="font-title-lg text-title-lg text-on-surface">{modalConfig.user.full_name}</h4>
+                                <p className="font-body-md text-body-md text-on-surface-variant justify-center md:justify-start flex items-center gap-1 mt-1">
+                                    <span className="material-symbols-outlined text-[16px]">mail</span> <span className="dir-ltr">{modalConfig.user.email}</span>
+                                </p>
+                                <p className="font-body-md text-body-md text-on-surface-variant justify-center md:justify-start flex items-center gap-1 mt-1">
+                                    <span className="material-symbols-outlined text-[16px]">phone</span> <span className="dir-ltr">{modalConfig.user.phone || 'غير متوفر'}</span>
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-4">
+                                <span className="block font-caption text-caption text-on-surface-variant mb-2 font-medium">الصلاحية (الدور)</span>
+                                <div>{renderRoleBadge(modalConfig.user.role?.role_name)}</div>
+                            </div>
+                            <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-4">
+                                <span className="block font-caption text-caption text-on-surface-variant mb-2 font-medium">الموقع / المحافظة</span>
+                                <div className="font-body-md text-on-surface flex items-center gap-1 text-sm">
+                                    <span className="material-symbols-outlined text-[18px] text-on-surface-variant">location_on</span>
+                                    {modalConfig.user.location || 'غير متوفر'}
+                                </div>
+                            </div>
+                            <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-4">
+                                <span className="block font-caption text-caption text-on-surface-variant mb-2 font-medium">حالة الحساب</span>
+                                <div className="font-body-md text-on-surface flex items-center gap-1 text-sm font-medium">
+                                    {modalConfig.user.account_status === 'Active' || !modalConfig.user.account_status ? (
+                                        <span className="text-[#16a34a] flex items-center gap-1.5 px-2.5 py-1 bg-[#22c55e]/10 rounded-full"><span className="w-1.5 h-1.5 rounded-full bg-[#16a34a]"></span> نشط للوصول</span>
+                                    ) : (
+                                        <span className="text-on-surface-variant flex items-center gap-1.5 px-2.5 py-1 bg-outline-variant/30 rounded-full"><span className="w-1.5 h-1.5 rounded-full bg-on-surface-variant"></span> تم الإيقاف</span>
+                                    )}
+                                </div>
+                            </div>
+                            <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-4">
+                                <span className="block font-caption text-caption text-on-surface-variant mb-2 font-medium">تاريخ التسجيل</span>
+                                <div className="font-body-md text-on-surface flex items-center gap-1 text-sm dir-ltr justify-end text-on-surface-variant">
+                                    {modalConfig.user.created_at ? new Date(modalConfig.user.created_at).toLocaleDateString('en-GB') : '—'}
+                                </div>
+                            </div>
+                        </div>
+
+                        <button type="button" onClick={() => setModalConfig({ open: false, type: '', user: null })} className="w-full bg-surface-container-low text-on-surface font-label-md hover:bg-surface-container transition-colors py-3 rounded-xl border border-outline-variant shadow-sm mt-6">
+                            الرجوع وإغلاق النافذة
+                        </button>
+                    </div>
+                ) : (
                 <form onSubmit={handleSubmit} className="space-y-6 mt-4" dir="rtl">
-                    {modalConfig.type === 'add' && (
+                    {(modalConfig.type === 'add' || modalConfig.type === 'edit') && (
                         <div className="space-y-4">                            
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
@@ -394,9 +490,9 @@ const UsersPage = () => {
                             </div>
 
                             <div>
-                                <label className={labelClass}>كلمة المرور <span className="text-error">*</span></label>
+                                <label className={labelClass}>كلمة المرور {modalConfig.type === 'add' && <span className="text-error">*</span>}</label>
                                 <div className="relative">
-                                    <input type={showPassword ? "text" : "password"} required minLength={6} value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} className={`${inputClass} !pl-10`} placeholder="••••••••" dir={form.password ? 'ltr' : 'rtl'} />
+                                    <input type={showPassword ? "text" : "password"} required={modalConfig.type === 'add'} minLength={6} value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} className={`${inputClass} !pl-10`} placeholder={modalConfig.type === 'edit' ? "اتركه فارغاً للحفاظ على كلمة المرور الحالية" : "••••••••"} dir={form.password ? 'ltr' : 'rtl'} />
                                     <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface outline-none flex items-center justify-center">
                                         <span className="material-symbols-outlined text-xl">{showPassword ? 'visibility_off' : 'visibility'}</span>
                                     </button>
@@ -447,6 +543,7 @@ const UsersPage = () => {
                         {formLoading ? 'جاري المعالجة...' : 'تأكيد الحفظ'}
                     </button>
                 </form>
+                )}
             </Modal>
 
             <ConfirmDialog

@@ -10,10 +10,9 @@ const PaymentOperationsPage = () => {
     const [pendingPayments, setPendingPayments] = useState([]);
     const [completedPayments, setCompletedPayments] = useState([]);
     const [activeTab, setActiveTab] = useState('pending');
-    
-    // For Receipt Modal
     const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
     const [selectedReceipt, setSelectedReceipt] = useState(null);
+    const [searchQuery, setSearchQuery] = useState('');
 
     const fetchPayments = async () => {
         setIsLoading(true);
@@ -21,13 +20,9 @@ const PaymentOperationsPage = () => {
             const res = await axiosClient.get(ENDPOINTS.FINANCIAL.LEDGER);
             if (res.data.success) {
                 const ledger = res.data.data || [];
-                
-                // Filter manual pending payments
                 setPendingPayments(
                     ledger.filter(item => item.transaction_type === 'payment_pending' && item.status === 'pending')
                 );
-                
-                // Filter completed electronic/approved payments
                 setCompletedPayments(
                     ledger.filter(item => item.transaction_type === 'payment_in' && item.status === 'completed')
                 );
@@ -39,13 +34,10 @@ const PaymentOperationsPage = () => {
         }
     };
 
-    useEffect(() => {
-        fetchPayments();
-    }, []);
+    useEffect(() => { fetchPayments(); }, []);
 
     const handleApprove = async (ledgerId) => {
         if (!window.confirm('هل أنت متأكد من اعتماد هذه الدفعة وتفعيل الإعلان؟')) return;
-        
         try {
             await axiosClient.post(ENDPOINTS.FINANCIAL.APPROVE(ledgerId));
             addToast('تم اعتماد الدفعة بنجاح', 'success');
@@ -62,196 +54,301 @@ const PaymentOperationsPage = () => {
         setIsReceiptModalOpen(true);
     };
 
-    const PaymentCard = ({ item, isCompleted }) => (
-        <div className="bg-surface-container-lowest rounded-[16px] border border-outline-variant shadow-sm flex flex-col justify-between overflow-hidden transition-all hover:shadow-md hover:-translate-y-0.5 duration-200">
-            {/* Main Content Padding */}
-            <div className="p-6 pb-6">
-                {/* Header: Badge on Right, Amount on Left */}
-                <div className="flex justify-between items-start mb-8">
-                    <div>
-                        <div className={`px-3 py-1.5 rounded-full font-label-md text-[11px] font-bold ${
-                            isCompleted ? 'bg-emerald-50 text-emerald-700' : 'bg-orange-50 text-orange-700'
-                        }`}>
-                            {isCompleted ? 'مكتمل (إلكتروني/معتمد)' : 'بانتظار التأكيد (يدوي)'}
+    const currentList = activeTab === 'pending' ? pendingPayments : completedPayments;
+
+    const filteredList = currentList.filter(item => {
+        const q = searchQuery.toLowerCase();
+        return (
+            item.advertisement?.title?.toLowerCase().includes(q) ||
+            item.user?.full_name?.toLowerCase().includes(q) ||
+            item.reference_number?.toLowerCase().includes(q)
+        );
+    });
+
+    const totalPending = pendingPayments.reduce((acc, i) => acc + parseFloat(i.amount || 0), 0);
+    const totalCompleted = completedPayments.reduce((acc, i) => acc + parseFloat(i.amount || 0), 0);
+
+    return (
+        <div className="space-y-6 pb-12" dir="rtl">
+
+            {/* ───── Page Header ───── */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 py-4 mb-2">
+                <div className="flex flex-col">
+                    <h1 className="font-headline-lg text-headline-lg font-bold text-on-surface mb-1 flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                            <span className="material-symbols-outlined text-xl">receipt_long</span>
                         </div>
+                        عمليات الدفع
+                    </h1>
+                    <p className="text-on-surface-variant font-body-md text-body-md">
+                        مراجعة الإيصالات اليدوية واعتماد الدفعات المعلقة وتتبع العمليات المكتملة.
+                    </p>
+                </div>
+                <button
+                    onClick={fetchPayments}
+                    className="flex items-center gap-2 bg-surface border border-outline-variant hover:bg-surface-container-lowest text-on-surface-variant hover:text-on-surface font-label-md text-label-md px-4 py-2.5 rounded-lg transition-all whitespace-nowrap shadow-sm"
+                >
+                    <span className="material-symbols-outlined text-xl">refresh</span>
+                    تحديث السجل
+                </button>
+            </div>
+
+            {/* ───── KPI Summary Cards ───── */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-surface border border-outline-variant rounded-2xl p-5 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p className="text-xs font-bold text-on-surface-variant uppercase tracking-wide mb-2">إجمالي العمليات</p>
+                        <p className="text-3xl font-black text-on-surface">{pendingPayments.length + completedPayments.length}</p>
                     </div>
-                    <div className="text-left">
-                        <p className="font-caption text-caption text-on-surface-variant mb-1">المبلغ</p>
-                        <p className={`font-title-lg text-title-lg font-black ${isCompleted ? 'text-emerald-600' : 'text-orange-500'}`}>
-                            ${parseFloat(item.amount || 0).toFixed(2)}
-                        </p>
+                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                        <span className="material-symbols-outlined text-2xl">payments</span>
+                    </div>
+                </div>
+                <div className="bg-surface border border-outline-variant rounded-2xl p-5 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p className="text-xs font-bold text-on-surface-variant uppercase tracking-wide mb-2">معلقة / انتظار</p>
+                        <p className="text-3xl font-black text-orange-500">{pendingPayments.length}</p>
+                    </div>
+                    <div className="w-12 h-12 rounded-full bg-orange-50 flex items-center justify-center text-orange-500 shrink-0">
+                        <span className="material-symbols-outlined text-2xl">pending</span>
+                    </div>
+                </div>
+                <div className="bg-surface border border-outline-variant rounded-2xl p-5 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p className="text-xs font-bold text-on-surface-variant uppercase tracking-wide mb-2">مكتملة / معتمدة</p>
+                        <p className="text-3xl font-black text-emerald-600">{completedPayments.length}</p>
+                    </div>
+                    <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">
+                        <span className="material-symbols-outlined text-2xl">check_circle</span>
+                    </div>
+                </div>
+                <div className="bg-surface border border-outline-variant rounded-2xl p-5 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p className="text-xs font-bold text-on-surface-variant uppercase tracking-wide mb-2">إجمالي المحصّل</p>
+                        <p className="text-3xl font-black text-primary">${totalCompleted.toFixed(0)}</p>
+                    </div>
+                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                        <span className="material-symbols-outlined text-2xl">account_balance</span>
+                    </div>
+                </div>
+            </div>
+
+            {/* ───── Main Table Card ───── */}
+            <div className="bg-surface rounded-2xl border border-outline-variant shadow-sm overflow-hidden mt-4">
+
+                {/* Table topbar: Tabs + Search (centered) */}
+                <div className="p-5 border-b border-outline-variant flex flex-col sm:flex-row gap-4 items-center justify-between bg-surface">
+                    {/* Tabs — right side */}
+                    <div className="flex bg-surface-container-low p-1 rounded-lg border border-outline-variant/50 shrink-0">
+                        <button
+                            onClick={() => { setActiveTab('pending'); setSearchQuery(''); }}
+                            className={`font-label-md text-label-md px-5 py-2 rounded-md text-sm font-bold transition-all flex items-center gap-2 ${
+                                activeTab === 'pending'
+                                    ? 'bg-white text-primary shadow-sm border border-outline-variant/30'
+                                    : 'text-on-surface-variant hover:text-on-surface'
+                            }`}
+                        >
+                            <span className="material-symbols-outlined text-[16px]">pending</span>
+                            معلقة (يدوي)
+                            {pendingPayments.length > 0 && (
+                                <span className="inline-flex items-center justify-center bg-error text-white rounded-full text-[10px] font-black min-w-[18px] h-[18px] px-1">
+                                    {pendingPayments.length}
+                                </span>
+                            )}
+                        </button>
+                        <button
+                            onClick={() => { setActiveTab('completed'); setSearchQuery(''); }}
+                            className={`font-label-md text-label-md px-5 py-2 rounded-md text-sm font-bold transition-all flex items-center gap-2 ${
+                                activeTab === 'completed'
+                                    ? 'bg-white text-primary shadow-sm border border-outline-variant/30'
+                                    : 'text-on-surface-variant hover:text-on-surface'
+                            }`}
+                        >
+                            <span className="material-symbols-outlined text-[16px]">check_circle</span>
+                            مكتملة
+                        </button>
+                    </div>
+
+                    {/* Search — Left side */}
+                    <div className="relative flex-1 max-w-md mr-auto group">
+                        <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
+                            <span className="material-symbols-outlined text-on-surface-variant/60 group-focus-within:text-primary transition-colors duration-300 text-[22px]">
+                                search
+                            </span>
+                        </div>
+                        <input
+                            type="text"
+                            placeholder="ابحث بالإعلان، أو المعلن، أو المرجع..."
+                            value={searchQuery}
+                            onChange={e => setSearchQuery(e.target.value)}
+                            className="w-full bg-surface-container-lowest hover:bg-surface border border-outline-variant/60 focus:border-primary/80 rounded-2xl py-3.5 pr-12 pl-12 text-base text-on-surface placeholder-on-surface-variant/60 outline-none focus:ring-4 focus:ring-primary/10 transition-all shadow-sm"
+                        />
+                        <div className={`absolute inset-y-0 left-0 flex items-center pl-3 transition-opacity duration-300 ${searchQuery ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+                            <button
+                                onClick={() => setSearchQuery('')}
+                                className="w-8 h-8 flex items-center justify-center rounded-full text-on-surface-variant hover:text-error hover:bg-error/10 transition-all"
+                                title="مسح البحث"
+                            >
+                                <span className="material-symbols-outlined text-[18px]">close</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
-                {/* Rows list */}
-                <div className="space-y-5">
-                    <div className="flex justify-between items-center">
-                        <span className="font-caption text-xs text-on-surface-variant">الإعلان المستهدف:</span>
-                        <span className="font-label-md text-label-md text-on-surface font-bold truncate max-w-[140px] text-left">{item.advertisement?.title || 'غير متوفر'}</span>
+                {/* Table */}
+                {isLoading ? (
+                    <div className="flex justify-center items-center py-24">
+                        <div className="w-8 h-8 border-4 border-outline-variant border-t-primary rounded-full animate-spin"></div>
                     </div>
-                    <div className="flex justify-between items-center">
-                        <span className="font-caption text-xs text-on-surface-variant">المعلن:</span>
-                        <span className="font-label-md text-label-md text-on-surface font-bold text-left">{item.user?.full_name || 'غير متوفر'}</span>
+                ) : filteredList.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-20 text-center">
+                        <span className="material-symbols-outlined text-outline text-6xl mb-4" style={{ fontWeight: 100 }}>
+                            {activeTab === 'pending' ? 'attach_money' : 'check_circle'}
+                        </span>
+                        <h4 className="font-bold text-on-surface text-base mb-1">
+                            {searchQuery ? 'لا توجد نتائج مطابقة' : activeTab === 'pending' ? 'لا توجد دفعات معلقة' : 'لا توجد عمليات مكتملة'}
+                        </h4>
+                        <p className="text-on-surface-variant text-sm">
+                            {searchQuery ? 'جرب كلمات بحث مختلفة' : activeTab === 'pending' ? 'جميع الدفعات اليدوية تم معالجتها.' : 'لم يتم اعتماد أي دفعة بعد.'}
+                        </p>
                     </div>
-                    <div className="flex justify-between items-center">
-                        <span className="font-caption text-xs text-on-surface-variant">التاريخ:</span>
-                        <span className="font-label-md text-label-md text-on-surface font-bold text-left">{new Date(item.created_at).toLocaleDateString('ar-EG')}</span>
-                    </div>
-                    {isCompleted && item.reference_number && (
-                        <div className="flex justify-between items-center">
-                            <span className="font-caption text-xs text-on-surface-variant whitespace-nowrap ml-2">المرجع (Stripe):</span>
-                            <span className="font-caption text-[11px] text-on-surface font-bold truncate text-left" dir="ltr">{item.reference_number}</span>
-                        </div>
-                    )}
-                </div>
-                
-                {/* Action buttons (only for pending) inside main padded area */}
-                {!isCompleted && (
-                    <div className="flex flex-col sm:flex-row gap-3 pt-6 mt-6 border-t border-outline-variant/30">
-                        {item.receipt_path && (
-                            <button
-                                onClick={() => openReceipt(item.receipt_path)}
-                                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-primary text-primary font-label-md text-label-md hover:bg-primary-fixed transition-colors"
-                            >
-                                <span className="material-symbols-outlined shrink-0" style={{ fontSize: '18px' }}>image</span> عرض الإيصال
-                            </button>
-                        )}
-                        <button
-                            onClick={() => handleApprove(item.ledger_id)}
-                            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-500 text-white font-label-md text-label-md hover:bg-emerald-600 transition-colors shadow-sm cursor-pointer"
-                        >
-                            <span className="material-symbols-outlined shrink-0" style={{ fontSize: '18px' }}>check_circle</span> اعتماد الدفع
-                        </button>
+                ) : (
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-right border-collapse">
+                            <thead className="bg-surface-container-low border-b border-outline-variant">
+                                <tr>
+                                    <th className="py-4 px-6 text-xs font-bold text-on-surface-variant uppercase tracking-wide whitespace-nowrap">#</th>
+                                    <th className="py-4 px-6 text-xs font-bold text-on-surface-variant uppercase tracking-wide whitespace-nowrap">الإعلان</th>
+                                    <th className="py-4 px-6 text-xs font-bold text-on-surface-variant uppercase tracking-wide whitespace-nowrap">المعلن</th>
+                                    <th className="py-4 px-6 text-xs font-bold text-on-surface-variant uppercase tracking-wide whitespace-nowrap text-center">المبلغ</th>
+                                    <th className="py-4 px-6 text-xs font-bold text-on-surface-variant uppercase tracking-wide whitespace-nowrap text-center">الحالة</th>
+                                    <th className="py-4 px-6 text-xs font-bold text-on-surface-variant uppercase tracking-wide whitespace-nowrap">التاريخ</th>
+                                    {activeTab === 'completed' && (
+                                        <th className="py-4 px-6 text-xs font-bold text-on-surface-variant uppercase tracking-wide whitespace-nowrap">المرجع</th>
+                                    )}
+                                    <th className="py-4 px-6 text-xs font-bold text-on-surface-variant uppercase tracking-wide whitespace-nowrap text-left">إجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-outline-variant text-sm">
+                                {filteredList.map((item, index) => {
+                                    const isCompleted = activeTab === 'completed';
+                                    return (
+                                        <tr key={item.ledger_id} className="hover:bg-surface-container-lowest transition-colors group">
+                                            <td className="py-4 px-6 text-on-surface-variant font-mono text-xs">
+                                                {String(index + 1).padStart(2, '0')}
+                                            </td>
+                                            <td className="py-4 px-6 font-medium text-on-surface max-w-[200px] truncate">
+                                                {item.advertisement?.title || '—'}
+                                            </td>
+                                            <td className="py-4 px-6 text-on-surface-variant whitespace-nowrap">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                                                        <span className="material-symbols-outlined text-[14px]">person</span>
+                                                    </div>
+                                                    <span className="font-medium">{item.user?.full_name || '—'}</span>
+                                                </div>
+                                            </td>
+                                            <td className="py-4 px-6 text-center whitespace-nowrap">
+                                                <span className={`font-black text-base ${isCompleted ? 'text-emerald-600' : 'text-orange-500'}`}>
+                                                    ${parseFloat(item.amount || 0).toFixed(2)}
+                                                </span>
+                                            </td>
+                                            <td className="py-4 px-6 text-center whitespace-nowrap">
+                                                {isCompleted ? (
+                                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold text-xs">
+                                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                                        مكتمل
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-50 text-orange-700 border border-orange-200 font-bold text-xs">
+                                                        <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse"></span>
+                                                        معلق
+                                                    </span>
+                                                )}
+                                            </td>
+                                            <td className="py-4 px-6 text-on-surface-variant whitespace-nowrap text-sm">
+                                                {new Date(item.created_at).toLocaleDateString('ar-EG', { year: 'numeric', month: 'short', day: 'numeric' })}
+                                            </td>
+                                            {activeTab === 'completed' && (
+                                                <td className="py-4 px-6 text-on-surface-variant">
+                                                    <span className="font-mono text-xs text-on-surface-variant/70 truncate max-w-[120px] block" dir="ltr">
+                                                        {item.reference_number || '—'}
+                                                    </span>
+                                                </td>
+                                            )}
+                                            <td className="py-4 px-6 text-left whitespace-nowrap">
+                                                <div className="flex items-center justify-end gap-2">
+                                                    {!isCompleted && item.receipt_path && (
+                                                        <button
+                                                            onClick={() => openReceipt(item.receipt_path)}
+                                                            className="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-primary/10 hover:text-primary transition-colors"
+                                                            title="عرض الإيصال"
+                                                        >
+                                                            <span className="material-symbols-outlined text-[18px]">image</span>
+                                                        </button>
+                                                    )}
+                                                    {!isCompleted && (
+                                                        <button
+                                                            onClick={() => handleApprove(item.ledger_id)}
+                                                            className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold transition-colors shadow-sm"
+                                                            title="اعتماد الدفعة"
+                                                        >
+                                                            <span className="material-symbols-outlined text-[15px]">check_circle</span>
+                                                            اعتماد
+                                                        </button>
+                                                    )}
+                                                    {isCompleted && (
+                                                        <span className="text-xs text-emerald-600 font-bold flex items-center gap-1">
+                                                            <span className="material-symbols-outlined text-[15px]">verified</span>
+                                                            معتمد
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+
+                            {/* Table Footer Summary */}
+                            <tfoot className="border-t-2 border-outline-variant bg-surface-container-low">
+                                <tr>
+                                    <td colSpan={activeTab === 'completed' ? 8 : 7} className="py-4 px-6">
+                                        <div className="flex items-center justify-between text-sm">
+                                            <span className="text-on-surface-variant font-medium">
+                                                إجمالي {filteredList.length} عملية
+                                            </span>
+                                            <span className="font-black text-on-surface text-base">
+                                                المجموع: ${filteredList.reduce((acc, i) => acc + parseFloat(i.amount || 0), 0).toFixed(2)}
+                                            </span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </table>
                     </div>
                 )}
             </div>
 
-            {/* Footer for general view details */}
-            <div className="bg-surface-container-low px-6 py-3 border-t border-outline-variant/30 flex justify-start">
-                <button className="text-primary font-label-md text-[13px] flex items-center gap-1 hover:text-primary-container transition-colors font-bold outline-none">
-                    التفاصيل
-                    <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>chevron_left</span>
-                </button>
-            </div>
-        </div>
-    );
-
-    return (
-        <div className="flex-1 p-margin-desktop flex flex-col gap-xl max-w-7xl mx-auto w-full animate-fade-in" dir="rtl">
-            {/* Page Header & Actions */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-md">
-                {/* Title Block */}
-                <div className="flex flex-col gap-xs">
-                    <div className="flex items-center gap-sm">
-                        <div className="w-1 h-6 bg-primary rounded-full"></div>
-                        <h2 className="font-headline-lg text-headline-lg text-on-surface font-bold">عمليات الدفع</h2>
-                    </div>
-                    <p className="font-body-md text-body-md text-on-surface-variant pr-md">مراجعة الإيصالات اليدوية واعتماد الدفعات المعلقة</p>
-                </div>
-
-                {/* Tabs (Segmented Control) */}
-                <div className="flex bg-surface-container-low p-1 rounded-lg border border-outline-variant/50">
-                    <button
-                        onClick={() => setActiveTab('pending')}
-                        className={`font-label-md text-label-md px-xl py-sm rounded-md focus:outline-none transition-colors flex items-center gap-2 ${
-                            activeTab === 'pending'
-                                ? 'text-primary bg-surface-container-lowest shadow-sm border border-outline-variant/30 font-bold'
-                                : 'text-on-surface-variant hover:text-on-surface'
-                        }`}
-                    >
-                        المعلقات (يدوي)
-                        {pendingPayments.length > 0 && (
-                            <span className="inline-flex items-center justify-center bg-error-container text-on-error-container rounded-full font-caption text-[10px] min-w-[20px] h-5 px-1">
-                                {pendingPayments.length}
-                            </span>
-                        )}
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('completed')}
-                        className={`font-label-md text-label-md px-xl py-sm rounded-md focus:outline-none transition-colors ${
-                            activeTab === 'completed'
-                                ? 'text-primary bg-surface-container-lowest shadow-sm border border-outline-variant/30 font-bold'
-                                : 'text-on-surface-variant hover:text-on-surface'
-                        }`}
-                    >
-                        مكتملة
-                    </button>
-                </div>
-            </div>
-
-            {/* Lists or Empty States */}
-            {isLoading ? (
-                <div className="flex-1 bg-surface-container-lowest rounded-xl border border-outline-variant flex flex-col items-center justify-center p-2xl min-h-[500px]">
-                     <div className="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
-                </div>
-            ) : (
-                <div className="flex-1 w-full relative">
-                    {activeTab === 'pending' ? (
-                        pendingPayments.length === 0 ? (
-                            <div className="flex-1 bg-surface-container-lowest rounded-xl border border-outline-variant flex flex-col items-center justify-center p-2xl min-h-[500px]">
-                                <div className="flex flex-col items-center gap-lg max-w-md text-center">
-                                    <div className="text-surface-variant opacity-50 mb-md">
-                                        <span className="material-symbols-outlined" style={{ fontSize: '96px', fontWeight: 200 }}>attach_money</span>
-                                    </div>
-                                    <div className="flex flex-col gap-sm">
-                                        <h3 className="font-headline-md text-headline-md text-on-surface font-bold">لا توجد معلقات</h3>
-                                        <p className="font-body-md text-body-md text-on-surface-variant">جميع الدفعات اليدوية تم معالجتها.</p>
-                                    </div>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-lg">
-                                {pendingPayments.map(item => <PaymentCard key={item.ledger_id} item={item} isCompleted={false} />)}
-                            </div>
-                        )
-                    ) : (
-                        completedPayments.length === 0 ? (
-                            <div className="flex-1 bg-surface-container-lowest rounded-xl border border-outline-variant flex flex-col items-center justify-center p-2xl min-h-[500px]">
-                                <div className="flex flex-col items-center gap-lg max-w-md text-center">
-                                    <div className="text-surface-variant opacity-50 mb-md">
-                                        <span className="material-symbols-outlined" style={{ fontSize: '96px', fontWeight: 200 }}>check_circle</span>
-                                    </div>
-                                    <div className="flex flex-col gap-sm">
-                                        <h3 className="font-headline-md text-headline-md text-on-surface font-bold">لا توجد عمليات مكتملة</h3>
-                                        <p className="font-body-md text-body-md text-on-surface-variant">لم يقم أحد بالدفع بعد.</p>
-                                    </div>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-lg">
-                                {completedPayments.map(item => <PaymentCard key={item.ledger_id} item={item} isCompleted={true} />)}
-                            </div>
-                        )
-                    )}
-                </div>
-            )}
-
-            {/* Receipt Modal */}
-            <Modal
-                isOpen={isReceiptModalOpen}
-                onClose={() => setIsReceiptModalOpen(false)}
-                title="إيصال الدفع"
-            >
-                <div className="flex flex-col items-center pt-4">
+            {/* ───── Receipt Modal ───── */}
+            <Modal isOpen={isReceiptModalOpen} onClose={() => setIsReceiptModalOpen(false)} title="إيصال الدفع اليدوي">
+                <div className="flex flex-col items-center pt-4" dir="rtl">
                     {selectedReceipt ? (
-                        <img 
-                            src={selectedReceipt} 
-                            alt="إيصال الدفع" 
-                            className="max-w-full rounded-[16px] border border-outline-variant"
-                            onError={(e) => {
-                                e.target.onerror = null; 
-                                e.target.src = 'https://via.placeholder.com/400x500?text=تعذر+تحميل+الصورة';
-                            }}
+                        <img
+                            src={selectedReceipt}
+                            alt="إيصال الدفع"
+                            className="max-w-full rounded-2xl border border-outline-variant shadow"
+                            onError={(e) => { e.target.onerror = null; e.target.src = 'https://via.placeholder.com/400x500?text=تعذر+تحميل+الصورة'; }}
                         />
                     ) : (
-                        <div className="py-xl flex flex-col items-center gap-md">
-                            <span className="material-symbols-outlined text-surface-variant" style={{ fontSize: '48px' }}>image_not_supported</span>
-                            <p className="font-body-md text-body-md text-on-surface-variant">لا يوجد إيصال مرفق</p>
+                        <div className="py-12 flex flex-col items-center gap-3 text-on-surface-variant">
+                            <span className="material-symbols-outlined text-5xl" style={{ fontWeight: 100 }}>image_not_supported</span>
+                            <p className="text-sm">لا يوجد إيصال مرفق</p>
                         </div>
                     )}
-                    <button 
+                    <button
                         onClick={() => setIsReceiptModalOpen(false)}
-                        className="mt-6 w-full bg-surface-container-highest text-on-surface py-3 rounded-lg font-label-md text-label-md font-bold hover:bg-outline-variant transition-colors"
+                        className="mt-6 w-full bg-surface-container-highest text-on-surface py-3 rounded-xl font-bold text-sm hover:bg-outline-variant transition-colors"
                     >
                         إغلاق
                     </button>

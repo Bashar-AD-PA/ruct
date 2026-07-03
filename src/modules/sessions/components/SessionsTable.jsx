@@ -103,7 +103,7 @@ const ErrorState = ({ onRetry }) => (
 /* ═══════════════════════════════════════════════
    Main Table Component
    ═══════════════════════════════════════════════ */
-const SessionsTable = ({ sessions = [], loading, error, isSuperAdmin, onRevoke, onRetry }) => {
+const SessionsTable = ({ sessions = [], loading, error, isSuperAdmin, onRevoke, onViewDetails, onBlockDevice, onRetry }) => {
     return (
         <div className="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm overflow-hidden">
             <div className="p-lg border-b border-outline-variant">
@@ -119,7 +119,7 @@ const SessionsTable = ({ sessions = [], loading, error, isSuperAdmin, onRevoke, 
                             <th className="p-md font-medium">آخر نشاط</th>
                             <th className="p-md font-medium">بدأت في</th>
                             <th className="p-md font-medium">الحالة</th>
-                            <th className="p-md font-medium text-center">إجراء</th>
+                            <th className="p-md font-medium text-left">إجراءات</th>
                         </tr>
                     </thead>
                     <tbody className="font-body-md text-body-md text-on-surface">
@@ -205,19 +205,37 @@ const SessionsTable = ({ sessions = [], loading, error, isSuperAdmin, onRevoke, 
                                         </td>
 
                                         {/* Action */}
-                                        <td className="p-md text-center">
-                                            {session.is_current ? (
-                                                <button className="text-outline-variant cursor-not-allowed px-sm py-xs font-label-md text-label-md" disabled>
-                                                    إنهاء
-                                                </button>
-                                            ) : (
+                                        <td className="p-md text-left whitespace-nowrap">
+                                            <div className="flex items-center justify-end gap-2">
                                                 <button
-                                                    onClick={() => onRevoke(session)}
-                                                    className="text-error hover:bg-error-container px-md py-xs rounded-lg transition-colors font-label-md text-label-md border border-error/30 hover:border-error"
+                                                    onClick={() => onViewDetails(session)}
+                                                    className="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-primary-container hover:text-primary transition-colors"
+                                                    title="عرض التفاصيل الأمنية"
                                                 >
-                                                    إنهاء
+                                                    <span className="material-symbols-outlined text-[18px]">visibility</span>
                                                 </button>
-                                            )}
+                                                {session.is_current ? (
+                                                    <span className="text-xs text-outline-variant font-bold px-2">الجلسة الحالية</span>
+                                                ) : (
+                                                    <>
+                                                        <button
+                                                            onClick={() => onBlockDevice(session)}
+                                                            className="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-orange-100 hover:text-orange-600 transition-colors"
+                                                            title="حظر الـ IP أو الجهاز"
+                                                        >
+                                                            <span className="material-symbols-outlined text-[18px]">block</span>
+                                                        </button>
+                                                        <button
+                                                            onClick={() => onRevoke(session)}
+                                                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-error/10 hover:bg-error text-error hover:text-white text-xs font-bold transition-all shadow-sm"
+                                                            title="إنهاء الجلسة (إجباري)"
+                                                        >
+                                                            <span className="material-symbols-outlined text-[15px]">logout</span>
+                                                            إنهاء
+                                                        </button>
+                                                    </>
+                                                )}
+                                            </div>
                                         </td>
                                     </motion.tr>
                                 ))}

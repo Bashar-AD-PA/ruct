@@ -27,7 +27,7 @@ const ForgotPasswordPage = () => {
             {/* Background Glow */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-indigo-600/5 rounded-full blur-[150px] -z-10"></div>
 
-            <motion.div 
+            <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 className="bg-white/5 backdrop-blur-2xl border border-white/10 p-10 rounded-[2.5rem] shadow-2xl w-full max-w-md text-center"
@@ -37,7 +37,7 @@ const ForgotPasswordPage = () => {
                         <div className="bg-indigo-600 w-20 h-20 rounded-[2rem] flex items-center justify-center mx-auto mb-8 shadow-2xl shadow-indigo-600/40 rotate-12">
                             <KeyRound className="text-white w-10 h-10 -rotate-12" />
                         </div>
-                        
+
                         <h2 className="text-3xl font-black text-white mb-4">نسيت كلمة المرور؟</h2>
                         <p className="text-gray-500 text-sm mb-8 leading-relaxed">
                             لا تقلق، أدخل بريدك الإلكتروني أدناه وسنرسل لك تعليمات استعادة الوصول إلى حسابك.
@@ -73,7 +73,7 @@ const ForgotPasswordPage = () => {
                         </form>
                     </>
                 ) : (
-                    <motion.div 
+                    <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         className="py-6"
@@ -85,7 +85,7 @@ const ForgotPasswordPage = () => {
                         <p className="text-gray-500 text-sm mb-10 leading-relaxed px-4">
                             لقد أرسلنا بريداً إلكترونياً إلى <span className="text-white font-bold">{email}</span>. يرجى مراجعة بريدك واتباع التعليمات.
                         </p>
-                        <button 
+                        <button
                             onClick={() => setIsSubmitted(false)}
                             className="text-indigo-400 font-bold hover:text-indigo-300 transition-colors"
                         >
