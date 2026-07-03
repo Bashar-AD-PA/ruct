@@ -19,7 +19,6 @@ const AdsPage = () => {
     const [detailsModal, setDetailsModal] = useState({ open: false, ad: null });
     const [stripeModal, setStripeModal] = useState({ open: false, ad: null });
     const [rejectReason, setRejectReason] = useState('');
-    const [categoryFilter, setCategoryFilter] = useState('all');
     const { can, isAdvertiser, isAdmin } = usePermission();
     const navigate = useNavigate();
     const addToast = useToastStore(state => state.addToast);
@@ -38,11 +37,7 @@ const AdsPage = () => {
         }
     };
 
-    const filteredAds = ads.filter(a => {
-        const matchStatus = statusFilter === 'all' || a.status === statusFilter;
-        const matchCategory = categoryFilter === 'all' || a.category_id === Number(categoryFilter);
-        return matchStatus && matchCategory;
-    });
+    const filteredAds = ads.filter(a => statusFilter === 'all' || a.status === statusFilter);
 
     const handleStatusChange = async () => {
         const { ad, action } = approveModal;
@@ -79,8 +74,6 @@ const AdsPage = () => {
         { key: 'Paused', label: 'تمت المقاطعة' },
         { key: 'Rejected', label: 'مرفوضة رقابياً' },
     ];
-
-    const uniqueCategories = [...new Set(ads.map(a => a.category).filter(Boolean).map(c => JSON.stringify(c)))].map(s => JSON.parse(s));
 
     const stats = {
         total: ads.length,
@@ -209,19 +202,7 @@ const AdsPage = () => {
                         </button>
                     ))}
                 </div>
-                <div className="flex flex-col sm:flex-row gap-3">
-                    <div className="relative">
-                        <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} className="appearance-none bg-white border border-[#E5E7EB] text-[#141b2b] text-base rounded-lg pl-10 pr-4 py-2.5 outline-none focus:border-[#004ac6] focus:ring-1 focus:ring-[#004ac6] w-full sm:w-48 cursor-pointer">
-                            <option value="all">كافة التصنيفات والمجالات</option>
-                            {uniqueCategories.map(c => (
-                                <option key={c.category_id} value={c.category_id}>{c.category_name}</option>
-                            ))}
-                        </select>
-                        <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-[#434655] pointer-events-none w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                    </div>
-                </div>
+
             </div>
 
             {/* Data Table */}
@@ -232,7 +213,6 @@ const AdsPage = () => {
                             <tr className="bg-surface-container-low border-b border-border-color">
                                 <th className="py-4 px-6 font-label-md text-label-md text-on-surface font-bold whitespace-nowrap">العنوان</th>
                                 <th className="py-4 px-6 font-label-md text-label-md text-on-surface font-bold whitespace-nowrap">المعلن</th>
-                                <th className="py-4 px-6 font-label-md text-label-md text-on-surface font-bold whitespace-nowrap">التصنيف</th>
                                 <th className="py-4 px-6 font-label-md text-label-md text-on-surface font-bold whitespace-nowrap text-center">الحالة</th>
                                 <th className="py-4 px-6 font-label-md text-label-md text-on-surface font-bold whitespace-nowrap">التكلفة</th>
                                 <th className="py-4 px-6 font-label-md text-label-md text-on-surface font-bold whitespace-nowrap text-center">التكرار (د)</th>
@@ -246,7 +226,7 @@ const AdsPage = () => {
                         <tbody className="divide-y divide-outline-variant/30">
                             {!loading && filteredAds.length === 0 ? (
                                 <tr>
-                                    <td colSpan="11" className="py-16 text-center">
+                                    <td colSpan="10" className="py-16 text-center">
                                         <div className="flex flex-col items-center justify-center">
                                             <div className="w-20 h-20 bg-surface-container rounded-full flex items-center justify-center mb-5 border border-outline-variant">
                                                 <Megaphone className="w-8 h-8 text-outline" />
@@ -271,12 +251,6 @@ const AdsPage = () => {
                                             <div className="flex items-center gap-2 text-on-surface-variant">
                                                 <User className="w-4 h-4" />
                                                 <span className="font-body-sm text-body-sm whitespace-nowrap">{row.advertiser?.full_name || 'غير محدد'}</span>
-                                            </div>
-                                        </td>
-                                        <td className="py-4 px-6">
-                                            <div className="inline-flex items-center gap-1.5 bg-surface-container px-2.5 py-1 rounded-md border border-outline-variant text-on-surface-variant whitespace-nowrap">
-                                                <Layers className="w-3.5 h-3.5" />
-                                                <span className="font-body-sm text-body-sm">{row.category?.category_name || 'عام'}</span>
                                             </div>
                                         </td>
                                         <td className="py-4 px-6 text-center">
@@ -417,10 +391,6 @@ const AdsPage = () => {
                         )}
 
                         <div className="grid grid-cols-2 gap-4 bg-surface-container-low p-5 rounded-2xl border border-outline-variant">
-                            <div className="space-y-1.5">
-                                <span className="font-caption text-caption text-on-surface-variant uppercase tracking-wider block">التصنيف الإعلاني</span>
-                                <span className="font-label-md text-label-md text-on-surface bg-surface px-3 py-1.5 rounded-lg border border-outline-variant shadow-sm inline-block">{detailsModal.ad.category?.category_name || '—'}</span>
-                            </div>
                             <div className="space-y-1.5">
                                 <span className="font-caption text-caption text-on-surface-variant uppercase tracking-wider block">الميزانية المرصودة</span>
                                 <span className="font-title-md text-title-md text-primary font-black flex items-center gap-1">

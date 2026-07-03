@@ -29,6 +29,9 @@ const UsersPage = () => {
     const [formLoading, setFormLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    const [filterRole, setFilterRole] = useState('ALL');
+    const [filterLocation, setFilterLocation] = useState('ALL');
+    const [filterStatus, setFilterStatus] = useState('ALL');
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 8;
     const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
@@ -168,14 +171,6 @@ const UsersPage = () => {
     const inputClass = "w-full bg-background border border-outline-variant rounded-lg py-2 px-4 font-body-md text-body-md focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-shadow text-right";
     const labelClass = "font-label-md text-label-md text-on-surface-variant mb-2 block";
 
-    const stats = {
-        total: users.length,
-        active: users.filter(u => u.is_active || u.account_status === 'Active').length,
-        admin: users.filter(u => u.role?.role_name === 'Administrator' || u.role?.role_name === 'SuperAdmin').length,
-        advertiser: users.filter(u => u.role?.role_name === 'Advertiser').length,
-        owner: users.filter(u => u.role?.role_name === 'ScreenOwner').length,
-    };
-
     const handleSort = (key) => {
         let direction = 'asc';
         if (sortConfig.key === key && sortConfig.direction === 'asc') {
@@ -201,11 +196,31 @@ const UsersPage = () => {
         return sortableUsers;
     }, [users, sortConfig]);
 
-    const filteredUsers = sortedUsers.filter(u =>
-        (u.full_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (u.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (u.phone || '').includes(searchTerm)
-    );
+    const filteredUsers = sortedUsers.filter(u => {
+        const matchesSearch = (u.full_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (u.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (u.phone || '').includes(searchTerm);
+            
+        const matchesRole = filterRole === 'ALL' || (u.role?.role_name === filterRole);
+        const matchesLocation = filterLocation === 'ALL' || (u.location && u.location.includes(filterLocation));
+        
+        let matchesStatus = true;
+        if(filterStatus === 'ACTIVE') matchesStatus = (u.is_active || u.account_status === 'Active' || !u.account_status);
+        if(filterStatus === 'SUSPENDED') matchesStatus = (u.account_status === 'Suspended');
+
+        return matchesSearch && matchesRole && matchesLocation && matchesStatus;
+    });
+
+    // Dynamic stats based on filtered data (Enterprise Standard)
+    const stats = {
+        total: filteredUsers.length,
+        active: filteredUsers.filter(u => u.is_active || u.account_status === 'Active' || !u.account_status).length,
+        admin: filteredUsers.filter(u => u.role?.role_name === 'Administrator' || u.role?.role_name === 'SuperAdmin').length,
+        advertiser: filteredUsers.filter(u => u.role?.role_name === 'Advertiser').length,
+        owner: filteredUsers.filter(u => u.role?.role_name === 'ScreenOwner').length,
+    };
+
+    const uniqueLocations = [...new Set(users.map(u => u.location).filter(Boolean))].sort();
 
     const paginatedUsers = filteredUsers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
     const totalPages = Math.ceil(filteredUsers.length / itemsPerPage) || 1;
@@ -254,16 +269,53 @@ const UsersPage = () => {
             )}
 
             <section className="bg-surface border border-outline-variant rounded-xl shadow-sm overflow-hidden flex flex-col">
-                <div className="p-4 border-b border-outline-variant flex flex-col sm:flex-row justify-between items-center gap-4 bg-surface">
-                    <div className="relative w-full sm:w-72">
-                        <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
-                        <input
-                            value={searchTerm}
-                            onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-                            className="w-full bg-background border border-outline-variant rounded-lg py-2 pr-10 pl-4 font-body-md text-body-md focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-shadow"
-                            placeholder="البحث في المستخدمين..."
-                            type="text"
-                        />
+                <div className="p-4 border-b border-outline-variant bg-surface flex flex-col gap-4">
+                    <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+                        {/* Search */}
+                        <div className="relative w-full lg:w-96">
+                            <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+                            <input
+                                value={searchTerm}
+                                onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+                                className="w-full bg-background border border-outline-variant rounded-lg py-2.5 pr-10 pl-4 font-body-md text-body-md focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-shadow"
+                                placeholder="البحث بالاسم، البريد أو الهاتف..."
+                                type="text"
+                            />
+                        </div>
+
+                        {/* Enterprise Advanced Filters */}
+                        <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+                            <select
+                                value={filterRole}
+                                onChange={(e) => { setFilterRole(e.target.value); setCurrentPage(1); }}
+                                className="bg-background border border-outline-variant rounded-lg py-2.5 px-4 font-body-md text-body-md focus:border-primary focus:ring-1 focus:outline-none transition-shadow min-w-[140px] cursor-pointer appearance-none"
+                                style={{ backgroundPosition: 'left 10px center', backgroundRepeat: 'no-repeat', backgroundSize: '18px', backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'%236b7280\'%3E%3Cpath d=\'M7 10l5 5 5-5z\'/%3E%3C/svg%3E")' }}
+                            >
+                                <option value="ALL">جميع الصلاحيات</option>
+                                {roles.map(r => <option key={r.role_id || r.id} value={r.role_name}>{r.role_name}</option>)}
+                            </select>
+
+                            <select
+                                value={filterLocation}
+                                onChange={(e) => { setFilterLocation(e.target.value); setCurrentPage(1); }}
+                                className="bg-background border border-outline-variant rounded-lg py-2.5 px-4 font-body-md text-body-md focus:border-primary focus:ring-1 focus:outline-none transition-shadow min-w-[140px] cursor-pointer appearance-none"
+                                style={{ backgroundPosition: 'left 10px center', backgroundRepeat: 'no-repeat', backgroundSize: '18px', backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'%236b7280\'%3E%3Cpath d=\'M7 10l5 5 5-5z\'/%3E%3C/svg%3E")' }}
+                            >
+                                <option value="ALL">كل المحافظات</option>
+                                {uniqueLocations.map(loc => <option key={loc} value={loc}>{loc}</option>)}
+                            </select>
+
+                            <select
+                                value={filterStatus}
+                                onChange={(e) => { setFilterStatus(e.target.value); setCurrentPage(1); }}
+                                className="bg-background border border-outline-variant rounded-lg py-2.5 px-4 font-body-md text-body-md focus:border-primary focus:ring-1 focus:outline-none transition-shadow min-w-[140px] cursor-pointer appearance-none"
+                                style={{ backgroundPosition: 'left 10px center', backgroundRepeat: 'no-repeat', backgroundSize: '18px', backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'%236b7280\'%3E%3Cpath d=\'M7 10l5 5 5-5z\'/%3E%3C/svg%3E")' }}
+                            >
+                                <option value="ALL">كل الحالات</option>
+                                <option value="ACTIVE">الحسابات النشطة</option>
+                                <option value="SUSPENDED">الحسابات الموقوفة</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
 
