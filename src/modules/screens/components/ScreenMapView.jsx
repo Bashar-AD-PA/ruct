@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useMemo } from 'react';
 import { MapPin, Monitor, Wifi, WifiOff, Wrench } from 'lucide-react';
+import 'leaflet.markercluster/dist/MarkerCluster.css';
+import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 
 // Leaflet CSS is loaded via index.html or index.css
 // We use dynamic import to avoid SSR issues
@@ -128,6 +130,10 @@ const ScreenMapView = ({
       try {
         const leaflet = await import('leaflet');
         L = leaflet.default;
+        
+        // Attach to window for the plugin to work
+        window.L = L;
+        await import('leaflet.markercluster');
 
         // Fix marker icons
         delete L.Icon.Default.prototype._getIconUrl;
@@ -162,7 +168,10 @@ const ScreenMapView = ({
           }
         ).addTo(map);
 
-        markersLayerRef.current = L.layerGroup().addTo(map);
+        markersLayerRef.current = L.markerClusterGroup({
+          showCoverageOnHover: false,
+          maxClusterRadius: 50,
+        }).addTo(map);
         mapInstanceRef.current = map;
 
         if (onMapReady) onMapReady(map);
@@ -275,11 +284,11 @@ const ScreenMapView = ({
   }, [visibleScreens, mapView, selectedStreet]);
 
   return (
-    <div className="relative w-full h-full rounded-2xl overflow-hidden">
+    <div className="relative w-full h-full rounded-2xl overflow-hidden z-0">
       <div ref={mapRef} className="w-full h-full" style={{ minHeight: '400px' }} />
-      
+
       {/* Legend */}
-      <div className="absolute bottom-4 right-4 bg-white/90 backdrop-blur-sm rounded-xl px-3 py-2 border border-gray-200 shadow-lg z-[1000]">
+      <div className="absolute bottom-4 right-4 bg-white/90 backdrop-blur-sm rounded-xl px-3 py-2 border border-gray-200 shadow-lg z-[400]">
         <p className="text-[9px] font-black text-gray-500 uppercase tracking-wider mb-1.5">حالة الشاشات</p>
         {Object.entries(STATUS_LABELS).map(([status, label]) => (
           <div key={status} className="flex items-center gap-1.5 mb-1">
@@ -291,7 +300,7 @@ const ScreenMapView = ({
 
       {/* Screen count badge */}
       {visibleScreens.length > 0 && (
-        <div className="absolute top-4 right-4 bg-[#145d6a] text-white text-xs font-black px-3 py-1.5 rounded-full shadow-lg z-[1000] flex items-center gap-1.5">
+        <div className="absolute top-4 right-4 bg-[#145d6a] text-white text-xs font-black px-3 py-1.5 rounded-full shadow-lg z-[400] flex items-center gap-1.5">
           <Monitor className="w-3 h-3" />
           {visibleScreens.length} شاشة
         </div>

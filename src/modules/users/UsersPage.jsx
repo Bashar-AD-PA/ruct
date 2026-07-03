@@ -201,12 +201,12 @@ const UsersPage = () => {
         return sortableUsers;
     }, [users, sortConfig]);
 
-    const filteredUsers = sortedUsers.filter(u => 
-        (u.full_name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+    const filteredUsers = sortedUsers.filter(u =>
+        (u.full_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         (u.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         (u.phone || '').includes(searchTerm)
     );
-    
+
     const paginatedUsers = filteredUsers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
     const totalPages = Math.ceil(filteredUsers.length / itemsPerPage) || 1;
 
@@ -257,12 +257,12 @@ const UsersPage = () => {
                 <div className="p-4 border-b border-outline-variant flex flex-col sm:flex-row justify-between items-center gap-4 bg-surface">
                     <div className="relative w-full sm:w-72">
                         <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
-                        <input 
+                        <input
                             value={searchTerm}
                             onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-                            className="w-full bg-background border border-outline-variant rounded-lg py-2 pr-10 pl-4 font-body-md text-body-md focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-shadow" 
-                            placeholder="البحث في المستخدمين..." 
-                            type="text" 
+                            className="w-full bg-background border border-outline-variant rounded-lg py-2 pr-10 pl-4 font-body-md text-body-md focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-shadow"
+                            placeholder="البحث في المستخدمين..."
+                            type="text"
                         />
                     </div>
                 </div>
@@ -360,9 +360,7 @@ const UsersPage = () => {
                                                 <button onClick={(e) => { e.stopPropagation(); handleOpenModal('edit', item) }} className="text-on-surface-variant hover:text-primary transition-colors p-1" title="تعديل الحساب">
                                                     <span className="material-symbols-outlined text-xl">edit</span>
                                                 </button>
-                                                <button onClick={(e) => { e.stopPropagation(); handleOpenModal('edit-role', item) }} className="text-on-surface-variant hover:text-secondary transition-colors p-1" title="إدارة الصلاحيات">
-                                                    <span className="material-symbols-outlined text-xl">manage_accounts</span>
-                                                </button>
+
                                                 <button onClick={(e) => { e.stopPropagation(); setDeleteTarget(item.user_id) }} className="text-on-surface-variant hover:text-error transition-colors p-1" title="حذف">
                                                     <span className="material-symbols-outlined text-xl">delete</span>
                                                 </button>
@@ -381,16 +379,16 @@ const UsersPage = () => {
                             عرض <span className="font-medium text-on-surface">{(currentPage - 1) * itemsPerPage + 1}</span> إلى <span className="font-medium text-on-surface">{Math.min(currentPage * itemsPerPage, filteredUsers.length)}</span> من أصل <span className="font-medium text-on-surface">{filteredUsers.length}</span> مستخدم
                         </p>
                         <div className="flex items-center gap-2">
-                            <button 
+                            <button
                                 disabled={currentPage === 1}
                                 onClick={() => setCurrentPage(p => p - 1)}
                                 className="w-8 h-8 flex items-center justify-center rounded-md border border-outline-variant bg-background text-on-surface-variant hover:bg-surface-container-low transition-colors disabled:opacity-50"
                             >
                                 <span className="material-symbols-outlined text-sm">chevron_right</span>
                             </button>
-                            
+
                             {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                                <button 
+                                <button
                                     key={page}
                                     onClick={() => setCurrentPage(page)}
                                     className={`w-8 h-8 flex items-center justify-center rounded-md border font-medium text-sm transition-colors ${currentPage === page ? 'bg-primary text-on-primary border-primary' : 'border-outline-variant bg-background text-on-surface hover:bg-surface-container-low'}`}
@@ -399,7 +397,7 @@ const UsersPage = () => {
                                 </button>
                             ))}
 
-                            <button 
+                            <button
                                 disabled={currentPage === totalPages}
                                 onClick={() => setCurrentPage(p => p + 1)}
                                 className="w-8 h-8 flex items-center justify-center rounded-md border border-outline-variant bg-background text-on-surface-variant hover:bg-surface-container-low transition-colors disabled:opacity-50"
@@ -428,7 +426,7 @@ const UsersPage = () => {
                                 </p>
                             </div>
                         </div>
-                        
+
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-4">
                                 <span className="block font-caption text-caption text-on-surface-variant mb-2 font-medium">الصلاحية (الدور)</span>
@@ -464,85 +462,85 @@ const UsersPage = () => {
                         </button>
                     </div>
                 ) : (
-                <form onSubmit={handleSubmit} className="space-y-6 mt-4" dir="rtl">
-                    {(modalConfig.type === 'add' || modalConfig.type === 'edit') && (
-                        <div className="space-y-4">                            
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className={labelClass}>الاسم الكامل <span className="text-error">*</span></label>
-                                    <input type="text" required value={form.full_name} onChange={e => setForm({ ...form, full_name: e.target.value })} className={inputClass} placeholder="الاسم" />
+                    <form onSubmit={handleSubmit} className="space-y-6 mt-4" dir="rtl">
+                        {(modalConfig.type === 'add' || modalConfig.type === 'edit') && (
+                            <div className="space-y-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className={labelClass}>الاسم الكامل <span className="text-error">*</span></label>
+                                        <input type="text" required value={form.full_name} onChange={e => setForm({ ...form, full_name: e.target.value })} className={inputClass} placeholder="الاسم" />
+                                    </div>
+                                    <div>
+                                        <label className={labelClass}>الموقع / المحافظة</label>
+                                        <input type="text" value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} className={inputClass} placeholder="الموقع" />
+                                    </div>
                                 </div>
-                                <div>
-                                    <label className={labelClass}>الموقع / المحافظة</label>
-                                    <input type="text" value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} className={inputClass} placeholder="الموقع" />
-                                </div>
-                            </div>
-                            
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className={labelClass}>البريد الإلكتروني <span className="text-error">*</span></label>
-                                    <input type="email" required value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} className={inputClass} dir="ltr" placeholder="user@example.com" />
-                                </div>
-                                <div>
-                                    <label className={labelClass}>رقم الهاتف</label>
-                                    <input type="tel" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} className={inputClass} dir="ltr" placeholder="رقم الهاتف" />
-                                </div>
-                            </div>
 
-                            <div>
-                                <label className={labelClass}>كلمة المرور {modalConfig.type === 'add' && <span className="text-error">*</span>}</label>
-                                <div className="relative">
-                                    <input type={showPassword ? "text" : "password"} required={modalConfig.type === 'add'} minLength={6} value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} className={`${inputClass} !pl-10`} placeholder={modalConfig.type === 'edit' ? "اتركه فارغاً للحفاظ على كلمة المرور الحالية" : "••••••••"} dir={form.password ? 'ltr' : 'rtl'} />
-                                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface outline-none flex items-center justify-center">
-                                        <span className="material-symbols-outlined text-xl">{showPassword ? 'visibility_off' : 'visibility'}</span>
-                                    </button>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className={labelClass}>البريد الإلكتروني <span className="text-error">*</span></label>
+                                        <input type="email" required value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} className={inputClass} dir="ltr" placeholder="user@example.com" />
+                                    </div>
+                                    <div>
+                                        <label className={labelClass}>رقم الهاتف</label>
+                                        <input type="tel" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} className={inputClass} dir="ltr" placeholder="رقم الهاتف" />
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
-                    )}
-                    
-                    <div className="bg-surface-container-lowest p-5 rounded-xl border border-outline-variant space-y-4">
-                        <div className="flex items-center gap-2 mb-2 text-primary">
-                            <span className="material-symbols-outlined text-xl">admin_panel_settings</span>
-                            <h4 className="font-label-md text-label-md">هيكل الصلاحيات الوصولية</h4>
-                        </div>
-                        <div>
-                            <label className={labelClass}>تصنيف الصلاحية <span className="text-error">*</span></label>
-                            <select required value={form.role_id} onChange={e => setForm({ ...form, role_id: e.target.value })} className={inputClass}>
-                                <option value="">-- اضغط لتعيين الدور الإداري --</option>
-                                {roles.map(r => <option key={r.role_id || r.id} value={r.role_id || r.id}>{r.role_name}</option>)}
-                            </select>
-                        </div>
-                    </div>
 
-                    {roles.find(r => (r.role_id || r.id) == form.role_id)?.role_name === 'ScreenOwner' && (
-                        <div className="bg-surface-container-lowest p-5 rounded-xl border border-outline-variant space-y-4 mt-2">
-                            <div className="flex items-center gap-2 mb-2 text-[#a855f7]">
-                                <span className="material-symbols-outlined text-xl">account_balance</span>
-                                <h4 className="font-label-md text-label-md">السجل المالي</h4>
+                                <div>
+                                    <label className={labelClass}>كلمة المرور {modalConfig.type === 'add' && <span className="text-error">*</span>}</label>
+                                    <div className="relative">
+                                        <input type={showPassword ? "text" : "password"} required={modalConfig.type === 'add'} minLength={6} value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} className={`${inputClass} !pl-10`} placeholder={modalConfig.type === 'edit' ? "اتركه فارغاً للحفاظ على كلمة المرور الحالية" : "••••••••"} dir={form.password ? 'ltr' : 'rtl'} />
+                                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface outline-none flex items-center justify-center">
+                                            <span className="material-symbols-outlined text-xl">{showPassword ? 'visibility_off' : 'visibility'}</span>
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
-                            
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className={labelClass}>البنك المصرفي</label>
-                                    <input type="text" value={form.bank_name} onChange={e => setForm({ ...form, bank_name: e.target.value })} className={inputClass} />
-                                </div>
-                                <div>
-                                    <label className={labelClass}>اسم المستفيد</label>
-                                    <input type="text" value={form.account_name} onChange={e => setForm({ ...form, account_name: e.target.value })} className={inputClass} />
-                                </div>
+                        )}
+
+                        <div className="bg-surface-container-lowest p-5 rounded-xl border border-outline-variant space-y-4">
+                            <div className="flex items-center gap-2 mb-2 text-primary">
+                                <span className="material-symbols-outlined text-xl">admin_panel_settings</span>
+                                <h4 className="font-label-md text-label-md">هيكل الصلاحيات الوصولية</h4>
                             </div>
                             <div>
-                                <label className={labelClass}>رقم الحساب / الآيبان (IBAN)</label>
-                                <input type="text" value={form.account_number} onChange={e => setForm({ ...form, account_number: e.target.value })} className={inputClass} dir="ltr" />
+                                <label className={labelClass}>تصنيف الصلاحية <span className="text-error">*</span></label>
+                                <select required value={form.role_id} onChange={e => setForm({ ...form, role_id: e.target.value })} className={inputClass}>
+                                    <option value="">-- اضغط لتعيين الدور الإداري --</option>
+                                    {roles.map(r => <option key={r.role_id || r.id} value={r.role_id || r.id}>{r.role_name}</option>)}
+                                </select>
                             </div>
                         </div>
-                    )}
 
-                    <button type="submit" disabled={formLoading} className="w-full bg-primary text-on-primary font-label-md hover:bg-primary/90 py-3 rounded-lg shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed mt-6">
-                        {formLoading ? 'جاري المعالجة...' : 'تأكيد الحفظ'}
-                    </button>
-                </form>
+                        {roles.find(r => (r.role_id || r.id) == form.role_id)?.role_name === 'ScreenOwner' && (
+                            <div className="bg-surface-container-lowest p-5 rounded-xl border border-outline-variant space-y-4 mt-2">
+                                <div className="flex items-center gap-2 mb-2 text-[#a855f7]">
+                                    <span className="material-symbols-outlined text-xl">account_balance</span>
+                                    <h4 className="font-label-md text-label-md">السجل المالي</h4>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className={labelClass}>البنك المصرفي</label>
+                                        <input type="text" value={form.bank_name} onChange={e => setForm({ ...form, bank_name: e.target.value })} className={inputClass} />
+                                    </div>
+                                    <div>
+                                        <label className={labelClass}>اسم المستفيد</label>
+                                        <input type="text" value={form.account_name} onChange={e => setForm({ ...form, account_name: e.target.value })} className={inputClass} />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className={labelClass}>رقم الحساب / الآيبان (IBAN)</label>
+                                    <input type="text" value={form.account_number} onChange={e => setForm({ ...form, account_number: e.target.value })} className={inputClass} dir="ltr" />
+                                </div>
+                            </div>
+                        )}
+
+                        <button type="submit" disabled={formLoading} className="w-full bg-primary text-on-primary font-label-md hover:bg-primary/90 py-3 rounded-lg shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed mt-6">
+                            {formLoading ? 'جاري المعالجة...' : 'تأكيد الحفظ'}
+                        </button>
+                    </form>
                 )}
             </Modal>
 

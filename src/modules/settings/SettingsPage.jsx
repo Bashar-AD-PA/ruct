@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import useAuthStore from '../../store/useAuthStore';
 import useToastStore from '../../store/useToastStore';
 import { motion, AnimatePresence } from 'framer-motion';
+import axiosClient from '../../core/api/axiosClient';
+import { ENDPOINTS } from '../../core/api/endpoints';
 
 const SettingsPage = () => {
     const { user } = useAuthStore();
@@ -17,11 +19,7 @@ const SettingsPage = () => {
         phone: user?.phone || '+967 777 123 456',
     });
 
-    const [originalData] = useState({ ...formData });
-
-    // UI States for verification
-    const [emailPending, setEmailPending] = useState(false);
-    const [phoneVerified, setPhoneVerified] = useState(false);
+    const [originalData, setOriginalData] = useState({ ...formData });
 
     const isEmailChanged = formData.email !== originalData.email;
     const isPhoneChanged = formData.phone !== originalData.phone;
@@ -30,39 +28,29 @@ const SettingsPage = () => {
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
-        if (e.target.name === 'email') setEmailPending(false);
-        if (e.target.name === 'phone') setPhoneVerified(false);
     };
 
-    const handleRequestEmailVerification = () => {
-        addToast('تم إرسال رابط التفعيل للبريد الجديد. يرجى التحقق من صندوق الوارد.', 'primary');
-        setEmailPending(true);
-    };
-
-    const handleRequestPhoneVerification = () => {
-        // Mocking the OTP process
-        addToast('تم إرسال رمز OTP المكون من 6 أرقام إلى هاتفك.', 'primary');
-        setTimeout(() => {
-            setPhoneVerified(true);
-            addToast('تم تأكيد الرقم بنجاح (محاكاة)', 'success');
-        }, 1500);
-    };
-
-    const handleSaveProfile = () => {
+    const handleSaveProfile = async () => {
         if (!isDirty) return;
-        
-        // Security logic check before saving
-        if (isEmailChanged && !emailPending) {
-            addToast('عذراً، يجب إرسال رابط تأكيد للبريد الإلكتروني الجديد أولاً.', 'error');
-            return;
-        }
-        if (isPhoneChanged && !phoneVerified) {
-            addToast('عذراً، يجب تأكيد رقم الهاتف الجديد عبر رسالة (OTP) أولاً.', 'error');
-            return;
-        }
 
-        addToast('تم حفظ الملف الشخصي وتحديث بياناتك بنجاح!', 'success');
-        // Usually, here you update the global state or local original states
+        try {
+            const res = await axiosClient.put(ENDPOINTS.AUTH.UPDATE_PROFILE, {
+                full_name: formData.full_name,
+                email: formData.email,
+                phone: formData.phone
+            });
+            // Update global state and original state
+            useAuthStore.getState().setUser(res.data.user);
+            setOriginalData({ ...formData });
+            addToast('تم حفظ الملف الشخصي وتحديث بياناتك بنجاح!', 'success');
+        } catch (error) {
+            addToast(error.response?.data?.message || 'حدث خطأ أثناء تعديل الحساب، يرجى المحاولة لاحقاً', 'error');
+            if (error.response?.data?.errors) {
+                Object.values(error.response.data.errors).forEach(errArray => {
+                    addToast(errArray[0], 'error');
+                });
+            }
+        }
     };
 
     const notifRows = [
@@ -103,9 +91,6 @@ const SettingsPage = () => {
                         <h1 className="text-2xl font-black text-on-surface mb-0.5 tracking-tight">
                             الإعدادات الشخصية
                         </h1>
-                        <p className="text-sm font-medium text-on-surface-variant">
-                            إدارة هويتك الرقمية، تخصيص الإشعارات، والتحكم بمفاتيح الأمان.
-                        </p>
                     </div>
                 </div>
             </div>
@@ -139,9 +124,6 @@ const SettingsPage = () => {
                                 <span className="material-symbols-outlined text-xl text-on-surface-variant">badge</span>
                                 الإسم الكامل
                             </label>
-                            <p className="text-xs text-on-surface-variant mt-1.5 leading-relaxed font-medium">
-                                سيظهر هذا الاسم لباقي الموظفين والعملاء في النظام (يمكن تعديله فوراً).
-                            </p>
                         </div>
                         <div className="md:w-2/3">
                             <input
@@ -161,9 +143,6 @@ const SettingsPage = () => {
                                 <span className="material-symbols-outlined text-xl text-on-surface-variant">phone_iphone</span>
                                 رقم الهاتف
                             </label>
-                            <p className="text-xs text-on-surface-variant mt-1.5 leading-relaxed font-medium">
-                                يستخدم لإرسال إشعارات وتأكيدات (OTP) الهامة.
-                            </p>
                         </div>
                         <div className="md:w-2/3">
                             <div className="relative">
@@ -173,38 +152,8 @@ const SettingsPage = () => {
                                     dir="ltr"
                                     value={formData.phone}
                                     onChange={handleChange}
-                                    className={`w-full bg-surface-container border rounded-xl p-3.5 text-[15px] font-mono font-bold focus:outline-none transition-all shadow-inner pr-32 ${
-                                        isPhoneChanged && !phoneVerified 
-                                            ? 'border-orange-400 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 text-orange-700' 
-                                            : phoneVerified
-                                                ? 'border-emerald-400 text-emerald-700'
-                                                : 'border-outline-variant text-on-surface focus:border-primary focus:ring-1 focus:ring-primary'
-                                    }`}
+                                    className="w-full bg-surface-container border border-outline-variant rounded-xl p-3.5 text-[15px] font-mono font-bold text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all shadow-inner"
                                 />
-                                <AnimatePresence>
-                                    {isPhoneChanged && !phoneVerified && (
-                                        <motion.button
-                                            initial={{ opacity: 0, scale: 0.9 }}
-                                            animate={{ opacity: 1, scale: 1 }}
-                                            exit={{ opacity: 0, scale: 0.9 }}
-                                            onClick={handleRequestPhoneVerification}
-                                            className="absolute right-2 top-2 bottom-2 bg-gradient-to-r from-orange-500 to-orange-400 hover:from-orange-600 hover:to-orange-500 text-white text-xs font-bold px-4 rounded-lg shadow-sm transition-all flex items-center gap-1.5"
-                                        >
-                                            <span className="material-symbols-outlined text-[16px]">sms</span>
-                                            جلب رمز التأكيد
-                                        </motion.button>
-                                    )}
-                                    {phoneVerified && isPhoneChanged && (
-                                        <motion.div
-                                            initial={{ opacity: 0, scale: 0.9 }}
-                                            animate={{ opacity: 1, scale: 1 }}
-                                            className="absolute right-3 top-0 bottom-0 flex items-center text-emerald-600 text-xs font-bold gap-1.5"
-                                        >
-                                            <span className="material-symbols-outlined text-[18px]">verified</span>
-                                            تم التحقق من الرقم الجديد
-                                        </motion.div>
-                                    )}
-                                </AnimatePresence>
                             </div>
                         </div>
                     </div>
@@ -216,9 +165,6 @@ const SettingsPage = () => {
                                 <span className="material-symbols-outlined text-xl text-on-surface-variant">mail</span>
                                 البريد الإلكتروني
                             </label>
-                            <p className="text-xs text-on-surface-variant mt-1.5 leading-relaxed font-medium">
-                                المعرف الأساسي لحسابك. يتطلب تغييره التحقق عبر الايميل الجديد لضمان الأمان العالي.
-                            </p>
                         </div>
                         <div className="md:w-2/3">
                             <div className="relative">
@@ -228,49 +174,9 @@ const SettingsPage = () => {
                                     dir="ltr"
                                     value={formData.email}
                                     onChange={handleChange}
-                                    className={`w-full bg-surface-container border rounded-xl p-3.5 text-[15px] font-mono leading-none font-bold focus:outline-none transition-all shadow-inner pr-44 ${
-                                        isEmailChanged 
-                                            ? 'border-error/60 focus:border-error focus:ring-1 focus:ring-error text-error/90 bg-error/5' 
-                                            : 'border-outline-variant text-on-surface focus:border-primary focus:ring-1 focus:ring-primary'
-                                    }`}
+                                    className="w-full bg-surface-container border border-outline-variant rounded-xl p-3.5 text-[15px] font-mono leading-none font-bold text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all shadow-inner"
                                 />
-                                <AnimatePresence>
-                                    {isEmailChanged && (
-                                        <motion.button
-                                            initial={{ opacity: 0, scale: 0.9 }}
-                                            animate={{ opacity: 1, scale: 1 }}
-                                            exit={{ opacity: 0, scale: 0.9 }}
-                                            onClick={handleRequestEmailVerification}
-                                            disabled={emailPending}
-                                            className={`absolute right-2 top-2 bottom-2 text-white text-xs font-bold px-4 rounded-lg shadow-sm transition-all flex items-center gap-1.5 ${
-                                                emailPending 
-                                                    ? 'bg-emerald-500 hover:bg-emerald-600' 
-                                                    : 'bg-gradient-to-r from-error to-error/80 hover:from-error/90 hover:to-error hover:shadow-error/20'
-                                            }`}
-                                        >
-                                            <span className="material-symbols-outlined text-[16px]">
-                                                {emailPending ? 'mark_email_read' : 'outgoing_mail'}
-                                            </span>
-                                            {emailPending ? 'تم الإرسال.. (بانتظار التأكيد)' : 'إرسال رابط التفعيل'}
-                                        </motion.button>
-                                    )}
-                                </AnimatePresence>
                             </div>
-                            
-                            {/* Email Hint Alert */}
-                            <AnimatePresence>
-                                {isEmailChanged && !emailPending && (
-                                    <motion.div 
-                                        initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }}
-                                        className="bg-error/10 border border-error/20 rounded-lg p-3 mt-3 flex items-start gap-2.5"
-                                    >
-                                        <span className="material-symbols-outlined text-error text-[18px] mt-0.5" style={{ fontVariationSettings: "'FILL' 1" }}>error</span>
-                                        <p className="text-xs font-bold text-error leading-relaxed">
-                                            إجراء أمني: سيبقى إيميلك القديم يعمل حتى تقوم بالضغط على الرابط الذي سنُرسله للإيميل التابع للحقل أعلاه.
-                                        </p>
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
                         </div>
                     </div>
                 </div>
@@ -287,12 +193,12 @@ const SettingsPage = () => {
 
                 <div className="divide-y divide-outline-variant/40">
                     {notifRows.map((row) => (
-                        <div key={row.id} className="p-6 flex items-center justify-between hover:bg-surface-container-lowest/50 transition-colors">
-                            <div className="flex items-center gap-4">
+                        <div key={row.id} className="p-6 flex flex-col sm:flex-row items-center justify-between hover:bg-surface-container-lowest/50 transition-colors gap-4">
+                            <div className="flex items-center gap-4 w-full sm:w-auto flex-1">
                                 <div className={`w-12 h-12 rounded-xl ${row.iconBg} ${row.iconColor} flex items-center justify-center flex-shrink-0 shadow-sm border border-outline-variant/30`}>
                                     <span className="material-symbols-outlined text-[22px]">{row.icon}</span>
                                 </div>
-                                <div className="max-w-lg">
+                                <div className="flex-1">
                                     <h4 className="font-bold text-[15px] text-on-surface mb-1">{row.label}</h4>
                                     <p className="text-xs text-on-surface-variant font-medium leading-relaxed">{row.description}</p>
                                 </div>

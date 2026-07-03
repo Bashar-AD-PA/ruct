@@ -410,11 +410,11 @@ const Dashboard = () => {
     /* ── Date period filter ── */
     const [period, setPeriod] = useState('month');
     const PERIOD_OPTS = [
-        { value: 'today',  label: 'اليوم' },
-        { value: 'week',   label: 'هذا الأسبوع' },
-        { value: 'month',  label: 'هذا الشهر' },
-        { value: 'year',   label: 'هذا العام' },
-        { value: 'all',    label: 'الكل' },
+        { value: 'today', label: 'اليوم' },
+        { value: 'week', label: 'هذا الأسبوع' },
+        { value: 'month', label: 'هذا الشهر' },
+        { value: 'year', label: 'هذا العام' },
+        { value: 'all', label: 'الكل' },
     ];
 
     const filterByPeriod = (items, dateKey) => {
@@ -423,13 +423,13 @@ const Dashboard = () => {
         return items.filter(item => {
             const d = new Date(item[dateKey]);
             if (isNaN(d)) return true;
-            if (period === 'today')  return d.toDateString() === now.toDateString();
+            if (period === 'today') return d.toDateString() === now.toDateString();
             if (period === 'week') {
                 const weekAgo = new Date(now); weekAgo.setDate(now.getDate() - 7);
                 return d >= weekAgo;
             }
             if (period === 'month') return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-            if (period === 'year')  return d.getFullYear() === now.getFullYear();
+            if (period === 'year') return d.getFullYear() === now.getFullYear();
             return true;
         });
     };
@@ -607,7 +607,7 @@ const Dashboard = () => {
                             ))}
                         </select>
                     </div>
-                    <button 
+                    <button
                         onClick={() => navigate('/dashboard/ads/create')}
                         style={{
                             display: 'flex', alignItems: 'center', gap: '6px',
