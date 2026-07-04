@@ -19,7 +19,7 @@ const StripePaymentModal = ({ isOpen, onClose, advertisement, onSuccess }) => {
     useEffect(() => {
         if (isOpen) {
             setIsFetchingMethods(true);
-            axiosClient.get('/api/payment-methods')
+            axiosClient.get('/payment-methods')
                 .then(res => {
                     if (res.data.success) {
                         setPaymentMethods(res.data.data);
