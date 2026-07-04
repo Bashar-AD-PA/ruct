@@ -407,6 +407,33 @@ const Dashboard = () => {
     /* gov filter dropdown */
     const [govSel, setGovSel] = useState('all');
 
+    /* ── Date period filter ── */
+    const [period, setPeriod] = useState('month');
+    const PERIOD_OPTS = [
+        { value: 'today', label: 'اليوم' },
+        { value: 'week', label: 'هذا الأسبوع' },
+        { value: 'month', label: 'هذا الشهر' },
+        { value: 'year', label: 'هذا العام' },
+        { value: 'all', label: 'الكل' },
+    ];
+
+    const filterByPeriod = (items, dateKey) => {
+        if (period === 'all') return items;
+        const now = new Date();
+        return items.filter(item => {
+            const d = new Date(item[dateKey]);
+            if (isNaN(d)) return true;
+            if (period === 'today') return d.toDateString() === now.toDateString();
+            if (period === 'week') {
+                const weekAgo = new Date(now); weekAgo.setDate(now.getDate() - 7);
+                return d >= weekAgo;
+            }
+            if (period === 'month') return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+            if (period === 'year') return d.getFullYear() === now.getFullYear();
+            return true;
+        });
+    };
+
     const addToast = useToastStore(s => s.addToast);
 
     const load = useCallback(async () => {
@@ -475,13 +502,24 @@ const Dashboard = () => {
     const screensByGov = charts.screens_by_governorate || data?.screens_by_governorate || [];
 
     const rawLogs = data?.recent_logs || [];
-    const filtered = rawLogs.filter(l =>
+    const periodLogs = filterByPeriod(rawLogs, 'playback_timestamp');
+    const filtered = periodLogs.filter(l =>
         !search ||
         l.ad_name?.toLowerCase().includes(search.toLowerCase()) ||
         l.screen_name?.toLowerCase().includes(search.toLowerCase())
     );
     const totalPages = Math.max(1, Math.ceil(filtered.length / PER));
     const pageLogs = filtered.slice((page - 1) * PER, page * PER);
+
+    /* weekly revenue filtered by period */
+    const filteredWeekly = (() => {
+        if (period === 'all' || period === 'week' || period === 'month') return weeklyRevenue;
+        if (period === 'today') {
+            const today = new Date().toLocaleDateString('en-US', { weekday: 'short' });
+            return weeklyRevenue.filter(r => (r.day ?? r.label) === today);
+        }
+        return weeklyRevenue;
+    })();
 
     /* screen ratio */
     const screenRatio = totalScreens > 0 ? Math.round((activeScreens / totalScreens) * 100) : 0;
@@ -532,22 +570,44 @@ const Dashboard = () => {
                 </div>
 
                 {/* action buttons */}
-                <div style={{ display: 'flex', gap: '10px' }}>
-                    <button 
-                        onClick={() => addToast('ميزة فلترة الإحصائيات حسب التاريخ ستكون متاحة قريباً', 'info')}
-                        style={{
-                            display: 'flex', alignItems: 'center', gap: '6px',
-                            padding: '8px 16px', borderRadius: '10px',
-                            background: S.surfaceContainerLowest,
-                            border: `1px solid ${S.outlineVariant}`,
-                            color: S.onSurface, fontSize: '13px', fontWeight: 500,
-                            cursor: 'pointer', fontFamily: "'IBM Plex Sans Arabic', sans-serif",
-                            boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                    {/* ── Period filter ── */}
+                    <div style={{
+                        display: 'flex', alignItems: 'center', gap: '0',
+                        border: `1px solid ${S.outlineVariant}`,
+                        borderRadius: '10px', overflow: 'hidden',
+                        background: S.surfaceContainerLowest,
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                    }}>
+                        <span style={{
+                            padding: '0 10px', display: 'flex', alignItems: 'center',
+                            color: S.outline, borderLeft: `1px solid ${S.outlineVariant}`,
+                            height: '36px',
                         }}>
-                        <CalendarDays style={{ width: 15, height: 15 }} />
-                        هذا الشهر
-                    </button>
-                    <button 
+                            <CalendarDays style={{ width: 14, height: 14 }} />
+                        </span>
+                        <select
+                            value={period}
+                            onChange={e => { setPeriod(e.target.value); setPage(1); }}
+                            style={{
+                                border: 'none', outline: 'none',
+                                background: 'transparent',
+                                padding: '0 12px 0 8px',
+                                height: '36px',
+                                fontSize: '13px', fontWeight: 600,
+                                color: S.onSurface,
+                                cursor: 'pointer',
+                                direction: 'rtl',
+                                fontFamily: "'IBM Plex Sans Arabic', sans-serif",
+                                minWidth: '110px',
+                            }}
+                        >
+                            {PERIOD_OPTS.map(o => (
+                                <option key={o.value} value={o.value}>{o.label}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <button
                         onClick={() => navigate('/dashboard/ads/create')}
                         style={{
                             display: 'flex', alignItems: 'center', gap: '6px',
@@ -684,7 +744,7 @@ const Dashboard = () => {
                             ))}
                         </select>
                     </div>
-                    <WeeklyChart weeklyRevenue={weeklyRevenue} />
+                    <WeeklyChart weeklyRevenue={filteredWeekly} />
                 </motion.div>
 
                 {/* Donut chart */}

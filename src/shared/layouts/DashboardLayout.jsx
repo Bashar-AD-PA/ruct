@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { Bell, User as UserIcon, Menu, LogOut, Grid, Sun, Moon, Languages } from 'lucide-react';
 import useAuthStore from '../../store/useAuthStore';
@@ -71,11 +71,24 @@ const T = {
 const DashboardLayout = () => {
     const { user, logout }           = useAuthStore();
     const { roleName }               = usePermission();
-    const { theme, toggleTheme, language, toggleLanguage } = useUIStore();
+    const { theme, toggleTheme, language, setLanguage } = useUIStore();
     const navigate = useNavigate();
 
     const [isMobileMenuOpen,   setIsMobileMenuOpen]   = useState(false);
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+    const [isLauncherOpen,     setIsLauncherOpen]     = useState(false);
+    const launcherRef = useRef(null);
+
+    /* Close launcher on outside click */
+    useEffect(() => {
+        const handler = (e) => {
+            if (launcherRef.current && !launcherRef.current.contains(e.target)) {
+                setIsLauncherOpen(false);
+            }
+        };
+        if (isLauncherOpen) document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, [isLauncherOpen]);
 
     /* Derived */
     const isDark = theme === 'dark';
@@ -84,7 +97,7 @@ const DashboardLayout = () => {
     const lbl    = T[language] ?? T.ar;
 
     const handleLogout = () => { logout(); navigate('/login'); };
-    const navItems = getNavItems(roleName);
+    const navItems = getNavItems(roleName, language);
 
     /* ── Small icon-button helper (reusable inside header) ── */
     const IconBtn = ({ onClick, title, children }) => (
@@ -435,38 +448,81 @@ const DashboardLayout = () => {
                             }
                         </button>
 
-                        {/* 🌐 Language toggle */}
-                        <button
-                            onClick={toggleLanguage}
-                            title={lbl.switchLang}
-                            style={{
-                                background: S.surfaceContainerLow,
-                                border: `1px solid ${S.outlineVariant}`,
-                                borderRadius: '10px',
-                                height: 38,
-                                padding: '0 10px',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                gap: '5px',
-                                cursor: 'pointer',
-                                transition: 'all 0.2s ease',
-                                color: S.onSurfaceVariant,
-                                fontSize: '12px', fontWeight: 600,
-                                fontFamily: "'IBM Plex Sans Arabic', sans-serif",
-                                flexShrink: 0,
-                                whiteSpace: 'nowrap',
-                            }}
-                            onMouseEnter={e => {
-                                e.currentTarget.style.background = S.surfaceContainer;
-                                e.currentTarget.style.color = S.onSurface;
-                            }}
-                            onMouseLeave={e => {
-                                e.currentTarget.style.background = S.surfaceContainerLow;
-                                e.currentTarget.style.color = S.onSurfaceVariant;
-                            }}
-                        >
-                            <Languages style={{ width: 15, height: 15 }} />
-                            {lbl.switchLang}
-                        </button>
+                        {/* 🌐 Language buttons: EN | عربي */}
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            background: S.surfaceContainerLow,
+                            border: `1px solid ${S.outlineVariant}`,
+                            borderRadius: '10px',
+                            overflow: 'hidden',
+                            flexShrink: 0,
+                        }}>
+                            {/* English button */}
+                            <button
+                                onClick={() => setLanguage('en')}
+                                style={{
+                                    height: 38,
+                                    padding: '0 11px',
+                                    border: 'none',
+                                    borderRight: `1px solid ${S.outlineVariant}`,
+                                    background: language === 'en' ? S.primary : 'transparent',
+                                    color: language === 'en' ? '#ffffff' : S.onSurfaceVariant,
+                                    fontSize: '12px',
+                                    fontWeight: 700,
+                                    fontFamily: "'IBM Plex Sans Arabic', sans-serif",
+                                    cursor: language === 'en' ? 'default' : 'pointer',
+                                    transition: 'all 0.2s ease',
+                                    letterSpacing: '0.02em',
+                                }}
+                                onMouseEnter={e => {
+                                    if (language !== 'en') {
+                                        e.currentTarget.style.background = S.surfaceContainer;
+                                        e.currentTarget.style.color = S.onSurface;
+                                    }
+                                }}
+                                onMouseLeave={e => {
+                                    if (language !== 'en') {
+                                        e.currentTarget.style.background = 'transparent';
+                                        e.currentTarget.style.color = S.onSurfaceVariant;
+                                    }
+                                }}
+                            >
+                                English
+                            </button>
+
+                            {/* Arabic button */}
+                            <button
+                                onClick={() => setLanguage('ar')}
+                                style={{
+                                    height: 38,
+                                    padding: '0 11px',
+                                    border: 'none',
+                                    background: language === 'ar' ? S.primary : 'transparent',
+                                    color: language === 'ar' ? '#ffffff' : S.onSurfaceVariant,
+                                    fontSize: '12px',
+                                    fontWeight: 700,
+                                    fontFamily: "'IBM Plex Sans Arabic', sans-serif",
+                                    cursor: language === 'ar' ? 'default' : 'pointer',
+                                    transition: 'all 0.2s ease',
+                                    direction: 'rtl',
+                                }}
+                                onMouseEnter={e => {
+                                    if (language !== 'ar') {
+                                        e.currentTarget.style.background = S.surfaceContainer;
+                                        e.currentTarget.style.color = S.onSurface;
+                                    }
+                                }}
+                                onMouseLeave={e => {
+                                    if (language !== 'ar') {
+                                        e.currentTarget.style.background = 'transparent';
+                                        e.currentTarget.style.color = S.onSurfaceVariant;
+                                    }
+                                }}
+                            >
+                                عربي
+                            </button>
+                        </div>
 
                         {/* Notifications */}
                         <IconBtn onClick={() => navigate('/dashboard/notifications')} title={lbl.notifications}>
@@ -479,10 +535,123 @@ const DashboardLayout = () => {
                             }} />
                         </IconBtn>
 
-                        {/* Grid */}
-                        <IconBtn onClick={() => {}} title="">
-                            <Grid style={{ width: 17, height: 17 }} />
-                        </IconBtn>
+                        {/* ██ App Launcher ██ */}
+                        <div ref={launcherRef} style={{ position: 'relative' }}>
+                            <IconBtn
+                                onClick={() => setIsLauncherOpen(p => !p)}
+                                title={isRTL ? 'مشغّل التطبيقات' : 'App Launcher'}
+                            >
+                                <Grid style={{
+                                    width: 17, height: 17,
+                                    color: isLauncherOpen ? S.primaryContainer : S.onSurfaceVariant,
+                                    transition: 'color 0.2s',
+                                }} />
+                            </IconBtn>
+
+                            {/* Launcher panel */}
+                            {isLauncherOpen && (
+                                <div style={{
+                                    position: 'absolute',
+                                    top: 'calc(100% + 8px)',
+                                    [isRTL ? 'left' : 'right']: 0,
+                                    width: '280px',
+                                    background: S.surfaceContainerLowest,
+                                    border: `1px solid ${S.outlineVariant}`,
+                                    borderRadius: '16px',
+                                    boxShadow: '0 8px 32px rgba(0,0,0,0.14)',
+                                    zIndex: 999,
+                                    overflow: 'hidden',
+                                    animation: 'launcherIn 0.18s cubic-bezier(0.4,0,0.2,1)',
+                                }}>
+                                    {/* Header */}
+                                    <div style={{
+                                        padding: '12px 16px',
+                                        borderBottom: `1px solid ${S.outlineVariant}`,
+                                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                    }}>
+                                        <span style={{
+                                            fontSize: '13px', fontWeight: 700,
+                                            color: S.onSurface,
+                                            fontFamily: "'IBM Plex Sans Arabic', sans-serif",
+                                        }}>
+                                            {isRTL ? 'الوصول السريع' : 'Quick Access'}
+                                        </span>
+                                        <span style={{
+                                            fontSize: '10px',
+                                            color: S.outline,
+                                            fontFamily: "'IBM Plex Sans Arabic', sans-serif",
+                                        }}>
+                                            {navItems.length} {isRTL ? 'رابط' : 'links'}
+                                        </span>
+                                    </div>
+
+                                    {/* Grid of shortcuts */}
+                                    <div style={{
+                                        display: 'grid',
+                                        gridTemplateColumns: 'repeat(3, 1fr)',
+                                        gap: '2px',
+                                        padding: '8px',
+                                        maxHeight: '320px',
+                                        overflowY: 'auto',
+                                    }}>
+                                        {navItems.map((item) => (
+                                            <button
+                                                key={item.path}
+                                                onClick={() => { navigate(item.path); setIsLauncherOpen(false); }}
+                                                style={{
+                                                    display: 'flex', flexDirection: 'column',
+                                                    alignItems: 'center', justifyContent: 'center',
+                                                    gap: '8px',
+                                                    padding: '14px 8px',
+                                                    borderRadius: '12px',
+                                                    border: 'none',
+                                                    background: 'transparent',
+                                                    cursor: 'pointer',
+                                                    transition: 'background 0.15s, transform 0.1s',
+                                                }}
+                                                onMouseEnter={e => {
+                                                    e.currentTarget.style.background = S.surfaceContainerLow;
+                                                    e.currentTarget.style.transform = 'scale(0.97)';
+                                                }}
+                                                onMouseLeave={e => {
+                                                    e.currentTarget.style.background = 'transparent';
+                                                    e.currentTarget.style.transform = 'scale(1)';
+                                                }}
+                                            >
+                                                <div style={{
+                                                    width: 40, height: 40,
+                                                    borderRadius: '12px',
+                                                    background: S.surfaceContainer,
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                }}>
+                                                    <item.icon style={{ width: 20, height: 20, color: S.primaryContainer }} />
+                                                </div>
+                                                <span style={{
+                                                    fontSize: '11px', fontWeight: 600,
+                                                    color: S.onSurfaceVariant,
+                                                    fontFamily: "'IBM Plex Sans Arabic', sans-serif",
+                                                    textAlign: 'center',
+                                                    lineHeight: 1.3,
+                                                    whiteSpace: 'nowrap',
+                                                    overflow: 'hidden',
+                                                    textOverflow: 'ellipsis',
+                                                    maxWidth: '72px',
+                                                }}>
+                                                    {item.label}
+                                                </span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <style>{`
+                            @keyframes launcherIn {
+                                from { opacity: 0; transform: scale(0.95) translateY(-6px); }
+                                to   { opacity: 1; transform: scale(1)   translateY(0); }
+                            }
+                        `}</style>
 
                         {/* Divider */}
                         <div style={{ width: 1, height: 26, background: S.outlineVariant, margin: '0 4px' }} />

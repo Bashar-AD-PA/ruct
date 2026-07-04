@@ -27,12 +27,17 @@ const useUIStore = create((set) => ({
         set((state) => {
             const next = state.language === 'ar' ? 'en' : 'ar';
             localStorage.setItem('app-language', next);
-
-            // Apply direction & lang to <html>
             document.documentElement.setAttribute('lang', next);
             document.documentElement.setAttribute('dir', next === 'ar' ? 'rtl' : 'ltr');
-
             return { language: next };
+        }),
+
+    setLanguage: (lang) =>
+        set(() => {
+            localStorage.setItem('app-language', lang);
+            document.documentElement.setAttribute('lang', lang);
+            document.documentElement.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
+            return { language: lang };
         }),
 }));
 

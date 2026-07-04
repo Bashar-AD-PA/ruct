@@ -19,7 +19,6 @@ const AdsPage = () => {
     const [detailsModal, setDetailsModal] = useState({ open: false, ad: null });
     const [stripeModal, setStripeModal] = useState({ open: false, ad: null });
     const [rejectReason, setRejectReason] = useState('');
-    const [categoryFilter, setCategoryFilter] = useState('all');
     const { can, isAdvertiser, isAdmin } = usePermission();
     const navigate = useNavigate();
     const addToast = useToastStore(state => state.addToast);
@@ -38,11 +37,7 @@ const AdsPage = () => {
         }
     };
 
-    const filteredAds = ads.filter(a => {
-        const matchStatus = statusFilter === 'all' || a.status === statusFilter;
-        const matchCategory = categoryFilter === 'all' || a.category_id === Number(categoryFilter);
-        return matchStatus && matchCategory;
-    });
+    const filteredAds = ads.filter(a => statusFilter === 'all' || a.status === statusFilter);
 
     const handleStatusChange = async () => {
         const { ad, action } = approveModal;
@@ -79,8 +74,6 @@ const AdsPage = () => {
         { key: 'Paused', label: 'تمت المقاطعة' },
         { key: 'Rejected', label: 'مرفوضة رقابياً' },
     ];
-
-    const uniqueCategories = [...new Set(ads.map(a => a.category).filter(Boolean).map(c => JSON.stringify(c)))].map(s => JSON.parse(s));
 
     const stats = {
         total: ads.length,
@@ -209,19 +202,7 @@ const AdsPage = () => {
                         </button>
                     ))}
                 </div>
-                <div className="flex flex-col sm:flex-row gap-3">
-                    <div className="relative">
-                        <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} className="appearance-none bg-white border border-[#E5E7EB] text-[#141b2b] text-base rounded-lg pl-10 pr-4 py-2.5 outline-none focus:border-[#004ac6] focus:ring-1 focus:ring-[#004ac6] w-full sm:w-48 cursor-pointer">
-                            <option value="all">كافة التصنيفات والمجالات</option>
-                            {uniqueCategories.map(c => (
-                                <option key={c.category_id} value={c.category_id}>{c.category_name}</option>
-                            ))}
-                        </select>
-                        <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-[#434655] pointer-events-none w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                    </div>
-                </div>
+
             </div>
 
             {/* Data Table */}
@@ -232,7 +213,6 @@ const AdsPage = () => {
                             <tr className="bg-surface-container-low border-b border-border-color">
                                 <th className="py-4 px-6 font-label-md text-label-md text-on-surface font-bold whitespace-nowrap">العنوان</th>
                                 <th className="py-4 px-6 font-label-md text-label-md text-on-surface font-bold whitespace-nowrap">المعلن</th>
-                                <th className="py-4 px-6 font-label-md text-label-md text-on-surface font-bold whitespace-nowrap">التصنيف</th>
                                 <th className="py-4 px-6 font-label-md text-label-md text-on-surface font-bold whitespace-nowrap text-center">الحالة</th>
                                 <th className="py-4 px-6 font-label-md text-label-md text-on-surface font-bold whitespace-nowrap">التكلفة</th>
                                 <th className="py-4 px-6 font-label-md text-label-md text-on-surface font-bold whitespace-nowrap text-center">التكرار (د)</th>
@@ -246,7 +226,7 @@ const AdsPage = () => {
                         <tbody className="divide-y divide-outline-variant/30">
                             {!loading && filteredAds.length === 0 ? (
                                 <tr>
-                                    <td colSpan="11" className="py-16 text-center">
+                                    <td colSpan="10" className="py-16 text-center">
                                         <div className="flex flex-col items-center justify-center">
                                             <div className="w-20 h-20 bg-surface-container rounded-full flex items-center justify-center mb-5 border border-outline-variant">
                                                 <Megaphone className="w-8 h-8 text-outline" />
@@ -273,12 +253,6 @@ const AdsPage = () => {
                                                 <span className="font-body-sm text-body-sm whitespace-nowrap">{row.advertiser?.full_name || 'غير محدد'}</span>
                                             </div>
                                         </td>
-                                        <td className="py-4 px-6">
-                                            <div className="inline-flex items-center gap-1.5 bg-surface-container px-2.5 py-1 rounded-md border border-outline-variant text-on-surface-variant whitespace-nowrap">
-                                                <Layers className="w-3.5 h-3.5" />
-                                                <span className="font-body-sm text-body-sm">{row.category?.category_name || 'عام'}</span>
-                                            </div>
-                                        </td>
                                         <td className="py-4 px-6 text-center">
                                             {renderStatusBadge(row.status)}
                                         </td>
@@ -297,50 +271,50 @@ const AdsPage = () => {
                                         <td className="py-4 px-6">
                                             <div className="flex items-center justify-center gap-1.5 flex-nowrap w-max mx-auto">
                                                 {/* عرض التفاصيل */}
-                                                <button onClick={(e) => { e.stopPropagation(); setDetailsModal({ open: true, ad: row }) }} 
+                                                <button onClick={(e) => { e.stopPropagation(); setDetailsModal({ open: true, ad: row }) }}
                                                     className="w-9 h-9 flex-shrink-0 rounded-xl border border-outline-variant flex items-center justify-center text-on-surface-variant hover:text-primary hover:bg-primary-container hover:border-primary transition-all bg-surface shadow-sm group/btn" title="استعراض التفاصيل">
                                                     <Eye className="w-[18px] h-[18px] transition-transform group-hover/btn:scale-110" />
                                                 </button>
-                                                
+
                                                 {/* أوامر الرقابة (القبول/الرفض) */}
                                                 {can('approve_ads') && row.status === 'Pending' && (
                                                     <>
-                                                        <button onClick={(e) => { e.stopPropagation(); setApproveModal({ open: true, ad: row, action: 'Active' }) }} 
+                                                        <button onClick={(e) => { e.stopPropagation(); setApproveModal({ open: true, ad: row, action: 'Active' }) }}
                                                             className="w-9 h-9 flex-shrink-0 rounded-xl border border-outline-variant flex items-center justify-center text-on-surface-variant hover:text-emerald-700 hover:bg-emerald-100 hover:border-emerald-500 transition-all bg-surface shadow-sm group/btn" title="الموافقة">
                                                             <CheckCircle className="w-[18px] h-[18px] transition-transform group-hover/btn:scale-110" />
                                                         </button>
-                                                        <button onClick={(e) => { e.stopPropagation(); setApproveModal({ open: true, ad: row, action: 'Rejected' }) }} 
+                                                        <button onClick={(e) => { e.stopPropagation(); setApproveModal({ open: true, ad: row, action: 'Rejected' }) }}
                                                             className="w-9 h-9 flex-shrink-0 rounded-xl border border-outline-variant flex items-center justify-center text-on-surface-variant hover:text-error hover:bg-error-container hover:border-error transition-all bg-surface shadow-sm group/btn" title="رفض">
                                                             <XCircle className="w-[18px] h-[18px] transition-transform group-hover/btn:scale-110" />
                                                         </button>
                                                     </>
                                                 )}
-                                                
+
                                                 {/* أوامر الإيقاف والاستئناف */}
                                                 {(can('approve_ads') || can('manage_all')) && row.status === 'Active' && (
-                                                    <button onClick={(e) => { e.stopPropagation(); setApproveModal({ open: true, ad: row, action: 'Paused' }) }} 
+                                                    <button onClick={(e) => { e.stopPropagation(); setApproveModal({ open: true, ad: row, action: 'Paused' }) }}
                                                         className="w-9 h-9 flex-shrink-0 rounded-xl border border-outline-variant flex items-center justify-center text-on-surface-variant hover:text-amber-700 hover:bg-amber-100 hover:border-amber-500 transition-all bg-surface shadow-sm group/btn" title="إيقاف مؤقت">
                                                         <PauseCircle className="w-[18px] h-[18px] transition-transform group-hover/btn:scale-110" />
                                                     </button>
                                                 )}
-                                                
+
                                                 {(can('approve_ads') || can('manage_all')) && row.status === 'Paused' && (
-                                                    <button onClick={(e) => { e.stopPropagation(); setApproveModal({ open: true, ad: row, action: 'Active' }) }} 
+                                                    <button onClick={(e) => { e.stopPropagation(); setApproveModal({ open: true, ad: row, action: 'Active' }) }}
                                                         className="w-9 h-9 flex-shrink-0 rounded-xl border border-outline-variant flex items-center justify-center text-on-surface-variant hover:text-primary hover:bg-primary-container hover:border-primary transition-all bg-surface shadow-sm group/btn" title="استئناف">
                                                         <PlayCircle className="w-[18px] h-[18px] transition-transform group-hover/btn:scale-110" />
                                                     </button>
                                                 )}
-                                                
+
                                                 {/* الدفع (Stripe) */}
                                                 {(isAdvertiser || isAdmin) && row.status === 'waiting_payment' && (
-                                                    <button onClick={(e) => { e.stopPropagation(); setStripeModal({ open: true, ad: row }) }} 
+                                                    <button onClick={(e) => { e.stopPropagation(); setStripeModal({ open: true, ad: row }) }}
                                                         className="w-9 h-9 flex-shrink-0 rounded-xl border border-border-color flex items-center justify-center text-[#8B5CF6] hover:bg-[#8B5CF6]/10 hover:border-[#8B5CF6] transition-all bg-surface shadow-sm group/btn" title="سداد (Stripe)">
                                                         <CreditCard className="w-[18px] h-[18px] transition-transform group-hover/btn:scale-110" />
                                                     </button>
                                                 )}
-                                                
+
                                                 {/* الحذف النهائي */}
-                                                <button onClick={(e) => { e.stopPropagation(); setDeleteTarget(row.ad_id) }} 
+                                                <button onClick={(e) => { e.stopPropagation(); setDeleteTarget(row.ad_id) }}
                                                     className="w-9 h-9 flex-shrink-0 rounded-xl border border-outline-variant flex items-center justify-center text-on-surface-variant hover:text-error hover:bg-error-container hover:border-error transition-all bg-surface shadow-sm group/btn" title="حذف">
                                                     <Trash2 className="w-[18px] h-[18px] transition-transform group-hover/btn:scale-110" />
                                                 </button>
@@ -370,8 +344,8 @@ const AdsPage = () => {
                                 {approveModal.action === 'Active'
                                     ? `أنت على وشك اعتماد الحملة "${approveModal.ad?.title}" وبدء البث الفوري لها على الشاشات بناءً على الجدول الزمني المسجل.`
                                     : approveModal.action === 'Paused'
-                                    ? `هل أنت متأكد من إيقاف البث مؤقتاً للحملة "${approveModal.ad?.title}"؟ لن يتم عرضها على الشاشات حتى استئنافها.`
-                                    : `سيتم إرجاع حملة "${approveModal.ad?.title}" للمعلن نظراً لوجود تجاوزات. يرجى توضيحها أدناه بوضوح.`}
+                                        ? `هل أنت متأكد من إيقاف البث مؤقتاً للحملة "${approveModal.ad?.title}"؟ لن يتم عرضها على الشاشات حتى استئنافها.`
+                                        : `سيتم إرجاع حملة "${approveModal.ad?.title}" للمعلن نظراً لوجود تجاوزات. يرجى توضيحها أدناه بوضوح.`}
                             </p>
                         </div>
                     </div>
@@ -383,7 +357,7 @@ const AdsPage = () => {
                                 className="w-full bg-surface border border-outline-variant rounded-xl py-3.5 px-4 font-body-md text-body-md text-on-background placeholder-outline focus:outline-none focus:ring-1 focus:ring-error focus:border-error transition-all min-h-[120px] resize-none" required />
                         </div>
                     )}
-                    
+
                     <button onClick={handleStatusChange}
                         className={`w-full font-label-lg text-label-lg py-4 rounded-xl transition-all shadow-sm ${approveModal.action === 'Active' ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : approveModal.action === 'Paused' ? 'bg-amber-600 hover:bg-amber-700 text-white' : 'bg-error hover:bg-error/90 text-on-error'}`}>
                         {approveModal.action === 'Active' ? 'اعتماد العرض الآن' : approveModal.action === 'Paused' ? 'تأكيد الإيقاف' : 'إصدار قرار الرفض'}
@@ -418,10 +392,6 @@ const AdsPage = () => {
 
                         <div className="grid grid-cols-2 gap-4 bg-surface-container-low p-5 rounded-2xl border border-outline-variant">
                             <div className="space-y-1.5">
-                                <span className="font-caption text-caption text-on-surface-variant uppercase tracking-wider block">التصنيف الإعلاني</span>
-                                <span className="font-label-md text-label-md text-on-surface bg-surface px-3 py-1.5 rounded-lg border border-outline-variant shadow-sm inline-block">{detailsModal.ad.category?.category_name || '—'}</span>
-                            </div>
-                            <div className="space-y-1.5">
                                 <span className="font-caption text-caption text-on-surface-variant uppercase tracking-wider block">الميزانية المرصودة</span>
                                 <span className="font-title-md text-title-md text-primary font-black flex items-center gap-1">
                                     <DollarSign className="w-5 h-5" />
@@ -442,7 +412,7 @@ const AdsPage = () => {
                                     {detailsModal.ad.duration ? `${detailsModal.ad.duration}s` : '—'}
                                 </span>
                             </div>
-                            
+
                             <div className="col-span-2 grid grid-cols-2 gap-4 pt-5 mt-3 border-t border-outline-variant">
                                 <div className="space-y-2">
                                     <span className="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-1.5">
@@ -465,7 +435,7 @@ const AdsPage = () => {
                             </div>
                         </div>
 
-                        <button onClick={() => setDetailsModal({ open: false, ad: null })} 
+                        <button onClick={() => setDetailsModal({ open: false, ad: null })}
                             className="w-full mt-4 bg-surface border border-outline text-on-surface hover:bg-surface-container hover:text-primary font-label-lg text-label-lg py-3.5 rounded-xl shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-primary">
                             إغلاق البطاقة
                         </button>

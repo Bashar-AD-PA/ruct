@@ -20,7 +20,9 @@ export const ENDPOINTS = {
     USERS: {
         ALL: '/users',
         DELETE: (id) => `/users/${id}`,
+        UPDATE: (id) => `/users/${id}`,
         UPDATE_ROLE: (id) => `/users/${id}/role`,
+        UPDATE_STATUS: (id) => `/users/${id}/status`,
     },
     SCREENS: {
         ALL: '/screens',

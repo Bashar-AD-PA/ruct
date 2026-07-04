@@ -17,63 +17,84 @@ import {
 } from 'lucide-react';
 import { ROLES } from '../../hooks/usePermission';
 
+/* ── Bilingual nav labels ── */
+const NAV_LABELS = {
+    dashboard:          { ar: 'لوحة التحكم',    en: 'Dashboard' },
+    ads:                { ar: 'الإعلانات',       en: 'Ads' },
+    screens:            { ar: 'الشاشات',         en: 'Screens' },
+    financial:          { ar: 'المالية',          en: 'Financial' },
+    users:              { ar: 'المستخدمون',      en: 'Users' },
+    roles:              { ar: 'الصلاحيات',       en: 'Roles' },
+    locations:          { ar: 'المواقع',          en: 'Locations' },
+    frequencyPackages:  { ar: 'باقات التكرار',   en: 'Frequency Packages' },
+    paymentMethods:     { ar: 'طرق الدفع',       en: 'Payment Methods' },
+    paymentOps:         { ar: 'عمليات الدفع',    en: 'Payment Operations' },
+    sessions:           { ar: 'الجلسات',          en: 'Sessions' },
+    mySessions:         { ar: 'جلساتي',           en: 'My Sessions' },
+    settings:           { ar: 'الإعدادات',        en: 'Settings' },
+    myFinancials:       { ar: 'السجل المالي',     en: 'My Financials' },
+    earnings:           { ar: 'العوائد المالية',  en: 'Earnings' },
+};
+
+const t = (key, lang = 'ar') => NAV_LABELS[key]?.[lang] ?? NAV_LABELS[key]?.ar ?? key;
+
 /**
  * Centralized Navigation Configuration
+ * @param {string} roleName
+ * @param {string} lang  'ar' | 'en'
  */
-export const getNavItems = (roleName) => {
+export const getNavItems = (roleName, lang = 'ar') => {
     switch (roleName) {
         case ROLES.SUPER_ADMIN:
         case ROLES.ADMIN:
             return [
-                { path: '/dashboard', icon: LayoutDashboard, label: 'لوحة التحكم' },
-                { path: '/dashboard/ads', icon: Megaphone, label: 'الإعلانات' },
-                { path: '/dashboard/screens', icon: Monitor, label: 'الشاشات' },
-                { path: '/dashboard/financial', icon: Wallet, label: 'المالية' },
-                { path: '/dashboard/users', icon: Users, label: 'المستخدمون' },
-                { path: '/dashboard/roles', icon: Shield, label: 'الصلاحيات' },
-                { path: '/dashboard/locations', icon: MapPin, label: 'المواقع' },
-                { path: '/dashboard/categories', icon: Layers, label: 'تصنيفات' },
-                { path: '/dashboard/peak-hours', icon: Clock, label: 'أوقات الذروة' },
-                { path: '/dashboard/frequency-packages', icon: Repeat, label: 'باقات التكرار' },
-                { path: '/dashboard/payment-methods', icon: CreditCard, label: 'طرق الدفع' },
-                { path: '/dashboard/payment-ops', icon: DollarSign, label: 'عمليات الدفع' },
-                { path: '/dashboard/sessions', icon: ShieldAlert, label: 'الجلسات' },
-                { path: '/dashboard/settings', icon: Settings, label: 'الإعدادات' },
+                { path: '/dashboard', icon: LayoutDashboard, label: t('dashboard', lang) },
+                { path: '/dashboard/ads', icon: Megaphone, label: t('ads', lang) },
+                { path: '/dashboard/screens', icon: Monitor, label: t('screens', lang) },
+                { path: '/dashboard/financial', icon: Wallet, label: t('financial', lang) },
+                { path: '/dashboard/users', icon: Users, label: t('users', lang) },
+                { path: '/dashboard/roles', icon: Shield, label: t('roles', lang) },
+                { path: '/dashboard/locations', icon: MapPin, label: t('locations', lang) },
+                { path: '/dashboard/frequency-packages', icon: Repeat, label: t('frequencyPackages', lang) },
+                { path: '/dashboard/payment-methods', icon: CreditCard, label: t('paymentMethods', lang) },
+                { path: '/dashboard/payment-ops', icon: DollarSign, label: t('paymentOps', lang) },
+                { path: '/dashboard/sessions', icon: ShieldAlert, label: t('sessions', lang) },
+                { path: '/dashboard/settings', icon: Settings, label: t('settings', lang) },
             ];
         case ROLES.ADVERTISER:
             return [
-                { path: '/dashboard', icon: LayoutDashboard, label: 'لوحة التحكم' },
-                { path: '/dashboard/ads', icon: Megaphone, label: 'الإعلانات' },
-                { path: '/dashboard/my-financials', icon: CreditCard, label: 'السجل المالي' },
-                { path: '/dashboard/sessions', icon: ShieldCheck, label: 'جلساتي' },
-                { path: '/dashboard/settings', icon: Settings, label: 'الإعدادات' },
+                { path: '/dashboard', icon: LayoutDashboard, label: t('dashboard', lang) },
+                { path: '/dashboard/ads', icon: Megaphone, label: t('ads', lang) },
+                { path: '/dashboard/my-financials', icon: CreditCard, label: t('myFinancials', lang) },
+                { path: '/dashboard/sessions', icon: ShieldCheck, label: t('mySessions', lang) },
+                { path: '/dashboard/settings', icon: Settings, label: t('settings', lang) },
             ];
         case ROLES.SCREEN_OWNER:
             return [
-                { path: '/dashboard', icon: LayoutDashboard, label: 'لوحة التحكم' },
-                { path: '/dashboard/screens', icon: Monitor, label: 'الشاشات' },
-                { path: '/dashboard/earnings', icon: Wallet, label: 'العوائد المالية' },
-                { path: '/dashboard/sessions', icon: ShieldCheck, label: 'جلساتي' },
-                { path: '/dashboard/settings', icon: Settings, label: 'الإعدادات' },
+                { path: '/dashboard', icon: LayoutDashboard, label: t('dashboard', lang) },
+                { path: '/dashboard/screens', icon: Monitor, label: t('screens', lang) },
+                { path: '/dashboard/earnings', icon: Wallet, label: t('earnings', lang) },
+                { path: '/dashboard/sessions', icon: ShieldCheck, label: t('mySessions', lang) },
+                { path: '/dashboard/settings', icon: Settings, label: t('settings', lang) },
             ];
         case ROLES.SECRETARY:
             return [
-                { path: '/dashboard', icon: LayoutDashboard, label: 'لوحة التحكم' },
-                { path: '/dashboard/ads', icon: Megaphone, label: 'الإعلانات' },
-                { path: '/dashboard/payment-ops', icon: DollarSign, label: 'عمليات الدفع' },
-                { path: '/dashboard/sessions', icon: ShieldCheck, label: 'جلساتي' },
-                { path: '/dashboard/settings', icon: Settings, label: 'الإعدادات' },
+                { path: '/dashboard', icon: LayoutDashboard, label: t('dashboard', lang) },
+                { path: '/dashboard/ads', icon: Megaphone, label: t('ads', lang) },
+                { path: '/dashboard/payment-ops', icon: DollarSign, label: t('paymentOps', lang) },
+                { path: '/dashboard/sessions', icon: ShieldCheck, label: t('mySessions', lang) },
+                { path: '/dashboard/settings', icon: Settings, label: t('settings', lang) },
             ];
         case ROLES.MAINTENANCE:
             return [
-                { path: '/dashboard', icon: LayoutDashboard, label: 'لوحة التحكم' },
-                { path: '/dashboard/screens', icon: Monitor, label: 'الشاشات' },
-                { path: '/dashboard/sessions', icon: ShieldCheck, label: 'جلساتي' },
-                { path: '/dashboard/settings', icon: Settings, label: 'الإعدادات' },
+                { path: '/dashboard', icon: LayoutDashboard, label: t('dashboard', lang) },
+                { path: '/dashboard/screens', icon: Monitor, label: t('screens', lang) },
+                { path: '/dashboard/sessions', icon: ShieldCheck, label: t('mySessions', lang) },
+                { path: '/dashboard/settings', icon: Settings, label: t('settings', lang) },
             ];
         default:
             return [
-                { path: '/dashboard', icon: LayoutDashboard, label: 'لوحة التحكم' },
+                { path: '/dashboard', icon: LayoutDashboard, label: t('dashboard', lang) },
             ];
     }
 };

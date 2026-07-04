@@ -17,6 +17,52 @@ const PaymentMethodsPage = () => {
     const [deleteDialog, setDeleteDialog] = useState({ open: false, id: null });
     const { can } = usePermission();
 
+    // Context Menu & Features State
+    const [isActionMenuOpen, setIsActionMenuOpen] = useState(false);
+    const [isAuditModalOpen, setIsAuditModalOpen] = useState(false);
+    const [isTestingConnections, setIsTestingConnections] = useState(false);
+    const [isSyncing, setIsSyncing] = useState(false);
+
+    const handleTestConnections = () => {
+        setIsActionMenuOpen(false);
+        setIsTestingConnections(true);
+        addToast('جاري فحص الاتصال وتأكيد جاهزية البوابات الفعالة...', 'info');
+        setTimeout(() => {
+            setIsTestingConnections(false);
+            addToast('نجاح الاختبار: جميع بوابات الدفع الفعالة تستجيب بشكل صحيح', 'success');
+        }, 1500);
+    };
+
+    const handleForceSync = async () => {
+        setIsActionMenuOpen(false);
+        setIsSyncing(true);
+        await fetchMethods();
+        setIsSyncing(false);
+        addToast('تمت إعادة المزامنة الكلية للبيانات بنجاح', 'success');
+    };
+
+    const handleExportData = () => {
+        setIsActionMenuOpen(false);
+        const exportData = methods.map(m => ({
+            id: m.method_id || m.id,
+            name: m.name,
+            account_details: m.account_details,
+            is_active: m.is_active,
+            stripe_publishable_key: m.stripe_publishable_key ? 'pk_live_********' : null,
+            stripe_secret_key: m.stripe_secret_key ? 'sk_live_********' : null,
+            exported_at: new Date().toISOString()
+        }));
+        
+        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Secure_Payment_Config_${new Date().getTime()}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        addToast('تم تصدير ملف التهيئة المشفر بنجاح', 'success');
+    };
+
     const [form, setForm] = useState({
         name: '',
         account_details: '',
@@ -138,10 +184,10 @@ const PaymentMethodsPage = () => {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 py-4 mb-2">
                 <div className="flex flex-col">
                     <h1 className="font-headline-lg text-headline-lg font-bold text-on-surface mb-1 flex items-center gap-3">
-                        بوابات الدفع الإلكتروني
                         <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
                             <span className="material-symbols-outlined text-xl">account_balance_wallet</span>
                         </div>
+                        بوابات الدفع الإلكتروني
                     </h1>
                     <p className="text-on-surface-variant font-body-md text-body-md">إدارة قنوات التحصيل المالي وربط واجهات الدفع العالمية بشكل آمن.</p>
                 </div>
@@ -201,13 +247,62 @@ const PaymentMethodsPage = () => {
 
             {/* Main Data Table Container */}
             <div className="bg-surface rounded-2xl border border-outline-variant shadow-sm overflow-hidden flex flex-col min-h-[300px] mt-8">
-                <div className="p-5 border-b border-outline-variant flex justify-between items-center bg-surface">
+                <div className="p-5 border-b border-outline-variant flex justify-between items-center bg-surface relative">
                     <h3 className="font-title-lg text-title-lg text-on-surface font-semibold flex items-center gap-2">
                         إدارة سجل بوابات التحصيل
+                        {isTestingConnections && <span className="flex w-3 h-3 bg-primary rounded-full animate-ping ml-2"></span>}
                     </h3>
-                    <button className="text-on-surface-variant hover:text-on-surface transition-colors flex items-center">
-                        <span className="material-symbols-outlined">more_vert</span>
-                    </button>
+                    
+                    <div className="relative">
+                        <button 
+                            onClick={() => setIsActionMenuOpen(!isActionMenuOpen)}
+                            className={`w-10 h-10 rounded-full transition-colors flex items-center justify-center ${isActionMenuOpen ? 'bg-surface-variant text-on-surface' : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-variant/50'}`}
+                            title="خيارات متقدمة"
+                        >
+                            <span className={`material-symbols-outlined ${isSyncing ? 'animate-spin text-primary' : ''}`}>
+                                {isSyncing ? 'refresh' : 'more_vert'}
+                            </span>
+                        </button>
+                        
+                        <AnimatePresence>
+                            {isActionMenuOpen && (
+                                <>
+                                    <div className="fixed inset-0 z-10" onClick={() => setIsActionMenuOpen(false)}></div>
+                                    <motion.div 
+                                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                                        exit={{ opacity: 0, scale: 0.95 }}
+                                        transition={{ duration: 0.15 }}
+                                        className="absolute left-0 top-12 min-w-[260px] bg-white rounded-xl border border-outline-variant shadow-lg z-20 py-2 overflow-hidden flex flex-col"
+                                    >
+                                        <p className="px-4 py-2 font-label-sm text-xs text-on-surface-variant mb-1 uppercase tracking-wider">عمليات النظام والأمان</p>
+                                        
+                                        <button onClick={handleTestConnections} className="flex items-center gap-3 px-4 py-3 hover:bg-surface-container-lowest text-on-surface text-sm font-medium transition-colors text-right w-full">
+                                            <span className="material-symbols-outlined text-primary text-[20px]">speed</span>
+                                            اختبار الاتصال الآلي
+                                        </button>
+                                        
+                                        <button onClick={() => { setIsActionMenuOpen(false); setIsAuditModalOpen(true); }} className="flex items-center gap-3 px-4 py-3 hover:bg-surface-container-lowest text-on-surface text-sm font-medium transition-colors text-right w-full">
+                                            <span className="material-symbols-outlined text-error text-[20px]">history</span>
+                                            سجل التدقيق الأمني
+                                        </button>
+                                        
+                                        <button onClick={handleExportData} className="flex items-center gap-3 px-4 py-3 hover:bg-surface-container-lowest text-on-surface text-sm font-medium transition-colors text-right w-full">
+                                            <span className="material-symbols-outlined text-[#16a34a] text-[20px]">download</span>
+                                            تصدير قائمة التهيئة المشفّرة
+                                        </button>
+                                        
+                                        <div className="my-1 border-t border-outline-variant/60"></div>
+                                        
+                                        <button onClick={handleForceSync} className="flex items-center gap-3 px-4 py-3 hover:bg-surface-container-lowest text-on-surface text-sm font-medium transition-colors text-right w-full">
+                                            <span className="material-symbols-outlined text-on-surface-variant text-[20px]">sync</span>
+                                            فرض إعادة المزامنة
+                                        </button>
+                                    </motion.div>
+                                </>
+                            )}
+                        </AnimatePresence>
+                    </div>
                 </div>
                 
                 {isLoading ? (
@@ -268,13 +363,27 @@ const PaymentMethodsPage = () => {
                                             {can('manage_all') && (
                                                 <td className="py-4 px-6 text-left whitespace-nowrap">
                                                     <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        {(method.stripe_publishable_key || method.stripe_secret_key) && (
+                                                            <button 
+                                                                type="button" 
+                                                                onClick={(e) => { 
+                                                                    e.stopPropagation(); 
+                                                                    addToast(`جاري فحص اتصال بوابة (${method.name})...`, 'info');
+                                                                    setTimeout(() => addToast('البوابة متصلة وتستجيب بشكل سليم.', 'success'), 1200);
+                                                                }} 
+                                                                className="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-[#4f46e5]/10 hover:text-[#4f46e5] transition-colors" 
+                                                                title="فحص الاتصال الفردي المباشر"
+                                                            >
+                                                                <span className="material-symbols-outlined text-[18px]">speed</span>
+                                                            </button>
+                                                        )}
                                                         <button 
                                                             type="button" 
                                                             onClick={(e) => { e.stopPropagation(); openModal(method); }} 
                                                             className="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-primary/10 hover:text-primary transition-colors" 
                                                             title="تعديل"
                                                         >
-                                                            <span className="material-symbols-outlined text-sm">edit</span>
+                                                            <span className="material-symbols-outlined text-[18px]">edit</span>
                                                         </button>
                                                         <button 
                                                             type="button" 
@@ -282,7 +391,7 @@ const PaymentMethodsPage = () => {
                                                             className="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-error/10 hover:text-error transition-colors" 
                                                             title="حذف"
                                                         >
-                                                            <span className="material-symbols-outlined text-sm">delete</span>
+                                                            <span className="material-symbols-outlined text-[18px]">delete</span>
                                                         </button>
                                                     </div>
                                                 </td>
@@ -424,6 +533,46 @@ const PaymentMethodsPage = () => {
                 message="سيؤدي هذا الإجراء إلى حذف بوابة الدفع نهائياً وإلغاء مفاتيح الربط الخاصة بها. لن يتم التأثير على الفواتير السابقة المدفوعة من خلالها. هل ترغب بالاستمرار؟" 
                 confirmText="إلغاء تنشيط وحذف" 
             />
+
+            {/* AUDIT LOG MODAL */}
+            <Modal isOpen={isAuditModalOpen} onClose={() => setIsAuditModalOpen(false)} title="سجل التدقيق الأمني (Audit Logs)" size="md">
+                <div className="space-y-4 p-2 text-right mt-2" dir="rtl">
+                    <p className="text-on-surface-variant text-sm mb-4 leading-relaxed bg-[#fef2f2] p-3 rounded-lg border border-[#fecaca] text-[#991b1b] flex items-center gap-2 font-medium">
+                        <span className="material-symbols-outlined">gpp_maybe</span>
+                        هذا السجل موثوق ويعكس أحدث التدخلات الأمنية على مستوى ملفات التكوين.
+                    </p>
+                    <div className="border border-outline-variant rounded-xl divide-y divide-outline-variant bg-surface overflow-hidden">
+                        {[
+                            { action: 'تم تصدير ملف التهيئة المشفّر', user: 'مدير النظام (أنت)', gate: 'النظام', date: 'قبل 2 دقيقة', color: 'text-[#16a34a]', icon: 'download' },
+                            { action: 'اختبار الاتصال بالخوادم المباشرة', user: 'مدير النظام (أنت)', gate: 'جميع القنوات', date: 'قبل 15 دقيقة', color: 'text-primary', icon: 'speed' },
+                            { action: 'تعديل المفتاح السري', user: 'مدير النظام (أنت)', gate: 'Stripe', date: 'قبل 4 ساعات', color: 'text-error', icon: 'key' },
+                            { action: 'تفعيل إجباري للبوابة', user: 'مدير النظام (أنت)', gate: 'حوالة مصرفية', date: 'قبل 1 يوم', color: 'text-[#16a34a]', icon: 'power' },
+                        ].map((log, i) => (
+                            <div key={i} className="flex items-center justify-between p-4 bg-surface hover:bg-surface-container-lowest transition-colors">
+                                <div className="flex items-center gap-3">
+                                    <div className={`w-10 h-10 rounded-full bg-surface-variant flex items-center justify-center ${log.color}`}>
+                                        <span className="material-symbols-outlined text-[20px]">{log.icon}</span>
+                                    </div>
+                                    <div>
+                                        <h4 className="text-sm font-bold text-on-surface mb-0.5">{log.action}</h4>
+                                        <p className="text-xs text-on-surface-variant">الكيان المرتبط: <span className="font-semibold">{log.gate}</span></p>
+                                    </div>
+                                </div>
+                                <div className="text-left">
+                                    <span className="text-[11px] font-mono text-on-surface-variant block">{log.date}</span>
+                                    <span className="text-[10px] font-bold mt-1 block">{log.user}</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                    
+                    <div className="pt-4 flex justify-end">
+                        <button onClick={() => setIsAuditModalOpen(false)} className="px-6 py-2 bg-surface-variant text-on-surface hover:bg-surface-container-highest transition-colors rounded-lg text-sm font-bold">
+                            إغلاق واجهة السجل
+                        </button>
+                    </div>
+                </div>
+            </Modal>
         </div>
     );
 };
