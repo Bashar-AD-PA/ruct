@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { TokenManager } from './TokenManager';
 import useToastStore from '../../store/useToastStore';
+import useAuthStore from '../../store/useAuthStore';
 
 /**
  * Production-Ready Axios Client
@@ -18,7 +19,7 @@ if (!API_BASE_URL) {
         API_BASE_URL = 'http://127.0.0.1:8000/api';
         console.warn('⚠️ No VITE_API_URL found. Defaulting to local development URL.');
     } else {
-        API_BASE_URL = 'https://laravel-production-969f.up.railway.app/api';
+        API_BASE_URL = 'https://laravel-seven-tan.vercel.app/api';
     }
 }
 
@@ -69,7 +70,7 @@ axiosClient.interceptors.response.use(
 
         // 2. Handle 401 Unauthorized
         if (response.status === 401) {
-            TokenManager.clearAll();
+            useAuthStore.getState().logout();
             addToast("انتهت صلاحية الجلسة، يرجى تسجيل الدخول مرة أخرى.", 'error');
             return Promise.reject(error);
         }
