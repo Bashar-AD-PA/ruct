@@ -90,55 +90,55 @@ const AppRoutes = () => {
                 {/* Ads Module */}
                 <Route path="ads" element={<AdsPage />} />
                 <Route path="ads/create" element={
-                    <RoleRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.ADVERTISER]}>
+                    <RoleRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.ADVERTISER]}>
                         <CreateAdPage />
                     </RoleRoute>
                 } />
 
                 {/* Users Module (Admin Only) */}
                 <Route path="users" element={
-                    <RoleRoute allowedRoles={[ROLES.SUPER_ADMIN]}>
+                    <RoleRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.ADMIN]}>
                         <UsersPage />
                     </RoleRoute>
                 } />
 
                 {/* Locations Module (Admin Only) */}
                 <Route path="locations" element={
-                    <RoleRoute allowedRoles={[ROLES.SUPER_ADMIN]}>
+                    <RoleRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.ADMIN]}>
                         <LocationsPage />
                     </RoleRoute>
                 } />
 
                 {/* Financial Module (Admin Only) */}
                 <Route path="financial" element={
-                    <RoleRoute allowedRoles={[ROLES.SUPER_ADMIN]}>
+                    <RoleRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.ADMIN]}>
                         <FinancialPage />
                     </RoleRoute>
                 } />
 
                 {/* Admin Modules (Admin Only) */}
                 <Route path="payment-methods" element={
-                    <RoleRoute allowedRoles={[ROLES.SUPER_ADMIN]}>
+                    <RoleRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.ADMIN]}>
                         <PaymentMethodsPage />
                     </RoleRoute>
                 } />
                 <Route path="peak-hours" element={
-                    <RoleRoute allowedRoles={[ROLES.SUPER_ADMIN]}>
+                    <RoleRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.ADMIN]}>
                         <PeakHoursPage />
                     </RoleRoute>
                 } />
                 <Route path="frequency-packages" element={
-                    <RoleRoute allowedRoles={[ROLES.SUPER_ADMIN]}>
+                    <RoleRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.ADMIN]}>
                         <FrequencyPackagesPage />
                     </RoleRoute>
                 } />
                 <Route path="roles" element={
-                    <RoleRoute allowedRoles={[ROLES.SUPER_ADMIN]}>
+                    <RoleRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.ADMIN]}>
                         <RolesPage />
                     </RoleRoute>
                 } />
                 <Route path="payment-ops" element={
-                    <RoleRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.SECRETARY]}>
+                    <RoleRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.SECRETARY]}>
                         <PaymentOperationsPage />
                     </RoleRoute>
                 } />
