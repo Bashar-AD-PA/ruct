@@ -128,6 +128,7 @@ const DashboardLayout = () => {
             onClick={onClick}
             title={title}
             style={{
+                position: 'relative',
                 background: 'transparent',
                 border: 'none',
                 borderRadius: '50%',
