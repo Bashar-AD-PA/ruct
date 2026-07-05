@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import axiosClient from '../../core/api/axiosClient';
 import { ENDPOINTS } from '../../core/api/endpoints';
 import useToastStore from '../../store/useToastStore';
-import { parseNotificationContent, getNotificationIconInfo } from './utils/notificationTranslator';
+import { useNavigate } from 'react-router-dom';
+import { parseNotificationContent, getNotificationIconInfo, getNotificationLink } from './utils/notificationTranslator';
 
 const NotificationsPage = () => {
     const [notifications, setNotifications] = useState([]);
@@ -11,6 +12,20 @@ const NotificationsPage = () => {
     const [loading, setLoading] = useState(true);
     const [loadingMessageIdx, setLoadingMessageIdx] = useState(0);
     const addToast = useToastStore(state => state.addToast);
+    const navigate = useNavigate();
+
+    const handleNotificationClick = (notif) => {
+        // Mark as read if not already read
+        if (notif.read_at === null || notif.is_read === false || notif.is_read === 'false') {
+            markAsRead(notif.notification_id, false); // false = don't show toast for click
+        }
+        
+        // Navigate
+        const link = getNotificationLink(notif.title);
+        if (link) {
+            navigate(link);
+        }
+    };
 
     const loadingMessages = [
         "جاري الاتصال الآمن بالسيرفر...",
@@ -204,7 +219,8 @@ const NotificationsPage = () => {
                                         animate={{ opacity: 1, y: 0 }}
                                         exit={{ opacity: 0, scale: 0.98, transition: { duration: 0.2 } }}
                                         key={notif.notification_id} 
-                                        className={`p-lg transition-colors flex items-start gap-md md:gap-lg group relative ${
+                                        onClick={() => handleNotificationClick(notif)}
+                                        className={`p-lg transition-colors flex items-start gap-md md:gap-lg group relative cursor-pointer ${
                                             isUnread ? 'bg-[#F8FAFC] hover:bg-surface-container-low' : 'bg-surface-container-lowest hover:bg-surface-container-low'
                                         }`}
                                     >
@@ -241,7 +257,10 @@ const NotificationsPage = () => {
                                         <div className="flex flex-col gap-2 items-center mt-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                                             {isUnread && (
                                                 <button 
-                                                    onClick={() => markAsRead(notif.notification_id)} 
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        markAsRead(notif.notification_id);
+                                                    }} 
                                                     className="text-on-surface-variant hover:text-primary transition-colors p-2 rounded-lg hover:bg-primary/10" 
                                                     title="تحديد كمقروء"
                                                 >

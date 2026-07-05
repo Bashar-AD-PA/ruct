@@ -89,3 +89,31 @@ export const getNotificationIconInfo = (titleKey) => {
             return { Icon: Bell, colorClass: 'text-gray-500 bg-gray-100' };
     }
 };
+
+export const getNotificationLink = (titleKey) => {
+    const key = (() => {
+        try {
+            return JSON.parse(titleKey)?.key || titleKey;
+        } catch(e) { return titleKey; }
+    })();
+
+    switch(key) {
+        case 'notif_title_payment_confirmed':
+        case 'notif_title_ad_paid_online':
+        case 'notif_title_new_receipt':
+            return '/dashboard/operations';
+        case 'notif_title_new_screen':
+            return '/dashboard/screens';
+        case 'notif_title_new_user':
+            return '/dashboard/users';
+        case 'notif_title_new_ad_pending':
+        case 'notif_title_ad_pending_review':
+        case 'notif_title_ad_approved':
+        case 'notif_title_ad_approved_for_payment':
+        case 'notif_title_ad_scheduled':
+        case 'notif_title_ad_rejected':
+            return '/dashboard/ads';
+        default:
+            return null;
+    }
+};
