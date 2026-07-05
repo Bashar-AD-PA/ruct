@@ -37,7 +37,7 @@ const StripePaymentModal = ({ isOpen, onClose, advertisement, onSuccess }) => {
 
     if (!advertisement) return null;
 
-    const isStripe = selectedMethod?.name?.toLowerCase().includes('stripe') || selectedMethod?.name?.toLowerCase().includes('ستراب');
+    const isStripe = !!selectedMethod?.stripe_publishable_key || selectedMethod?.name?.toLowerCase().includes('stripe') || selectedMethod?.name?.toLowerCase().includes('ستراب');
 
     const handleAction = async () => {
         if (!isStripe) {
@@ -148,7 +148,7 @@ const StripePaymentModal = ({ isOpen, onClose, advertisement, onSuccess }) => {
                             <div className="space-y-3">
                                 {paymentMethods.map(method => {
                                     const isSelected = selectedMethod?.method_id === method.method_id;
-                                    const isStripeMethod = method.name.toLowerCase().includes('stripe') || method.name.toLowerCase().includes('ستراب');
+                                    const isStripeMethod = !!method.stripe_publishable_key || method.name.toLowerCase().includes('stripe') || method.name.toLowerCase().includes('ستراب');
                                     return (
                                         <div 
                                             key={method.method_id}
