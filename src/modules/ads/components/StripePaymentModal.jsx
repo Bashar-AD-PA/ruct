@@ -8,7 +8,7 @@ import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 
 // --- Stripe Checkout Form Component ---
-const StripeCheckoutForm = ({ onSuccess, onCancel }) => {
+const StripeCheckoutForm = ({ advertisement, onSuccess, onCancel }) => {
     const stripe = useStripe();
     const elements = useElements();
     const [isProcessing, setIsProcessing] = useState(false);
@@ -28,9 +28,21 @@ const StripeCheckoutForm = ({ onSuccess, onCancel }) => {
             addToast(error.message || 'حدث خطأ في معالجة البطاقة', 'error');
             setIsProcessing(false);
         } else if (paymentIntent && paymentIntent.status === 'succeeded') {
-            // نجاح الدفع
-            addToast('تمت عملية الدفع بنجاح!', 'success');
-            onSuccess();
+            // إخبار السيرفر بنجاح العملية لتحديث حالة الإعلان
+            try {
+                const res = await axiosClient.post(ENDPOINTS.PAYMENTS.STRIPE_CONFIRM, {
+                    ad_id: advertisement.ad_id,
+                    payment_intent_id: paymentIntent.id
+                });
+                if (res.data.success) {
+                    addToast('تمت عملية الدفع بنجاح!', 'success');
+                    onSuccess();
+                }
+            } catch (err) {
+                addToast('تم الخصم ولكن حدث خطأ في تحديث حالة الإعلان، يرجى مراسلة الدعم', 'error');
+            } finally {
+                setIsProcessing(false);
+            }
         } else {
             setIsProcessing(false);
         }
@@ -260,6 +272,7 @@ const StripePaymentModal = ({ isOpen, onClose, advertisement, onSuccess }) => {
                         {stripePromise && clientSecret ? (
                             <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: 'stripe' } }}>
                                 <StripeCheckoutForm 
+                                    advertisement={advertisement}
                                     onSuccess={() => { onSuccess(); onClose(); }} 
                                     onCancel={() => setClientSecret(null)}
                                 />
