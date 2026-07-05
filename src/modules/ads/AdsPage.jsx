@@ -240,18 +240,10 @@ const AdsPage = () => {
                                 filteredAds.map(row => (
                                     <tr key={row.ad_id} className="hover:bg-surface-container-low transition-colors group">
                                         <td className="py-2 px-3">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 rounded-lg bg-primary-container text-primary flex items-center justify-center flex-shrink-0">
-                                                    <Megaphone className="w-4 h-4" />
-                                                </div>
-                                                <span className="font-label-lg text-label-lg text-on-background font-bold whitespace-nowrap">{row.title}</span>
-                                            </div>
+                                            <span className="font-label-lg text-label-lg text-on-background font-bold whitespace-nowrap">{row.title}</span>
                                         </td>
                                         <td className="py-2 px-3">
-                                            <div className="flex items-center gap-2 text-on-surface-variant">
-                                                <User className="w-4 h-4" />
-                                                <span className="font-body-sm text-body-sm whitespace-nowrap">{row.advertiser?.full_name || 'غير محدد'}</span>
-                                            </div>
+                                            <span className="font-body-sm text-body-sm text-on-surface-variant whitespace-nowrap">{row.advertiser?.full_name || 'غير محدد'}</span>
                                         </td>
                                         <td className="py-2 px-3 text-center">
                                             {renderStatusBadge(row.status)}
