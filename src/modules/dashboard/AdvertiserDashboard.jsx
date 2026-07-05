@@ -367,7 +367,7 @@ const AdvertiserDashboard = () => {
                                        <motion.div 
                                             initial={{ opacity: 0, scale: 0.95 }}
                                             animate={{ opacity: 1, scale: 1 }}
-                                            className="flex flex-col items-center justify-center max-w-sm mx-auto"
+                                            className="flex flex-col items-center justify-center w-full max-w-sm mx-auto"
                                        >
                                            <div className="w-24 h-24 mb-6 relative">
                                                <div className="absolute inset-0 bg-[var(--color-dark-turquoise)]/10 rounded-full animate-ping"></div>
