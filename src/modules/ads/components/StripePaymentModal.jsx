@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CreditCard, ShieldCheck } from 'lucide-react';
+import { CreditCard, ShieldCheck, UploadCloud, FileImage } from 'lucide-react';
 import Modal from '../../../shared/components/Modal';
 import axiosClient from '../../../core/api/axiosClient';
 import { ENDPOINTS } from '../../../core/api/endpoints';
@@ -15,10 +15,12 @@ const StripePaymentModal = ({ isOpen, onClose, advertisement, onSuccess }) => {
     const [paymentMethods, setPaymentMethods] = useState([]);
     const [selectedMethod, setSelectedMethod] = useState(null);
     const [isFetchingMethods, setIsFetchingMethods] = useState(true);
+    const [receiptFile, setReceiptFile] = useState(null);
 
     useEffect(() => {
         if (isOpen) {
             setIsFetchingMethods(true);
+            setReceiptFile(null); // Reset on open
             axiosClient.get('/payment-methods')
                 .then(res => {
                     if (res.data.success) {
@@ -31,19 +33,43 @@ const StripePaymentModal = ({ isOpen, onClose, advertisement, onSuccess }) => {
                 .catch(() => addToast('فشل جلب بوابات الدفع', 'error'))
                 .finally(() => setIsFetchingMethods(false));
         }
-    }, [isOpen]);
+    }, [isOpen, addToast]);
 
     if (!advertisement) return null;
 
     const isStripe = selectedMethod?.name?.toLowerCase().includes('stripe') || selectedMethod?.name?.toLowerCase().includes('ستراب');
 
-    const handleCreateIntent = async () => {
+    const handleAction = async () => {
         if (!isStripe) {
-            // For manual transfers
-            addToast('نظام الدفع اليدوي ورفع السندات قيد التطوير في الباك-إند', 'info');
+            // Manual Transfer Logic
+            if (!receiptFile) {
+                addToast('يرجى إرفاق صورة سند التحويل أولاً', 'warning');
+                return;
+            }
+
+            setIsLoading(true);
+            try {
+                const formData = new FormData();
+                formData.append('ad_id', advertisement.ad_id);
+                formData.append('payment_method_id', selectedMethod.method_id);
+                formData.append('receipt_image', receiptFile);
+
+                const res = await axiosClient.post('/payments/manual', formData);
+                
+                if (res.data.success) {
+                    addToast('تم رفع السند بنجاح! ستتم المراجعة قريباً.', 'success');
+                    onSuccess();
+                    onClose();
+                }
+            } catch (error) {
+                addToast(error.response?.data?.message || 'فشل رفع السند، يرجى المحاولة مرة أخرى', 'error');
+            } finally {
+                setIsLoading(false);
+            }
             return;
         }
 
+        // Stripe Logic
         setIsLoading(true);
         try {
             const res = await axiosClient.post(ENDPOINTS.PAYMENTS.STRIPE_CREATE_INTENT, {
@@ -54,7 +80,7 @@ const StripePaymentModal = ({ isOpen, onClose, advertisement, onSuccess }) => {
                 addToast('تم إنشاء جلسة الدفع بنجاح', 'success');
             }
         } catch (error) {
-            addToast(error.response?.data?.message || 'فشل الاتصال ببوابة Stripe', 'error');
+            addToast(error.response?.data?.message || 'فشل الاتصال ببوابة الدفع', 'error');
             onClose();
         } finally {
             setIsLoading(false);
@@ -85,7 +111,7 @@ const StripePaymentModal = ({ isOpen, onClose, advertisement, onSuccess }) => {
         <Modal
             isOpen={isOpen}
             onClose={onClose}
-            title={clientSecret ? "متابعة الدفع (Stripe)" : "اختر طريقة الدفع"}
+            title={clientSecret ? "متابعة الدفع" : "اختر طريقة الدفع"}
             icon={CreditCard}
         >
             <div className="space-y-6" dir="rtl">
@@ -120,23 +146,53 @@ const StripePaymentModal = ({ isOpen, onClose, advertisement, onSuccess }) => {
                             <div className="text-center text-sm text-red-500 py-4">لا توجد بوابات دفع مفعلة حالياً.</div>
                         ) : (
                             <div className="space-y-3">
-                                {paymentMethods.map(method => (
-                                    <div 
-                                        key={method.method_id}
-                                        onClick={() => setSelectedMethod(method)}
-                                        className={`p-4 border rounded-xl cursor-pointer transition-all flex items-start gap-3 ${selectedMethod?.method_id === method.method_id ? 'border-[var(--color-dark-turquoise)] bg-teal-50 shadow-sm' : 'border-gray-200 hover:border-teal-300'}`}
-                                    >
-                                        <div className={`mt-1 flex-shrink-0 w-4 h-4 rounded-full border-2 flex items-center justify-center ${selectedMethod?.method_id === method.method_id ? 'border-[var(--color-dark-turquoise)]' : 'border-gray-300'}`}>
-                                            {selectedMethod?.method_id === method.method_id && <div className="w-2 h-2 rounded-full bg-[var(--color-dark-turquoise)]" />}
-                                        </div>
-                                        <div>
-                                            <div className="font-bold text-sm text-gray-800">{method.name}</div>
-                                            {method.account_details && (
-                                                <div className="text-xs text-gray-500 mt-1 whitespace-pre-wrap leading-relaxed">{method.account_details}</div>
+                                {paymentMethods.map(method => {
+                                    const isSelected = selectedMethod?.method_id === method.method_id;
+                                    const isStripeMethod = method.name.toLowerCase().includes('stripe') || method.name.toLowerCase().includes('ستراب');
+                                    return (
+                                        <div 
+                                            key={method.method_id}
+                                            className={`border rounded-xl transition-all overflow-hidden ${isSelected ? 'border-[var(--color-dark-turquoise)] bg-teal-50/30 shadow-sm' : 'border-gray-200 hover:border-teal-300'}`}
+                                        >
+                                            <div 
+                                                onClick={() => setSelectedMethod(method)}
+                                                className="p-4 cursor-pointer flex items-start gap-3"
+                                            >
+                                                <div className={`mt-1 flex-shrink-0 w-4 h-4 rounded-full border-2 flex items-center justify-center ${isSelected ? 'border-[var(--color-dark-turquoise)]' : 'border-gray-300'}`}>
+                                                    {isSelected && <div className="w-2 h-2 rounded-full bg-[var(--color-dark-turquoise)]" />}
+                                                </div>
+                                                <div className="flex-1">
+                                                    <div className="font-bold text-sm text-gray-800">{method.name}</div>
+                                                    {method.account_details && (
+                                                        <div className="text-xs text-gray-500 mt-1 whitespace-pre-wrap leading-relaxed">{method.account_details}</div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            
+                                            {isSelected && !isStripeMethod && (
+                                                <div className="px-4 pb-4 border-t border-teal-100 pt-3 mt-1 bg-white">
+                                                    <label className="block text-xs font-bold text-gray-700 mb-2">إرفاق صورة سند التحويل:</label>
+                                                    <label className={`flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${receiptFile ? 'border-teal-400 bg-teal-50' : 'border-gray-300 bg-gray-50 hover:bg-gray-100'}`}>
+                                                        <div className="flex flex-col items-center justify-center pt-3 pb-4">
+                                                            {receiptFile ? (
+                                                                <>
+                                                                    <FileImage className="w-6 h-6 text-teal-600 mb-1" />
+                                                                    <p className="text-xs font-semibold text-teal-700 truncate max-w-[200px]">{receiptFile.name}</p>
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <UploadCloud className="w-6 h-6 text-gray-400 mb-1" />
+                                                                    <p className="text-xs text-gray-500"><span className="font-semibold text-teal-600">اضغط لرفع الصورة</span></p>
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                        <input type="file" className="hidden" accept="image/*" onChange={(e) => setReceiptFile(e.target.files[0])} />
+                                                    </label>
+                                                </div>
                                             )}
                                         </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         )}
 
@@ -145,11 +201,11 @@ const StripePaymentModal = ({ isOpen, onClose, advertisement, onSuccess }) => {
                             معاملاتك مشفرة ومؤمنة بالكامل عبر بوابة الدفع المختارة.
                         </p>
                         <button
-                            onClick={handleCreateIntent}
+                            onClick={handleAction}
                             disabled={isLoading || paymentMethods.length === 0 || !selectedMethod}
                             className="w-full bg-[var(--color-dark-turquoise)] hover:opacity-90 text-white font-black py-3.5 rounded-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                         >
-                            {isLoading ? 'جاري التحضير...' : isStripe ? 'متابعة للدفع الإلكتروني' : 'تأكيد الحوالة اليدوية'}
+                            {isLoading ? 'جاري التنفيذ...' : isStripe ? 'متابعة للدفع الإلكتروني' : 'تأكيد رفع الحوالة اليدوية'}
                         </button>
                     </div>
                 ) : (
