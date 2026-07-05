@@ -139,7 +139,8 @@ const StripePaymentModal = ({ isOpen, onClose, advertisement, onSuccess }) => {
         setIsLoading(true);
         try {
             const res = await axiosClient.post(ENDPOINTS.PAYMENTS.STRIPE_CREATE_INTENT, {
-                ad_id: advertisement.ad_id
+                ad_id: advertisement.ad_id,
+                payment_method_id: selectedMethod.method_id
             });
             if (res.data.success) {
                 setClientSecret(res.data.clientSecret);
