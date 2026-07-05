@@ -211,16 +211,16 @@ const AdsPage = () => {
                     <table className="w-full text-right font-sans">
                         <thead>
                             <tr className="bg-surface-container-low border-b border-border-color">
-                                <th className="py-4 px-6 font-label-md text-label-md text-on-surface font-bold whitespace-nowrap">العنوان</th>
-                                <th className="py-4 px-6 font-label-md text-label-md text-on-surface font-bold whitespace-nowrap">المعلن</th>
-                                <th className="py-4 px-6 font-label-md text-label-md text-on-surface font-bold whitespace-nowrap text-center">الحالة</th>
-                                <th className="py-4 px-6 font-label-md text-label-md text-on-surface font-bold whitespace-nowrap">التكلفة</th>
-                                <th className="py-4 px-6 font-label-md text-label-md text-on-surface font-bold whitespace-nowrap text-center">التكرار (د)</th>
-                                <th className="py-4 px-6 font-label-md text-label-md text-on-surface font-bold whitespace-nowrap text-center">المدة (ث)</th>
-                                <th className="py-4 px-6 font-label-md text-label-md text-on-surface font-bold whitespace-nowrap text-center">الحجم</th>
-                                <th className="py-4 px-6 font-label-md text-label-md text-on-surface font-bold whitespace-nowrap">من</th>
-                                <th className="py-4 px-6 font-label-md text-label-md text-on-surface font-bold whitespace-nowrap">إلى</th>
-                                <th className="py-4 px-6 font-label-md text-label-md text-on-surface font-bold whitespace-nowrap text-center">إجراءات</th>
+                                <th className="py-3 px-3 font-label-md text-label-md text-on-surface font-bold whitespace-nowrap">العنوان</th>
+                                <th className="py-3 px-3 font-label-md text-label-md text-on-surface font-bold whitespace-nowrap">المعلن</th>
+                                <th className="py-3 px-3 font-label-md text-label-md text-on-surface font-bold whitespace-nowrap text-center">الحالة</th>
+                                <th className="py-3 px-3 font-label-md text-label-md text-on-surface font-bold whitespace-nowrap">التكلفة</th>
+                                <th className="py-3 px-3 font-label-md text-label-md text-on-surface font-bold whitespace-nowrap text-center">التكرار (د)</th>
+                                <th className="py-3 px-3 font-label-md text-label-md text-on-surface font-bold whitespace-nowrap text-center">المدة (ث)</th>
+                                <th className="py-3 px-3 font-label-md text-label-md text-on-surface font-bold whitespace-nowrap text-center">الحجم</th>
+                                <th className="py-3 px-3 font-label-md text-label-md text-on-surface font-bold whitespace-nowrap">من</th>
+                                <th className="py-3 px-3 font-label-md text-label-md text-on-surface font-bold whitespace-nowrap">إلى</th>
+                                <th className="py-3 px-3 font-label-md text-label-md text-on-surface font-bold whitespace-nowrap text-center">إجراءات</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-outline-variant/30">
@@ -239,7 +239,7 @@ const AdsPage = () => {
                             ) : (
                                 filteredAds.map(row => (
                                     <tr key={row.ad_id} className="hover:bg-surface-container-low transition-colors group">
-                                        <td className="py-4 px-6">
+                                        <td className="py-2 px-3">
                                             <div className="flex items-center gap-3">
                                                 <div className="w-8 h-8 rounded-lg bg-primary-container text-primary flex items-center justify-center flex-shrink-0">
                                                     <Megaphone className="w-4 h-4" />
@@ -247,28 +247,28 @@ const AdsPage = () => {
                                                 <span className="font-label-lg text-label-lg text-on-background font-bold whitespace-nowrap">{row.title}</span>
                                             </div>
                                         </td>
-                                        <td className="py-4 px-6">
+                                        <td className="py-2 px-3">
                                             <div className="flex items-center gap-2 text-on-surface-variant">
                                                 <User className="w-4 h-4" />
                                                 <span className="font-body-sm text-body-sm whitespace-nowrap">{row.advertiser?.full_name || 'غير محدد'}</span>
                                             </div>
                                         </td>
-                                        <td className="py-4 px-6 text-center">
+                                        <td className="py-2 px-3 text-center">
                                             {renderStatusBadge(row.status)}
                                         </td>
-                                        <td className="py-4 px-6 font-label-lg text-label-lg text-primary font-bold">${row.total_cost || 0}</td>
-                                        <td className="py-4 px-6 text-center">
+                                        <td className="py-2 px-3 font-label-lg text-label-lg text-primary font-bold">${row.total_cost || 0}</td>
+                                        <td className="py-2 px-3 text-center">
                                             <span className="inline-flex px-2 py-1 bg-surface border border-outline-variant rounded-md text-on-surface-variant font-body-sm text-body-sm whitespace-nowrap shadow-sm">
                                                 كل {row.daily_frequency || '—'} د
                                             </span>
                                         </td>
-                                        <td className="py-4 px-6 text-center font-caption text-caption text-on-background">{row.duration ? `${row.duration}s` : '—'}</td>
-                                        <td className="py-4 px-6 text-center font-caption text-caption text-on-surface-variant whitespace-nowrap">
+                                        <td className="py-2 px-3 text-center font-caption text-caption text-on-background">{row.duration ? `${row.duration}s` : '—'}</td>
+                                        <td className="py-2 px-3 text-center font-caption text-caption text-on-surface-variant whitespace-nowrap">
                                             {row.file_size ? `${row.file_size} MB` : '—'}
                                         </td>
-                                        <td className="py-4 px-6 font-caption text-caption text-on-surface-variant whitespace-nowrap" dir="ltr">{row.start_date || '—'}</td>
-                                        <td className="py-4 px-6 font-caption text-caption text-on-surface-variant whitespace-nowrap" dir="ltr">{row.end_date || '—'}</td>
-                                        <td className="py-4 px-6">
+                                        <td className="py-2 px-3 font-caption text-caption text-on-surface-variant whitespace-nowrap" dir="ltr">{row.start_date || '—'}</td>
+                                        <td className="py-2 px-3 font-caption text-caption text-on-surface-variant whitespace-nowrap" dir="ltr">{row.end_date || '—'}</td>
+                                        <td className="py-2 px-3">
                                             <div className="flex items-center justify-center gap-1.5 flex-nowrap w-max mx-auto">
                                                 {/* عرض التفاصيل */}
                                                 <button onClick={(e) => { e.stopPropagation(); setDetailsModal({ open: true, ad: row }) }}
