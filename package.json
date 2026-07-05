@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
+    "@stripe/react-stripe-js": "^6.7.0",
+    "@stripe/stripe-js": "^9.9.0",
     "@tailwindcss/vite": "^4.2.4",
     "axios": "^1.16.0",
     "framer-motion": "^12.38.0",

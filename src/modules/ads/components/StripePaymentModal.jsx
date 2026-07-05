@@ -4,23 +4,80 @@ import Modal from '../../../shared/components/Modal';
 import axiosClient from '../../../core/api/axiosClient';
 import { ENDPOINTS } from '../../../core/api/endpoints';
 import useToastStore from '../../../store/useToastStore';
+import { loadStripe } from '@stripe/stripe-js';
+import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 
+// --- Stripe Checkout Form Component ---
+const StripeCheckoutForm = ({ onSuccess, onCancel }) => {
+    const stripe = useStripe();
+    const elements = useElements();
+    const [isProcessing, setIsProcessing] = useState(false);
+    const addToast = useToastStore(state => state.addToast);
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (!stripe || !elements) return;
+
+        setIsProcessing(true);
+        const { error, paymentIntent } = await stripe.confirmPayment({
+            elements,
+            redirect: 'if_required' // لمنع إعادة توجيه الصفحة بالكامل
+        });
+
+        if (error) {
+            addToast(error.message || 'حدث خطأ في معالجة البطاقة', 'error');
+            setIsProcessing(false);
+        } else if (paymentIntent && paymentIntent.status === 'succeeded') {
+            // نجاح الدفع
+            addToast('تمت عملية الدفع بنجاح!', 'success');
+            onSuccess();
+        } else {
+            setIsProcessing(false);
+        }
+    };
+
+    return (
+        <form onSubmit={handleSubmit} className="space-y-4">
+            <PaymentElement />
+            <div className="flex gap-2 pt-4">
+                <button
+                    type="submit"
+                    disabled={!stripe || isProcessing}
+                    className="flex-1 bg-[#2E7D32] hover:bg-[#1B5E20] text-white font-black py-3.5 rounded-xl transition-all disabled:opacity-50 flex items-center justify-center"
+                >
+                    {isProcessing ? 'جاري التأكيد والخصم...' : 'تأكيد الدفع'}
+                </button>
+                <button
+                    type="button"
+                    onClick={onCancel}
+                    disabled={isProcessing}
+                    className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3.5 px-6 rounded-xl transition-all"
+                >
+                    إلغاء
+                </button>
+            </div>
+        </form>
+    );
+};
+
+// --- Main Modal Component ---
 const StripePaymentModal = ({ isOpen, onClose, advertisement, onSuccess }) => {
     const addToast = useToastStore(state => state.addToast);
     const [isLoading, setIsLoading] = useState(false);
     const [clientSecret, setClientSecret] = useState(null);
-    const [isConfirming, setIsConfirming] = useState(false);
     
     // Dynamic payment methods states
     const [paymentMethods, setPaymentMethods] = useState([]);
     const [selectedMethod, setSelectedMethod] = useState(null);
     const [isFetchingMethods, setIsFetchingMethods] = useState(true);
     const [receiptFile, setReceiptFile] = useState(null);
+    const [stripePromise, setStripePromise] = useState(null);
 
     useEffect(() => {
         if (isOpen) {
             setIsFetchingMethods(true);
             setReceiptFile(null); // Reset on open
+            setClientSecret(null); // Reset Stripe session
             axiosClient.get('/payment-methods')
                 .then(res => {
                     if (res.data.success) {
@@ -34,6 +91,15 @@ const StripePaymentModal = ({ isOpen, onClose, advertisement, onSuccess }) => {
                 .finally(() => setIsFetchingMethods(false));
         }
     }, [isOpen, addToast]);
+
+    // Load Stripe dynamically based on the selected gateway's publishable key
+    useEffect(() => {
+        if (selectedMethod?.stripe_publishable_key) {
+            setStripePromise(loadStripe(selectedMethod.stripe_publishable_key));
+        } else {
+            setStripePromise(null);
+        }
+    }, [selectedMethod]);
 
     if (!advertisement) return null;
 
@@ -77,33 +143,13 @@ const StripePaymentModal = ({ isOpen, onClose, advertisement, onSuccess }) => {
             });
             if (res.data.success) {
                 setClientSecret(res.data.clientSecret);
-                addToast('تم إنشاء جلسة الدفع بنجاح', 'success');
+                // No toast here to make the transition smoother to the card form
             }
         } catch (error) {
             addToast(error.response?.data?.message || 'فشل الاتصال ببوابة الدفع', 'error');
-            onClose();
+            setClientSecret(null);
         } finally {
             setIsLoading(false);
-        }
-    };
-
-    const handleConfirmMock = async () => {
-        if (!clientSecret) return;
-        setIsConfirming(true);
-        try {
-            const res = await axiosClient.post(ENDPOINTS.PAYMENTS.STRIPE_CONFIRM, {
-                ad_id: advertisement.ad_id,
-                payment_intent_id: clientSecret.split('_secret_')[0] 
-            });
-            if (res.data.success) {
-                addToast('تم تأكيد الدفع الإلكتروني بنجاح', 'success');
-                onSuccess();
-                onClose();
-            }
-        } catch (error) {
-            addToast(error.response?.data?.message || 'حدث خطأ أثناء تأكيد الدفع', 'error');
-        } finally {
-            setIsConfirming(false);
         }
     };
 
@@ -111,7 +157,7 @@ const StripePaymentModal = ({ isOpen, onClose, advertisement, onSuccess }) => {
         <Modal
             isOpen={isOpen}
             onClose={onClose}
-            title={clientSecret ? "متابعة الدفع" : "اختر طريقة الدفع"}
+            title={clientSecret ? "إدخال بيانات البطاقة" : "اختر طريقة الدفع"}
             icon={CreditCard}
         >
             <div className="space-y-6" dir="rtl">
@@ -205,22 +251,21 @@ const StripePaymentModal = ({ isOpen, onClose, advertisement, onSuccess }) => {
                             disabled={isLoading || paymentMethods.length === 0 || !selectedMethod}
                             className="w-full bg-[var(--color-dark-turquoise)] hover:opacity-90 text-white font-black py-3.5 rounded-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                         >
-                            {isLoading ? 'جاري التنفيذ...' : isStripe ? 'متابعة للدفع الإلكتروني' : 'تأكيد رفع الحوالة اليدوية'}
+                            {isLoading ? 'جاري التحضير...' : isStripe ? 'متابعة للدفع الإلكتروني' : 'تأكيد رفع الحوالة اليدوية'}
                         </button>
                     </div>
                 ) : (
                     <div className="pt-2">
-                        <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-xl mb-4 text-xs font-bold text-yellow-800 text-center">
-                            بيئة مطورين (مُحاكاة): سيتم تجاوز إدخال البطاقة وإرسال طلب التأكيد API مباشرة كاختبار.
-                        </div>
-                        
-                        <button
-                            onClick={handleConfirmMock}
-                            disabled={isConfirming}
-                            className="w-full bg-[#2E7D32] hover:opacity-90 text-white font-black py-3.5 rounded-xl transition-all disabled:opacity-50"
-                        >
-                            {isConfirming ? 'جاري تأكيد الدفع...' : 'محاكاة تأكيد الدفع'}
-                        </button>
+                        {stripePromise && clientSecret ? (
+                            <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: 'stripe' } }}>
+                                <StripeCheckoutForm 
+                                    onSuccess={() => { onSuccess(); onClose(); }} 
+                                    onCancel={() => setClientSecret(null)}
+                                />
+                            </Elements>
+                        ) : (
+                            <div className="text-center text-sm text-gray-500 py-4">جاري تحميل واجهة الدفع...</div>
+                        )}
                     </div>
                 )}
             </div>
