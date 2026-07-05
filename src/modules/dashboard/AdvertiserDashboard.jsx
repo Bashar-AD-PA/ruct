@@ -300,9 +300,12 @@ const AdvertiserDashboard = () => {
                                     if (status === 'Active') {
                                         statusClass = 'bg-emerald-50 text-emerald-700 border border-emerald-200';
                                         statusText = 'نشط حالياً';
-                                    } else if (status === 'Pending' || status === 'waiting_payment') {
+                                    } else if (status === 'Pending') {
                                         statusClass = 'bg-amber-50 text-amber-700 border border-amber-200';
                                         statusText = 'قيد المراجعة';
+                                    } else if (status === 'waiting_payment') {
+                                        statusClass = 'bg-[#FEF3C7] text-[#D97706] border border-[#FDE68A]';
+                                        statusText = 'بانتظار الدفع';
                                     } else if (status === 'Rejected') {
                                         statusClass = 'bg-rose-50 text-rose-700 border border-rose-200';
                                         statusText = 'مرفوض';
