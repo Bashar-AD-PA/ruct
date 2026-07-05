@@ -133,37 +133,26 @@ const AdvertiserDashboard = () => {
             className="space-y-6 pb-12 font-sans w-full max-w-[1600px] mx-auto min-h-screen" 
             dir="rtl"
         >
-            {/* 1. Welcoming Hero Banner */}
+            {/* 1. Header (Matched to Admin Dashboard) */}
             <motion.div 
                 variants={itemVariants}
-                className="relative overflow-hidden rounded-[2.5rem] bg-[var(--color-dark-turquoise)] text-white p-8 md:p-10 shadow-2xl"
+                className="flex items-end justify-between mb-2"
             >
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-white/10 via-transparent to-transparent"></div>
-                <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-white/5 rounded-full blur-[80px] -mr-40 -mt-20 pointer-events-none"></div>
-                <div className="absolute -bottom-20 -left-20 w-[400px] h-[400px] bg-[var(--color-gold)]/10 rounded-full blur-[80px] pointer-events-none"></div>
-
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
-                    <div className="flex items-center gap-5">
-                        <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl md:rounded-3xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-[var(--color-gold)] shadow-xl shrink-0 group hover:bg-white/20 transition-colors">
-                            <User className="w-8 h-8 md:w-10 md:h-10 transition-transform group-hover:scale-110" />
-                        </div>
-                        <div>
-                            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 border border-white/10 text-[10px] md:text-xs font-bold text-white/90 mb-2 md:mb-3 shadow-sm backdrop-blur-sm tracking-wide">
-                                <Sparkles className="w-3.5 h-3.5 text-[var(--color-gold)]" />
-                                {getGreeting()}
-                            </div>
-                            <h1 className="text-2xl md:text-4xl font-black tracking-tight leading-tight">
-                                {user?.full_name || 'شريكنا المتميز'}
-                            </h1>
-                        </div>
-                    </div>
-                    
+                <div>
+                    <h1 className="text-[28px] font-bold text-on-background m-0 leading-tight font-sans">
+                        نظرة عامة على لوحة التحكم
+                    </h1>
+                    <p className="mt-1 text-[13px] text-outline font-sans">
+                        Dashboard Overview
+                    </p>
+                </div>
+                
+                <div className="flex items-center gap-2.5">
                     <button 
                         onClick={() => navigate('/dashboard/ads/create')}
-                        className="bg-white hover:bg-gray-50 text-[var(--color-dark-turquoise)] font-black text-sm px-6 py-4 rounded-2xl flex items-center justify-center gap-2.5 transition-all shadow-xl hover:shadow-[0_8px_30px_rgba(255,255,255,0.2)] active:scale-95 group shrink-0 relative overflow-hidden"
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-[10px] bg-[#2563EB] text-white text-[13px] font-bold cursor-pointer font-sans shadow-[0_2px_8px_rgba(37,99,235,0.30)] hover:bg-[#1D4ED8] transition-colors border-none"
                     >
-                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[var(--color-dark-turquoise)]/5 to-transparent -translate-x-full group-hover:animate-shine"></div>
-                        <PlusCircle className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
+                        <PlusCircle className="w-[15px] h-[15px]" />
                         إطلاق حملة إعلانية
                     </button>
                 </div>
