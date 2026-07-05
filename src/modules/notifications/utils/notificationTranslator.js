@@ -25,6 +25,7 @@ const formatMessage = (key, args) => {
         case 'notif_title_new_ad_pending': return 'تم إرسال الإعلان للمراجعة';
         case 'notif_title_ad_pending_review': return 'إعلان جديد بانتظار المراجعة';
         case 'notif_title_new_receipt': return 'إيصال دفع جديد بانتظار الاعتماد';
+        case 'notif_title_ad_approved_for_payment': return 'تهانينا! تمت الموافقة على إعلانك';
         case 'notif_title_ad_approved': return 'تم الموافقة على إعلانك';
         case 'notif_title_ad_scheduled': return 'تم جدولة الإعلان';
         case 'notif_title_ad_rejected': return 'تم رفض الإعلان';
@@ -44,6 +45,8 @@ const formatMessage = (key, args) => {
             return `المعلن ${args.advertiser} قام برفع إعلان جديد "${args.title}". يرجى مراجعته.`;
         case 'notif_msg_new_receipt': 
             return `المعلن ${args.advertiser} أرفق إيصالاً بمبلغ $${args.cost}. يرجى مراجعته بقسم العمليات.`;
+        case 'notif_msg_ad_approved_for_payment': 
+            return `الإعلان "${args.title}" اجتاز المراجعة وهو جاهز للدفع لكي يتم نشره.`;
         case 'notif_msg_ad_approved': 
             return `مبارك، تم الموافقة على إعلانك "${args.title}" وبدء تفعيله.`;
         case 'notif_msg_ad_scheduled': 
@@ -76,6 +79,7 @@ export const getNotificationIconInfo = (titleKey) => {
         case 'notif_title_ad_pending_review':
             return { Icon: Clock, colorClass: 'text-yellow-600 bg-yellow-100' };
         case 'notif_title_ad_approved':
+        case 'notif_title_ad_approved_for_payment':
             return { Icon: CheckCircle2, colorClass: 'text-[#2E7D32] bg-[#2E7D32]/10' };
         case 'notif_title_ad_scheduled':
             return { Icon: Calendar, colorClass: 'text-[var(--color-dark-turquoise)] bg-[var(--color-dark-turquoise)]/10' };
