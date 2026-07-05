@@ -5,6 +5,8 @@ import useAuthStore from '../../store/useAuthStore';
 import usePermission from '../../hooks/usePermission';
 import useUIStore from '../../store/useUIStore';
 import { getNavItems } from '../../core/routes/navigation';
+import axiosClient from '../../core/api/axiosClient';
+import { ENDPOINTS } from '../../core/api/endpoints';
 
 /* ─── Stitch colour tokens — light ─── */
 const LIGHT = {
@@ -77,7 +79,28 @@ const DashboardLayout = () => {
     const [isMobileMenuOpen,   setIsMobileMenuOpen]   = useState(false);
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
     const [isLauncherOpen,     setIsLauncherOpen]     = useState(false);
+    const [unreadCount,        setUnreadCount]        = useState(0);
     const launcherRef = useRef(null);
+
+    /* Fetch Unread Notifications Count */
+    useEffect(() => {
+        if (!user) return;
+        const fetchUnreadCount = async () => {
+            try {
+                const res = await axiosClient.get(ENDPOINTS.NOTIFICATIONS.ALL);
+                const fetchedNotifications = res.data.data || res.data || [];
+                const count = res.data.unread_count !== undefined 
+                    ? res.data.unread_count 
+                    : fetchedNotifications.filter(n => n.read_at === null || n.is_read === false || n.is_read === 'false').length;
+                setUnreadCount(count);
+            } catch (e) {
+                console.error('Failed to fetch notifications count', e);
+            }
+        };
+        fetchUnreadCount();
+        const interval = setInterval(fetchUnreadCount, 30000);
+        return () => clearInterval(interval);
+    }, [user]);
 
     /* Close launcher on outside click */
     useEffect(() => {
@@ -527,12 +550,20 @@ const DashboardLayout = () => {
                         {/* Notifications */}
                         <IconBtn onClick={() => navigate('/dashboard/notifications')} title={lbl.notifications}>
                             <Bell style={{ width: 19, height: 19 }} />
-                            <span style={{
-                                position: 'absolute', top: 8, right: 8,
-                                width: 7, height: 7, borderRadius: '50%',
-                                background: S.error,
-                                border: `1.5px solid ${S.surfaceContainerLowest}`,
-                            }} />
+                            {unreadCount > 0 && (
+                                <span style={{
+                                    position: 'absolute', top: 4, right: 4,
+                                    minWidth: 16, height: 16, borderRadius: 8,
+                                    background: S.error, color: '#fff',
+                                    fontSize: '10px', fontWeight: 'bold',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    border: `1.5px solid ${S.surfaceContainerLowest}`,
+                                    padding: '0 4px',
+                                    pointerEvents: 'none'
+                                }}>
+                                    {unreadCount > 99 ? '+99' : unreadCount}
+                                </span>
+                            )}
                         </IconBtn>
 
                         {/* ██ App Launcher ██ */}
