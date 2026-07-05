@@ -71,15 +71,15 @@ const T = {
 
 /* ──────────────────────────────────────────── */
 const DashboardLayout = () => {
-    const { user, logout }           = useAuthStore();
-    const { roleName }               = usePermission();
+    const { user, logout } = useAuthStore();
+    const { roleName } = usePermission();
     const { theme, toggleTheme, language, setLanguage } = useUIStore();
     const navigate = useNavigate();
 
-    const [isMobileMenuOpen,   setIsMobileMenuOpen]   = useState(false);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-    const [isLauncherOpen,     setIsLauncherOpen]     = useState(false);
-    const [unreadCount,        setUnreadCount]        = useState(0);
+    const [isLauncherOpen, setIsLauncherOpen] = useState(false);
+    const [unreadCount, setUnreadCount] = useState(0);
     const launcherRef = useRef(null);
 
     /* Fetch Unread Notifications Count */
@@ -89,8 +89,8 @@ const DashboardLayout = () => {
             try {
                 const res = await axiosClient.get(ENDPOINTS.NOTIFICATIONS.ALL);
                 const fetchedNotifications = res.data.data || res.data || [];
-                const count = res.data.unread_count !== undefined 
-                    ? res.data.unread_count 
+                const count = res.data.unread_count !== undefined
+                    ? res.data.unread_count
                     : fetchedNotifications.filter(n => n.read_at === null || n.is_read === false || n.is_read === 'false').length;
                 setUnreadCount(count);
             } catch (e) {
@@ -115,9 +115,9 @@ const DashboardLayout = () => {
 
     /* Derived */
     const isDark = theme === 'dark';
-    const isRTL  = language === 'ar';
-    const S      = isDark ? DARK : LIGHT;
-    const lbl    = T[language] ?? T.ar;
+    const isRTL = language === 'ar';
+    const S = isDark ? DARK : LIGHT;
+    const lbl = T[language] ?? T.ar;
 
     const handleLogout = () => { logout(); navigate('/login'); };
     const navItems = getNavItems(roleName, language);
@@ -179,8 +179,8 @@ const DashboardLayout = () => {
                     }}
                     onMouseEnter={e => { e.currentTarget.style.background = 'rgba(220,226,247,0.15)'; e.currentTarget.style.color = '#fff'; }}
                     onMouseLeave={e => { e.currentTarget.style.background = 'rgba(220,226,247,0.08)'; e.currentTarget.style.color = 'rgba(220,226,247,0.75)'; }}
-                    onMouseDown={e  => e.currentTarget.style.transform = 'scale(0.88)'}
-                    onMouseUp={e    => e.currentTarget.style.transform = 'scale(1)'}
+                    onMouseDown={e => e.currentTarget.style.transform = 'scale(0.88)'}
+                    onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
                 >
                     <Menu style={{ width: 17, height: 17 }} />
                 </button>
@@ -255,8 +255,8 @@ const DashboardLayout = () => {
                             textDecoration: 'none',
                             transition: 'background 0.15s, color 0.15s',
                             direction: isRTL ? 'rtl' : 'ltr',
-                            borderRight: (isActive && isRTL)  ? '3px solid #2563eb' : '3px solid transparent',
-                            borderLeft:  (isActive && !isRTL) ? '3px solid #2563eb' : '3px solid transparent',
+                            borderRight: (isActive && isRTL) ? '3px solid #2563eb' : '3px solid transparent',
+                            borderLeft: (isActive && !isRTL) ? '3px solid #2563eb' : '3px solid transparent',
                             fontFamily: "'IBM Plex Sans Arabic', sans-serif",
                         })}
                         onMouseEnter={e => {
@@ -467,7 +467,7 @@ const DashboardLayout = () => {
                             onMouseLeave={e => e.currentTarget.style.background = isDark ? 'rgba(180,197,255,0.12)' : S.surfaceContainerLow}
                         >
                             {isDark
-                                ? <Sun  style={{ width: 17, height: 17 }} />
+                                ? <Sun style={{ width: 17, height: 17 }} />
                                 : <Moon style={{ width: 17, height: 17 }} />
                             }
                         </button>

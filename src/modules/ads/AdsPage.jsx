@@ -271,8 +271,8 @@ const AdsPage = () => {
                                                 {/* أوامر الرقابة (القبول/الرفض) */}
                                                 {can('approve_ads') && row.status === 'Pending' && (
                                                     <>
-                                                        <button onClick={(e) => { e.stopPropagation(); setApproveModal({ open: true, ad: row, action: 'Active' }) }}
-                                                            className="w-9 h-9 flex-shrink-0 rounded-xl border border-outline-variant flex items-center justify-center text-on-surface-variant hover:text-emerald-700 hover:bg-emerald-100 hover:border-emerald-500 transition-all bg-surface shadow-sm group/btn" title="الموافقة">
+                                                        <button onClick={(e) => { e.stopPropagation(); setApproveModal({ open: true, ad: row, action: 'waiting_payment' }) }}
+                                                            className="w-9 h-9 flex-shrink-0 rounded-xl border border-outline-variant flex items-center justify-center text-on-surface-variant hover:text-emerald-700 hover:bg-emerald-100 hover:border-emerald-500 transition-all bg-surface shadow-sm group/btn" title="اعتماد وطلب الدفع">
                                                             <CheckCircle className="w-[18px] h-[18px] transition-transform group-hover/btn:scale-110" />
                                                         </button>
                                                         <button onClick={(e) => { e.stopPropagation(); setApproveModal({ open: true, ad: row, action: 'Rejected' }) }}
@@ -280,6 +280,14 @@ const AdsPage = () => {
                                                             <XCircle className="w-[18px] h-[18px] transition-transform group-hover/btn:scale-110" />
                                                         </button>
                                                     </>
+                                                )}
+
+                                                {/* تفعيل مباشر للمدير إذا كان بانتظار الدفع (تخطي الدفع) */}
+                                                {can('approve_ads') && row.status === 'waiting_payment' && (
+                                                    <button onClick={(e) => { e.stopPropagation(); setApproveModal({ open: true, ad: row, action: 'Active' }) }}
+                                                        className="w-9 h-9 flex-shrink-0 rounded-xl border border-outline-variant flex items-center justify-center text-on-surface-variant hover:text-emerald-700 hover:bg-emerald-100 hover:border-emerald-500 transition-all bg-surface shadow-sm group/btn" title="تفعيل فوري (تخطي الدفع)">
+                                                        <PlayCircle className="w-[18px] h-[18px] transition-transform group-hover/btn:scale-110" />
+                                                    </button>
                                                 )}
 
                                                 {/* أوامر الإيقاف والاستئناف */}
@@ -322,22 +330,24 @@ const AdsPage = () => {
 
             {/* Approve/Reject Modal */}
             <Modal isOpen={approveModal.open} onClose={() => { setApproveModal({ open: false, ad: null, action: '' }); setRejectReason(''); }}
-                title={approveModal.action === 'Active' ? 'الموافقة على الحملة' : approveModal.action === 'Paused' ? 'إيقاف البث مؤقتاً' : 'قرارات الرقابة (رفض الإعلان)'}>
+                title={approveModal.action === 'Active' ? 'الموافقة وتفعيل الحملة فوراً' : approveModal.action === 'waiting_payment' ? 'اعتماد المحتوى وطلب الدفع' : approveModal.action === 'Paused' ? 'إيقاف البث مؤقتاً' : 'قرارات الرقابة (رفض الإعلان)'}>
                 <div className="space-y-6 font-sans" dir="rtl">
-                    <div className={`p-5 rounded-2xl border flex gap-4 ${approveModal.action === 'Active' ? 'bg-emerald-50 border-emerald-200' : approveModal.action === 'Paused' ? 'bg-amber-50 border-amber-200' : 'bg-error-container border-error/20'}`}>
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${approveModal.action === 'Active' ? 'bg-emerald-100 text-emerald-600' : approveModal.action === 'Paused' ? 'bg-amber-100 text-amber-600' : 'bg-error text-white'}`}>
-                            {approveModal.action === 'Active' ? <CheckCircle className="w-5 h-5" /> : approveModal.action === 'Paused' ? <PauseCircle className="w-5 h-5" /> : <Ban className="w-5 h-5" />}
+                    <div className={`p-5 rounded-2xl border flex gap-4 ${approveModal.action === 'Active' || approveModal.action === 'waiting_payment' ? 'bg-emerald-50 border-emerald-200' : approveModal.action === 'Paused' ? 'bg-amber-50 border-amber-200' : 'bg-error-container border-error/20'}`}>
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${approveModal.action === 'Active' || approveModal.action === 'waiting_payment' ? 'bg-emerald-100 text-emerald-600' : approveModal.action === 'Paused' ? 'bg-amber-100 text-amber-600' : 'bg-error text-white'}`}>
+                            {approveModal.action === 'Active' || approveModal.action === 'waiting_payment' ? <CheckCircle className="w-5 h-5" /> : approveModal.action === 'Paused' ? <PauseCircle className="w-5 h-5" /> : <Ban className="w-5 h-5" />}
                         </div>
                         <div>
-                            <span className={`block font-label-lg text-label-lg mb-1 ${approveModal.action === 'Active' ? 'text-emerald-700' : approveModal.action === 'Paused' ? 'text-amber-700' : 'text-error'}`}>
+                            <span className={`block font-label-lg text-label-lg mb-1 ${approveModal.action === 'Active' || approveModal.action === 'waiting_payment' ? 'text-emerald-700' : approveModal.action === 'Paused' ? 'text-amber-700' : 'text-error'}`}>
                                 إقرار نهائي للإجراء
                             </span>
                             <p className="font-body-md text-body-md text-on-surface-variant leading-relaxed">
-                                {approveModal.action === 'Active'
-                                    ? `أنت على وشك اعتماد الحملة "${approveModal.ad?.title}" وبدء البث الفوري لها على الشاشات بناءً على الجدول الزمني المسجل.`
-                                    : approveModal.action === 'Paused'
-                                        ? `هل أنت متأكد من إيقاف البث مؤقتاً للحملة "${approveModal.ad?.title}"؟ لن يتم عرضها على الشاشات حتى استئنافها.`
-                                        : `سيتم إرجاع حملة "${approveModal.ad?.title}" للمعلن نظراً لوجود تجاوزات. يرجى توضيحها أدناه بوضوح.`}
+                                {approveModal.action === 'waiting_payment'
+                                    ? `أنت على وشك الموافقة على محتوى الحملة "${approveModal.ad?.title}". سيتم إرسال إشعار للمعلن لكي يقوم بعملية الدفع.`
+                                    : approveModal.action === 'Active'
+                                        ? `أنت على وشك اعتماد الحملة "${approveModal.ad?.title}" وبدء البث الفوري لها على الشاشات (تخطي الدفع).`
+                                        : approveModal.action === 'Paused'
+                                            ? `هل أنت متأكد من إيقاف البث مؤقتاً للحملة "${approveModal.ad?.title}"؟ لن يتم عرضها على الشاشات حتى استئنافها.`
+                                            : `سيتم إرجاع حملة "${approveModal.ad?.title}" للمعلن نظراً لوجود تجاوزات. يرجى توضيحها أدناه بوضوح.`}
                             </p>
                         </div>
                     </div>
@@ -351,8 +361,8 @@ const AdsPage = () => {
                     )}
 
                     <button onClick={handleStatusChange}
-                        className={`w-full font-label-lg text-label-lg py-4 rounded-xl transition-all shadow-sm ${approveModal.action === 'Active' ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : approveModal.action === 'Paused' ? 'bg-amber-600 hover:bg-amber-700 text-white' : 'bg-error hover:bg-error/90 text-on-error'}`}>
-                        {approveModal.action === 'Active' ? 'اعتماد العرض الآن' : approveModal.action === 'Paused' ? 'تأكيد الإيقاف' : 'إصدار قرار الرفض'}
+                        className={`w-full font-label-lg text-label-lg py-4 rounded-xl transition-all shadow-sm ${approveModal.action === 'Active' || approveModal.action === 'waiting_payment' ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : approveModal.action === 'Paused' ? 'bg-amber-600 hover:bg-amber-700 text-white' : 'bg-error hover:bg-error/90 text-on-error'}`}>
+                        {approveModal.action === 'waiting_payment' ? 'اعتماد المحتوى وطلب الدفع' : approveModal.action === 'Active' ? 'اعتماد العرض الآن' : approveModal.action === 'Paused' ? 'تأكيد الإيقاف' : 'إصدار قرار الرفض'}
                     </button>
                 </div>
             </Modal>

@@ -251,7 +251,7 @@ const CreateAdPage = () => {
                     setUploadProgress(percentCompleted);
                 }
             });
-            addToast('تمت الأرشفة بنجاح، ملف الحملة الآن قيد الانتظار والمعالجة.', 'success');
+            addToast('تم رفع الإعلان بنجاح، وهو الآن قيد المراجعة الإدارية. سيصلك إشعار عند الموافقة لتقوم بالدفع.', 'success');
             navigate('/dashboard/ads');
         } catch (e) {
             console.error('تفاصيل الخطأ القادم من الباك إند:', e.response?.data);
