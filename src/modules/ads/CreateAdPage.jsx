@@ -294,8 +294,8 @@ const CreateAdPage = () => {
     const isStepCurrent = (stepNum) => currentStep === stepNum;
 
     return (
-        <div className="flex-1 md:mr-64 flex flex-col min-h-screen bg-background">
-            <header className="bg-surface/95 backdrop-blur-md border-b border-border-color fixed top-0 left-0 w-full md:w-[calc(100%-16rem)] z-30">
+        <div className="flex-1 flex flex-col min-h-screen bg-background rounded-2xl overflow-hidden shadow-sm border border-border-color">
+            <header className="bg-surface/95 backdrop-blur-md border-b border-border-color sticky top-0 z-30">
                 <div className="flex items-center justify-between px-5 md:px-6 h-13 gap-3" style={{ height: '52px' }}>
                     {/* Right: back + step dots */}
                     <div className="flex items-center gap-2.5">
@@ -341,7 +341,7 @@ const CreateAdPage = () => {
                 </div>
             </header>
 
-            <main className="flex-1 p-3 md:p-5 w-full font-sans" style={{ marginTop: '54px' }} dir="rtl">
+            <main className="flex-1 p-3 md:p-5 w-full font-sans" dir="rtl">
                 {/* Slim compact title row */}
                 <div className="mb-3 flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
