@@ -14,6 +14,8 @@ import {
     Repeat,
     ShieldAlert,
     ShieldCheck,
+    Wrench,
+    AlertTriangle,
 } from 'lucide-react';
 import { ROLES } from '../../hooks/usePermission';
 
@@ -34,6 +36,9 @@ const NAV_LABELS = {
     settings:           { ar: 'الإعدادات',        en: 'Settings' },
     myFinancials:       { ar: 'السجل المالي',     en: 'My Financials' },
     earnings:           { ar: 'العوائد المالية',  en: 'Earnings' },
+    // Maintenance specific
+    nocCenter:          { ar: 'مركز العمليات',    en: 'NOC Center' },
+    screenStatus:       { ar: 'حالة الشاشات',     en: 'Screen Status' },
 };
 
 const t = (key, lang = 'ar') => NAV_LABELS[key]?.[lang] ?? NAV_LABELS[key]?.ar ?? key;
@@ -87,10 +92,10 @@ export const getNavItems = (roleName, lang = 'ar') => {
             ];
         case ROLES.MAINTENANCE:
             return [
-                { path: '/dashboard', icon: LayoutDashboard, label: t('dashboard', lang) },
-                { path: '/dashboard/screens', icon: Monitor, label: t('screens', lang) },
-                { path: '/dashboard/sessions', icon: ShieldCheck, label: t('mySessions', lang) },
-                { path: '/dashboard/settings', icon: Settings, label: t('settings', lang) },
+                { path: '/dashboard',         icon: LayoutDashboard, label: t('nocCenter', lang) },
+                { path: '/dashboard/screens', icon: Monitor,         label: t('screenStatus', lang), badge: { value: 2, color: '#dc2626', bg: '#fee2e2', title: 'شاشات منقطعة' } },
+                { path: '/dashboard/sessions', icon: ShieldCheck,   label: t('mySessions', lang) },
+                { path: '/dashboard/settings', icon: Settings,       label: t('settings', lang) },
             ];
         default:
             return [

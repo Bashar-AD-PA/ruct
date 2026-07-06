@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Monitor, PlayCircle, DollarSign, Users, AlertCircle, RefreshCw, Search, ChevronLeft, ChevronRight, TrendingUp, Info, CalendarDays, Plus } from 'lucide-react';
+import { Monitor, PlayCircle, DollarSign, Users, AlertCircle, RefreshCw, Search, ChevronLeft, ChevronRight, TrendingUp, Info, CalendarDays, Plus, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axiosClient from '../../core/api/axiosClient';
 import { ENDPOINTS } from '../../core/api/endpoints';
@@ -362,6 +362,20 @@ const DonutChart = ({ data = [] }) => {
 };
 
 /* ══════════════════════════════════════════════════════
+                                            </span>
+                                        </button>
+                                    ))}
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
+                )}
+            </div>
+        </motion.div>
+    );
+};
+
+/* ══════════════════════════════════════════════════════
    SKELETON
 ══════════════════════════════════════════════════════ */
 const DashboardSkeleton = () => (
@@ -622,6 +636,7 @@ const Dashboard = () => {
                     </button>
                 </div>
             </motion.div>
+
 
             {/* ── KPI CARDS ROW ── */}
             <div style={{

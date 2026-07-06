@@ -658,8 +658,8 @@ const ScreensPage = () => {
                 key={tab.key}
                 onClick={() => setStatusFilter(tab.key)}
                 className={`px-[16px] py-1.5 rounded-md text-[14px] font-medium transition-colors flex items-center gap-1 whitespace-nowrap ${statusFilter === tab.key
-                    ? 'bg-[#141b2b] text-[#f9f9ff]'
-                    : 'text-[#434655] hover:bg-[#e1e8fd]'
+                  ? 'bg-[#141b2b] text-[#f9f9ff]'
+                  : 'text-[#434655] hover:bg-[#e1e8fd]'
                   }`}
               >
                 {tab.iconBg && <div className={`w-2 h-2 rounded-full ${tab.iconBg}`}></div>}

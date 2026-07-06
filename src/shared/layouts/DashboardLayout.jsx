@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { Bell, User as UserIcon, Menu, LogOut, Grid, Sun, Moon, Languages } from 'lucide-react';
+import { Bell, User as UserIcon, Menu, LogOut, Grid, Sun, Moon, Languages, Users, Plus, X } from 'lucide-react';
 import useAuthStore from '../../store/useAuthStore';
 import usePermission from '../../hooks/usePermission';
 import useUIStore from '../../store/useUIStore';
@@ -71,47 +71,54 @@ const T = {
 
 /* ──────────────────────────────────────────── */
 const DashboardLayout = () => {
-    const { user, logout } = useAuthStore();
+    const { user, logout, impersonatedRole, setImpersonatedRole } = useAuthStore();
     const { roleName } = usePermission();
     const { theme, toggleTheme, language, setLanguage } = useUIStore();
     const navigate = useNavigate();
 
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-    const [isLauncherOpen, setIsLauncherOpen] = useState(false);
     const [unreadCount, setUnreadCount] = useState(0);
+    const [isRoleMenuOpen, setIsRoleMenuOpen] = useState(false);
+    const roleMenuRef = useRef(null);
+
+    /* ── Quick Access Launcher State ── */
+    const maxItems = 4;
+    const [isLauncherOpen, setIsLauncherOpen] = useState(false);
     const launcherRef = useRef(null);
+    const [isAddingShortcut, setIsAddingShortcut] = useState(false);
+    const navItems = getNavItems(roleName, language);
+    const launchableItems = navItems.filter(i => i.path !== '/dashboard');
 
-    /* Fetch Unread Notifications Count */
+    const [savedPaths, setSavedPaths] = useState(() => {
+        try {
+            const val = localStorage.getItem(`qa_${roleName}`);
+            if (val) return JSON.parse(val);
+        } catch(e) {}
+        return launchableItems.slice(0, maxItems).map(i => i.path);
+    });
+
     useEffect(() => {
-        if (!user) return;
-        const fetchUnreadCount = async () => {
-            try {
-                const res = await axiosClient.get(ENDPOINTS.NOTIFICATIONS.ALL);
-                const fetchedNotifications = res.data.data || res.data || [];
-                const count = res.data.unread_count !== undefined
-                    ? res.data.unread_count
-                    : fetchedNotifications.filter(n => n.read_at === null || n.is_read === false || n.is_read === 'false').length;
-                setUnreadCount(count);
-            } catch (e) {
-                console.error('Failed to fetch notifications count', e);
-            }
-        };
-        fetchUnreadCount();
-        const interval = setInterval(fetchUnreadCount, 30000);
-        return () => clearInterval(interval);
-    }, [user]);
+        localStorage.setItem(`qa_${roleName}`, JSON.stringify(savedPaths));
+    }, [savedPaths, roleName]);
 
-    /* Close launcher on outside click */
+    /* Close launchers on outside click */
     useEffect(() => {
         const handler = (e) => {
+            if (roleMenuRef.current && !roleMenuRef.current.contains(e.target)) {
+                setIsRoleMenuOpen(false);
+            }
             if (launcherRef.current && !launcherRef.current.contains(e.target)) {
                 setIsLauncherOpen(false);
+                setIsAddingShortcut(false);
             }
         };
-        if (isLauncherOpen) document.addEventListener('mousedown', handler);
+        document.addEventListener('mousedown', handler);
         return () => document.removeEventListener('mousedown', handler);
-    }, [isLauncherOpen]);
+    }, []);
+
+    const trueRole = user?.role?.role_name || null;
+    const canImpersonate = trueRole === 'SuperAdmin' || trueRole === 'Admin';
 
     /* Derived */
     const isDark = theme === 'dark';
@@ -120,7 +127,9 @@ const DashboardLayout = () => {
     const lbl = T[language] ?? T.ar;
 
     const handleLogout = () => { logout(); navigate('/login'); };
-    const navItems = getNavItems(roleName, language);
+
+    const activeLaunchItems = savedPaths.map(p => launchableItems.find(i => i.path === p)).filter(Boolean);
+    const availableLaunchItems = launchableItems.filter(i => !savedPaths.includes(i.path));
 
     /* ── Small icon-button helper (reusable inside header) ── */
     const IconBtn = ({ onClick, title, children }) => (
@@ -275,13 +284,37 @@ const DashboardLayout = () => {
                         <span style={{
                             overflow: 'hidden',
                             whiteSpace: 'nowrap',
-                            maxWidth: mini ? '0px' : '160px',
+                            maxWidth: mini ? '0px' : '140px',
                             opacity: mini ? 0 : 1,
                             transition: 'max-width 0.3s cubic-bezier(0.4,0,0.2,1), opacity 0.2s ease',
                             display: 'block',
+                            flex: 1,
                         }}>
                             {item.label}
                         </span>
+                        {/* Badge indicator for items like offline screens count */}
+                        {item.badge && item.badge.value > 0 && (
+                            <span
+                                title={item.badge.title}
+                                style={{
+                                    fontSize: '10px', fontWeight: 800,
+                                    minWidth: 18, height: 18,
+                                    borderRadius: 99,
+                                    background: item.badge.color,
+                                    color: '#fff',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    padding: '0 5px',
+                                    flexShrink: 0,
+                                    opacity: mini ? 0 : 1,
+                                    maxWidth: mini ? '0px' : '40px',
+                                    overflow: 'hidden',
+                                    transition: 'opacity 0.2s ease, max-width 0.3s',
+                                    animation: 'badgePulse 2.5s ease-in-out infinite',
+                                }}
+                            >
+                                {item.badge.value}
+                            </span>
+                        )}
                     </NavLink>
                 ))}
             </nav>
@@ -567,11 +600,18 @@ const DashboardLayout = () => {
                             )}
                         </IconBtn>
 
-                        {/* ██ App Launcher ██ */}
+                        <style>{`
+                            @keyframes launcherIn {
+                                from { opacity: 0; transform: scale(0.95) translateY(-6px); }
+                                to   { opacity: 1; transform: scale(1)   translateY(0); }
+                            }
+                        `}</style>
+
+                        {/* ██ Quick Access App Launcher ██ */}
                         <div ref={launcherRef} style={{ position: 'relative' }}>
-                            <IconBtn
-                                onClick={() => setIsLauncherOpen(p => !p)}
-                                title={isRTL ? 'مشغّل التطبيقات' : 'App Launcher'}
+                            <IconBtn 
+                                onClick={() => { setIsLauncherOpen(!isLauncherOpen); setIsAddingShortcut(false); }} 
+                                title={isRTL ? 'الوصول السريع' : 'App Launcher'}
                             >
                                 <Grid style={{
                                     width: 17, height: 17,
@@ -579,111 +619,162 @@ const DashboardLayout = () => {
                                     transition: 'color 0.2s',
                                 }} />
                             </IconBtn>
-
-                            {/* Launcher panel */}
                             {isLauncherOpen && (
                                 <div style={{
-                                    position: 'absolute',
-                                    top: 'calc(100% + 8px)',
-                                    [isRTL ? 'left' : 'right']: 0,
-                                    width: '280px',
-                                    background: S.surfaceContainerLowest,
-                                    border: `1px solid ${S.outlineVariant}`,
-                                    borderRadius: '16px',
-                                    boxShadow: '0 8px 32px rgba(0,0,0,0.14)',
+                                    position: 'absolute', top: 'calc(100% + 8px)', [isRTL ? 'left' : 'right']: 0,
+                                    width: '280px', background: S.surfaceContainerLowest, border: `1px solid ${S.outlineVariant}`,
+                                    borderRadius: '16px', padding: '16px', boxShadow: '0 8px 32px rgba(0,0,0,0.14)',
                                     zIndex: 999,
-                                    overflow: 'hidden',
                                     animation: 'launcherIn 0.18s cubic-bezier(0.4,0,0.2,1)',
                                 }}>
-                                    {/* Header */}
-                                    <div style={{
-                                        padding: '12px 16px',
-                                        borderBottom: `1px solid ${S.outlineVariant}`,
-                                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                                    }}>
-                                        <span style={{
-                                            fontSize: '13px', fontWeight: 700,
-                                            color: S.onSurface,
-                                            fontFamily: "'IBM Plex Sans Arabic', sans-serif",
-                                        }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                                        <span style={{ fontSize: '13px', fontWeight: 700, color: S.onSurface, fontFamily: "'IBM Plex Sans Arabic'" }}>
                                             {isRTL ? 'الوصول السريع' : 'Quick Access'}
                                         </span>
-                                        <span style={{
-                                            fontSize: '10px',
-                                            color: S.outline,
-                                            fontFamily: "'IBM Plex Sans Arabic', sans-serif",
-                                        }}>
-                                            {navItems.length} {isRTL ? 'رابط' : 'links'}
-                                        </span>
-                                    </div>
-
-                                    {/* Grid of shortcuts */}
-                                    <div style={{
-                                        display: 'grid',
-                                        gridTemplateColumns: 'repeat(3, 1fr)',
-                                        gap: '2px',
-                                        padding: '8px',
-                                        maxHeight: '320px',
-                                        overflowY: 'auto',
-                                    }}>
-                                        {navItems.map((item) => (
+                                        {activeLaunchItems.length < maxItems && (
                                             <button
-                                                key={item.path}
-                                                onClick={() => { navigate(item.path); setIsLauncherOpen(false); }}
-                                                style={{
-                                                    display: 'flex', flexDirection: 'column',
-                                                    alignItems: 'center', justifyContent: 'center',
-                                                    gap: '8px',
-                                                    padding: '14px 8px',
-                                                    borderRadius: '12px',
-                                                    border: 'none',
-                                                    background: 'transparent',
-                                                    cursor: 'pointer',
-                                                    transition: 'background 0.15s, transform 0.1s',
-                                                }}
-                                                onMouseEnter={e => {
-                                                    e.currentTarget.style.background = S.surfaceContainerLow;
-                                                    e.currentTarget.style.transform = 'scale(0.97)';
-                                                }}
-                                                onMouseLeave={e => {
-                                                    e.currentTarget.style.background = 'transparent';
-                                                    e.currentTarget.style.transform = 'scale(1)';
-                                                }}
+                                                onClick={() => setIsAddingShortcut(!isAddingShortcut)}
+                                                style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: S.primaryContainer, fontSize: '12px', fontWeight: 600, padding: 0 }}
                                             >
-                                                <div style={{
-                                                    width: 40, height: 40,
-                                                    borderRadius: '12px',
-                                                    background: S.surfaceContainer,
-                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                }}>
-                                                    <item.icon style={{ width: 20, height: 20, color: S.primaryContainer }} />
-                                                </div>
-                                                <span style={{
-                                                    fontSize: '11px', fontWeight: 600,
-                                                    color: S.onSurfaceVariant,
-                                                    fontFamily: "'IBM Plex Sans Arabic', sans-serif",
-                                                    textAlign: 'center',
-                                                    lineHeight: 1.3,
-                                                    whiteSpace: 'nowrap',
-                                                    overflow: 'hidden',
-                                                    textOverflow: 'ellipsis',
-                                                    maxWidth: '72px',
-                                                }}>
-                                                    {item.label}
-                                                </span>
+                                                {isRTL ? '+ إضافة' : '+ Add'}
                                             </button>
-                                        ))}
+                                        )}
                                     </div>
+                                    
+                                    {!isAddingShortcut ? (
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+                                            {activeLaunchItems.map((item) => (
+                                                <div key={item.path} style={{ position: 'relative' }}>
+                                                    <button
+                                                        onClick={() => { navigate(item.path); setIsLauncherOpen(false); }}
+                                                        style={{
+                                                            width: '100%', height: '70px',
+                                                            background: S.surfaceContainerLow, border: 'none', borderRadius: '12px',
+                                                            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                                                            cursor: 'pointer', transition: 'all 0.15s ease'
+                                                        }}
+                                                        onMouseEnter={e => e.currentTarget.style.background = S.surfaceContainer}
+                                                        onMouseLeave={e => e.currentTarget.style.background = S.surfaceContainerLow}
+                                                    >
+                                                        <item.icon style={{ width: 22, height: 22, color: S.primary }} />
+                                                    </button>
+                                                    <span style={{ display: 'block', fontSize: '10px', fontWeight: 600, color: S.onSurfaceVariant, textAlign: 'center', marginTop: '6px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                        {item.label}
+                                                    </span>
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); setSavedPaths(savedPaths.filter(p => p !== item.path)); }}
+                                                        style={{ position: 'absolute', top: -5, right: -5, width: 20, height: 20, borderRadius: '50%', background: S.error, color: '#fff', border: `2px solid ${S.surfaceContainerLowest}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', display: 'flex' }}
+                                                    >
+                                                        <X style={{ width: 10, height: 10 }} />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                            {/* Empty placeholders */}
+                                            {Array.from({ length: maxItems - activeLaunchItems.length }).map((_, idx) => (
+                                                <div key={`empty-${idx}`} style={{ width: '100%', height: '70px', border: `2px dashed ${S.outlineVariant}`, borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                    <Plus style={{ width: 16, height: 16, color: S.outlineVariant }} />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                            {availableLaunchItems.length === 0 && (
+                                                <div style={{ fontSize: '12px', color: S.outline, textAlign: 'center' }}>
+                                                    {isRTL ? 'جميع الواجهات مضافة' : 'All interfaces added'}
+                                                </div>
+                                            )}
+                                            {availableLaunchItems.map(item => (
+                                                <button
+                                                    key={item.path}
+                                                    onClick={() => { setSavedPaths([...savedPaths, item.path]); setIsAddingShortcut(false); }}
+                                                    style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px', borderRadius: '8px', border: 'none', background: S.surfaceContainerLow, cursor: 'pointer', direction: isRTL ? 'rtl' : 'ltr' }}
+                                                >
+                                                    <item.icon style={{ width: 16, height: 16, color: S.primaryContainer }} />
+                                                    <span style={{ fontSize: '12px', fontWeight: 600, color: S.onSurface, fontFamily: "'IBM Plex Sans Arabic'" }}>
+                                                        {item.label}
+                                                    </span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>
 
-                        <style>{`
-                            @keyframes launcherIn {
-                                from { opacity: 0; transform: scale(0.95) translateY(-6px); }
-                                to   { opacity: 1; transform: scale(1)   translateY(0); }
-                            }
-                        `}</style>
+                        {/* ██ Role Switcher (Admin Only) ██ */}
+                        {canImpersonate && (
+                            <div ref={roleMenuRef} style={{ position: 'relative' }}>
+                                <IconBtn
+                                    onClick={() => { setIsRoleMenuOpen(p => !p); }}
+                                    title={isRTL ? 'تبديل الصلاحية (معاينة)' : 'Switch Role (Preview)'}
+                                >
+                                    <Users style={{
+                                        width: 17, height: 17,
+                                        color: impersonatedRole ? S.error : (isRoleMenuOpen ? S.primaryContainer : S.onSurfaceVariant),
+                                        transition: 'color 0.2s',
+                                    }} />
+                                </IconBtn>
+
+                                {isRoleMenuOpen && (
+                                    <div style={{
+                                        position: 'absolute',
+                                        top: 'calc(100% + 8px)',
+                                        [isRTL ? 'left' : 'right']: 0,
+                                        width: '200px',
+                                        background: S.surfaceContainerLowest,
+                                        border: `1px solid ${S.outlineVariant}`,
+                                        borderRadius: '16px',
+                                        boxShadow: '0 8px 32px rgba(0,0,0,0.14)',
+                                        zIndex: 999,
+                                        overflow: 'hidden',
+                                        animation: 'launcherIn 0.18s cubic-bezier(0.4,0,0.2,1)',
+                                    }}>
+                                        <div style={{ padding: '12px 16px', borderBottom: `1px solid ${S.outlineVariant}` }}>
+                                            <span style={{ fontSize: '12px', fontWeight: 700, color: S.onSurface, fontFamily: "'IBM Plex Sans Arabic', sans-serif" }}>
+                                                {isRTL ? 'معاينة النظام بصفة:' : 'Preview System As:'}
+                                            </span>
+                                        </div>
+                                        <div style={{ padding: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                            {[
+                                                { id: null, label: isRTL ? 'مدير عام (رجوع)' : 'Admin (Reset)' },
+                                                { id: 'Advertiser', label: isRTL ? 'المعلن' : 'Advertiser' },
+                                                { id: 'ScreenOwner', label: isRTL ? 'مالك الشاشات' : 'Screen Owner' },
+                                                { id: 'Secretary', label: isRTL ? 'السكرتير' : 'Secretary' },
+                                                { id: 'Maintenance', label: isRTL ? 'فريق الصيانة' : 'Maintenance' }
+                                            ].map(r => (
+                                                <button
+                                                    key={r.id || 'admin'}
+                                                    onClick={() => {
+                                                        setImpersonatedRole(r.id);
+                                                        setIsRoleMenuOpen(false);
+                                                        navigate('/dashboard'); // jump home to reload layout correctly
+                                                    }}
+                                                    style={{
+                                                        padding: '10px 12px',
+                                                        borderRadius: '8px', border: 'none',
+                                                        background: (impersonatedRole === r.id || (r.id === null && !impersonatedRole)) ? S.primaryContainer : 'transparent',
+                                                        color: (impersonatedRole === r.id || (r.id === null && !impersonatedRole)) ? '#fff' : S.onSurface,
+                                                        textAlign: isRTL ? 'right' : 'left',
+                                                        fontSize: '13px', fontWeight: 500,
+                                                        cursor: 'pointer', transition: 'all 0.2s',
+                                                        direction: isRTL ? 'rtl' : 'ltr',
+                                                        fontFamily: "'IBM Plex Sans Arabic', sans-serif"
+                                                    }}
+                                                    onMouseEnter={e => {
+                                                        if (impersonatedRole !== r.id && (r.id !== null || impersonatedRole)) e.currentTarget.style.background = S.surfaceContainerLow;
+                                                    }}
+                                                    onMouseLeave={e => {
+                                                        if (impersonatedRole !== r.id && (r.id !== null || impersonatedRole)) e.currentTarget.style.background = 'transparent';
+                                                    }}
+                                                >
+                                                    {r.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
                         {/* Divider */}
                         <div style={{ width: 1, height: 26, background: S.outlineVariant, margin: '0 4px' }} />

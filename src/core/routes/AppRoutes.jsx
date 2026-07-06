@@ -14,6 +14,7 @@ import DashboardLayout from '../../shared/layouts/DashboardLayout';
 // Dashboard
 import Dashboard from '../../modules/dashboard/Dashboard';
 import AdvertiserDashboard from '../../modules/dashboard/AdvertiserDashboard';
+import MaintenanceDashboard from '../../modules/dashboard/MaintenanceDashboard';
 
 // Modules
 import ScreensPage from '../../modules/screens/ScreensPage';
@@ -67,7 +68,8 @@ const RoleRoute = ({ children, allowedRoles }) => {
  */
 const SmartDashboard = () => {
     const { roleName } = usePermission();
-    if (roleName === ROLES.ADVERTISER) return <AdvertiserDashboard />;
+    if (roleName === ROLES.ADVERTISER)  return <AdvertiserDashboard />;
+    if (roleName === ROLES.MAINTENANCE) return <MaintenanceDashboard />;
     return <Dashboard />;
 };
 

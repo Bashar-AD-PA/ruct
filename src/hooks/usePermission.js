@@ -20,7 +20,7 @@ export const ROLES = {
  */
 const usePermission = () => {
     const user = useAuthStore(state => state.user);
-    const roleName = user?.role?.role_name || null;
+    const roleName = useAuthStore(state => state.getRoleName());
 
     const isAdmin = roleName === ROLES.SUPER_ADMIN || roleName === ROLES.ADMIN;
     const isAdvertiser = roleName === ROLES.ADVERTISER;

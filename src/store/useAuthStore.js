@@ -9,6 +9,7 @@ const useAuthStore = create((set, get) => ({
     user: TokenManager.getUserData(),
     token: TokenManager.getToken(),
     isAuthenticated: !!TokenManager.getToken(),
+    impersonatedRole: null, // Allows admins to view system as other roles
 
     /**
      * Login - saves user and token to store + localStorage
@@ -37,9 +38,18 @@ const useAuthStore = create((set, get) => ({
     },
 
     /**
+     * Set a temporary role for impersonation (Admin only)
+     */
+    setImpersonatedRole: (roleName) => {
+        set({ impersonatedRole: roleName });
+    },
+
+    /**
      * Get user's role name (from the nested role object)
      */
     getRoleName: () => {
+        const impersonated = get().impersonatedRole;
+        if (impersonated) return impersonated;
         const user = get().user;
         return user?.role?.role_name || null;
     },
