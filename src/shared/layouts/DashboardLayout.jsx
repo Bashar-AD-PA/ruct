@@ -745,7 +745,7 @@ const DashboardLayout = () => {
                         transition: 'background 0.3s ease',
                     }}
                 >
-                    <div style={{ maxWidth: '1400px', margin: '0 auto', direction: isRTL ? 'rtl' : 'ltr' }}>
+                    <div style={{ maxWidth: '100%', margin: '0 auto', direction: isRTL ? 'rtl' : 'ltr' }}>
                         <Outlet />
                     </div>
                 </main>

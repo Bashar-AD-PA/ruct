@@ -341,7 +341,7 @@ const CreateAdPage = () => {
                 </div>
             </header>
 
-            <main className="flex-1 p-3 md:p-5 max-w-[1440px] mx-auto w-full font-sans" style={{ marginTop: '54px' }} dir="rtl">
+            <main className="flex-1 p-3 md:p-5 w-full font-sans" style={{ marginTop: '54px' }} dir="rtl">
                 {/* Slim compact title row */}
                 <div className="mb-3 flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
