@@ -90,6 +90,8 @@ export const getNotificationIconInfo = (titleKey) => {
     }
 };
 
+import useAuthStore from '../../../store/useAuthStore';
+
 export const getNotificationLink = (titleKey) => {
     const key = (() => {
         try {
@@ -97,15 +99,23 @@ export const getNotificationLink = (titleKey) => {
         } catch(e) { return titleKey; }
     })();
 
+    const roleName = useAuthStore.getState().getRoleName();
+
     switch(key) {
         case 'notif_title_payment_confirmed':
         case 'notif_title_ad_paid_online':
         case 'notif_title_new_receipt':
-            return '/dashboard/operations';
+            if (roleName === 'Advertiser') return '/dashboard/my-financials';
+            if (roleName === 'ScreenOwner') return '/dashboard/earnings';
+            if (roleName === 'Secretary') return '/dashboard/payment-ops';
+            return '/dashboard/financial'; // Default for Admin/SuperAdmin
+
         case 'notif_title_new_screen':
             return '/dashboard/screens';
+
         case 'notif_title_new_user':
             return '/dashboard/users';
+
         case 'notif_title_new_ad_pending':
         case 'notif_title_ad_pending_review':
         case 'notif_title_ad_approved':
@@ -113,6 +123,7 @@ export const getNotificationLink = (titleKey) => {
         case 'notif_title_ad_scheduled':
         case 'notif_title_ad_rejected':
             return '/dashboard/ads';
+
         default:
             return null;
     }
