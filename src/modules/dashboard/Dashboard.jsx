@@ -897,27 +897,19 @@ const Dashboard = () => {
                                 borderBottom: `1px solid ${S.outlineVariant}`,
                             }}>
                                 {[
-                                    { label: 'اسم الإعلان', sub: 'AD NAME' },
-                                    { label: 'الشاشة العارضة', sub: 'SCREEN NAME' },
-                                    { label: 'مدة العرض', sub: 'DURATION' },
-                                    { label: 'وقت التشغيل', sub: 'TIMESTAMP' },
-                                ].map((h, i) => (
+                                    'اسم الإعلان',
+                                    'الشاشة العارضة',
+                                    'مدة العرض',
+                                    'وقت التشغيل',
+                                ].map((label, i) => (
                                     <th key={i} style={{
                                         padding: '16px 20px',
                                         textAlign: 'right', direction: 'rtl',
-                                        fontSize: '12px', fontWeight: 600,
-                                        color: S.onSurfaceVariant,
-                                        letterSpacing: '0.02em',
+                                        fontSize: '14px', fontWeight: 600,
+                                        color: S.onSurface,
                                         fontFamily: "'IBM Plex Sans Arabic', sans-serif",
                                     }}>
-                                        <div style={{ color: S.onSurface }}>{h.label}</div>
-                                        <div style={{
-                                            fontSize: '10px', fontWeight: 400,
-                                            color: S.outline, marginTop: '2px',
-                                            textTransform: 'uppercase'
-                                        }}>
-                                            {h.sub}
-                                        </div>
+                                        {label}
                                     </th>
                                 ))}
                             </tr>
@@ -941,23 +933,13 @@ const Dashboard = () => {
                                         onMouseLeave={e => e.currentTarget.style.background = S.surfaceContainerLowest}
                                     >
                                         <td style={{ padding: '16px 20px', direction: 'rtl' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                                <div style={{
-                                                    width: 40, height: 40, borderRadius: '10px',
-                                                    background: S.primaryContainer,
-                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                    color: S.onPrimaryContainer, flexShrink: 0
-                                                }}>
-                                                    <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>campaign</span>
-                                                </div>
-                                                <span style={{ 
-                                                    fontSize: '14px', fontWeight: 600, 
-                                                    color: S.onSurface, 
-                                                    fontFamily: "'IBM Plex Sans Arabic', sans-serif" 
-                                                }}>
-                                                    {log.ad_name || '—'}
-                                                </span>
-                                            </div>
+                                            <span style={{ 
+                                                fontSize: '14px', fontWeight: 600, 
+                                                color: S.onSurface, 
+                                                fontFamily: "'IBM Plex Sans Arabic', sans-serif" 
+                                            }}>
+                                                {log.ad_name || '—'}
+                                            </span>
                                         </td>
                                         <td style={{ padding: '16px 20px', direction: 'rtl' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -980,32 +962,24 @@ const Dashboard = () => {
                                         </td>
                                         <td style={{ padding: '16px 20px', direction: 'rtl' }}>
                                             <span style={{
-                                                display: 'inline-flex', alignItems: 'center', gap: '6px',
-                                                padding: '6px 12px', borderRadius: '24px',
-                                                background: S.secondaryContainer,
-                                                color: S.onSecondaryContainer,
-                                                fontSize: '13px', fontWeight: 600,
+                                                fontSize: '14px', fontWeight: 500, color: S.onSurfaceVariant,
                                                 fontFamily: "'IBM Plex Sans Arabic', sans-serif",
                                             }}>
-                                                <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>timer</span>
                                                 {log.duration ? `${log.duration} ثانية` : '—'}
                                             </span>
                                         </td>
                                         <td style={{ padding: '16px 20px', direction: 'ltr', textAlign: 'right' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px' }}>
-                                                <span style={{
-                                                    fontSize: '13px', fontWeight: 500, color: S.onSurfaceVariant,
-                                                    fontFamily: "'IBM Plex Sans Arabic', sans-serif",
-                                                }}>
-                                                    {log.playback_timestamp
-                                                        ? new Date(log.playback_timestamp).toLocaleString('en-US', {
-                                                            month: 'short', day: 'numeric',
-                                                            hour: '2-digit', minute: '2-digit', hour12: true,
-                                                        })
-                                                        : '—'}
-                                                </span>
-                                                <span className="material-symbols-outlined" style={{ fontSize: '16px', color: S.outline }}>history</span>
-                                            </div>
+                                            <span style={{
+                                                fontSize: '14px', fontWeight: 500, color: S.onSurfaceVariant,
+                                                fontFamily: "'IBM Plex Sans Arabic', sans-serif",
+                                            }}>
+                                                {log.playback_timestamp
+                                                    ? new Date(log.playback_timestamp).toLocaleString('ar-EG', {
+                                                        year: 'numeric', month: 'short', day: 'numeric',
+                                                        hour: '2-digit', minute: '2-digit', hour12: true,
+                                                    })
+                                                    : '—'}
+                                            </span>
                                         </td>
                                     </motion.tr>
                                 )) : (
