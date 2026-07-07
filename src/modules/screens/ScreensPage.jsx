@@ -12,6 +12,7 @@ import Modal from '../../shared/components/Modal';
 import ConfirmDialog from '../../shared/components/ConfirmDialog';
 import useToastStore from '../../store/useToastStore';
 import ScreenCommandModal from './components/ScreenCommandModal';
+import LocationPickerMap from './components/LocationPickerMap';
 import usePermission from '../../hooks/usePermission';
 
 // Lazy load map mapping component
@@ -79,7 +80,8 @@ const ScreensPage = () => {
   const [form, setForm] = useState({
     screen_name: '', mac_address: '', type_id: '', street_id: '',
     owner_id: '', status: 'Online', photo: null,
-    base_price: '10', screen_size_inch: '55'
+    base_price: '10', screen_size_inch: '55',
+    latitude: null, longitude: null,
   });
 
   const [quickOwnerModal, setQuickOwnerModal] = useState(false);
@@ -255,6 +257,8 @@ const ScreensPage = () => {
         photo: null,
         base_price: screen.base_price ?? '10',
         screen_size_inch: screen.screen_size_inch ?? '55',
+        latitude: screen.latitude ? parseFloat(screen.latitude) : null,
+        longitude: screen.longitude ? parseFloat(screen.longitude) : null,
       });
 
       const initialRegionId = screen.street?.region_id || '';
@@ -280,7 +284,7 @@ const ScreensPage = () => {
       }
       setSlotsLoading(false);
     } else {
-      setForm({ screen_name: '', mac_address: '', type_id: '', street_id: '', owner_id: '', status: 'Online', photo: null, base_price: '10', screen_size_inch: '55' });
+      setForm({ screen_name: '', mac_address: '', type_id: '', street_id: '', owner_id: '', status: 'Online', photo: null, base_price: '10', screen_size_inch: '55', latitude: null, longitude: null });
       setFormGovId('');
       setFormRegionId('');
       setFormRegions([]);
@@ -328,7 +332,7 @@ const ScreensPage = () => {
 
       const fd = new FormData();
       const payload = { ...form, street_id: finalStreetId };
-      Object.entries(payload).forEach(([k, v]) => { if (v) fd.append(k, v); });
+      Object.entries(payload).forEach(([k, v]) => { if (v !== null && v !== undefined && v !== '') fd.append(k, v); });
 
       let screenIdStr = null;
 
@@ -647,7 +651,7 @@ const ScreensPage = () => {
       <div className="bg-[#ffffff] border border-[#E5E7EB] rounded-xl overflow-hidden flex flex-col shadow-sm">
         <div className="p-[16px] border-b border-[#c3c6d7] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-[16px] bg-[#f9f9ff]">
           <div>
-            <h3 className="text-[20px] font-semibold text-[#141b2b]">جدول الشاشات الكامل</h3>
+            <h3 className="text-[20px] font-semibold text-[#141b2b] ">جدول الشاشات الكامل</h3>
             <p className="text-[12px] text-[#434655]">عرض {filteredScreens.length} شاشة {(selectedGov || selectedRegion || selectedStreet) ? 'في التحديد الحالي' : 'في المنظومة بأكملها'}</p>
           </div>
 
@@ -949,6 +953,33 @@ const ScreensPage = () => {
                 </div>
               </div>
             )}
+            
+            {/* Map Picker UI */}
+            <div style={{ marginTop: '16px', background: '#f9f9ff', padding: '12px', borderRadius: '10px', border: '1px solid #c3c6d7' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <MapPin style={{ color: '#004ac6', width: 20, height: 20 }} />
+                  <div>
+                    <h5 style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: '#141b2b' }}>الإحداثيات الجغرافية على الخريطة</h5>
+                    <span style={{ fontSize: '11px', color: '#737686' }}>
+                      {form.latitude && form.longitude
+                        ? `الطول: ${form.longitude.toFixed(5)} | العرض: ${form.latitude.toFixed(5)}`
+                        : 'لم يتم تحديد موقع دقيق للشاشة'}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowMapModal(true)}
+                  style={{
+                    background: '#004ac6', color: '#fff', border: 'none', padding: '6px 16px',
+                    borderRadius: '8px', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+                  }}
+                >
+                  تحديد على الخريطة
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* ══ SECTION 3: التصنيف والملكية والتسعير ══ */}
@@ -1330,6 +1361,23 @@ const ScreensPage = () => {
       />
 
       <ScreenCommandModal isOpen={!!commandTarget} onClose={() => setCommandTarget(null)} screen={commandTarget} />
+
+      {/* ── Map Picker Modal ── */}
+      <Modal
+        isOpen={showMapModal}
+        onClose={() => setShowMapModal(false)}
+        title="تحديد موقع الشاشة"
+      >
+        <LocationPickerMap
+          initialLat={form.latitude}
+          initialLng={form.longitude}
+          onSelect={(lat, lng) => {
+            setForm(p => ({ ...p, latitude: lat, longitude: lng }));
+            setShowMapModal(false);
+          }}
+          onClose={() => setShowMapModal(false)}
+        />
+      </Modal>
 
       {/* ── Image Preview Modal ── */}
       <Modal isOpen={!!showImageModal} onClose={() => setShowImageModal(null)} title="استعراض الصورة">
