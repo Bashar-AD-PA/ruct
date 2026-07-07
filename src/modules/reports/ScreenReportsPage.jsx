@@ -4,6 +4,7 @@ import axiosClient from '../../core/api/axiosClient';
 import { ENDPOINTS } from '../../core/api/endpoints';
 import useToastStore from '../../store/useToastStore';
 import useAuthStore from '../../store/useAuthStore';
+import MainLogo from '../../../assets/images/Main_app_logo.png';
 
 const ScreenReportsPage = () => {
     const { user } = useAuthStore();
@@ -190,7 +191,7 @@ const ScreenReportsPage = () => {
                     <div className="w-full bg-[#1c5b8e] text-white flex justify-between items-stretch" style={{ height: '140px' }}>
                         <div className="flex-1 flex items-center justify-start px-12 bg-[#1c5b8e]">
                             <div className="text-center">
-                                <img src="/src/assets/images/Main_app_logo.png" alt="SabaPost Logo" className="h-16 object-contain mb-2 brightness-0 invert mx-auto" />
+                                <img src={MainLogo} alt="SabaPost Logo" className="h-16 object-contain mb-2 brightness-0 invert mx-auto" />
                                 <p className="font-bold text-lg">سبأ بوست - SabaPost</p>
                                 <p className="text-sm opacity-80">نظام إدارة الإعلانات الرقمية</p>
                             </div>
