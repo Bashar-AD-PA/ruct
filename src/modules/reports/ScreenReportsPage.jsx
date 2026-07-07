@@ -107,7 +107,7 @@ const ScreenReportsPage = () => {
 
             {/* Filters Section - Hidden on Print */}
             <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-6 shadow-sm mb-8 print:hidden">
-                <div className={`grid grid-cols-1 md:grid-cols-${isAdmin ? '5' : '4'} gap-6 items-end`}>
+                <div className={isAdmin ? 'grid grid-cols-1 md:grid-cols-5 gap-6 items-end' : 'grid grid-cols-1 md:grid-cols-4 gap-6 items-end'}>
                     
                     {isAdmin && (
                         <div className="space-y-2">
