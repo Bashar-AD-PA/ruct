@@ -323,7 +323,7 @@ const CreateAdPage = () => {
                     <div className="flex items-center gap-2">
                         <div className="flex items-center gap-1.5 bg-surface-container-low px-2.5 py-1 rounded-lg border border-border-color">
                             <span className="material-symbols-outlined text-[14px] text-outline">payments</span>
-                            <span className="font-label-md text-label-md text-on-surface font-bold" dir="ltr">{calculatedCost ? `$${calculatedCost.toFixed(2)}` : '—'}</span>
+                            <span className="font-label-md text-label-md text-on-surface font-bold" dir="ltr">{calculatedCost ? `$${(calculatedCost ? Number(calculatedCost).toFixed(2) : "0.00")}` : '—'}</span>
                         </div>
                         <div className="flex items-center gap-1.5 bg-surface-container-low px-2.5 py-1 rounded-lg border border-border-color">
                             <span className="material-symbols-outlined text-[14px] text-outline">desktop_windows</span>
@@ -874,7 +874,7 @@ const CreateAdPage = () => {
                                                                 <div className="bg-surface p-6 rounded-2xl border border-border-color shadow-sm">
                                                                     <div className="flex justify-between items-center mb-6 border-b border-border-color pb-4">
                                                                         <span className="font-label-md text-label-md text-outline">الإجمالي النهائي المستقطب:</span>
-                                                                        <span className="font-display-sm text-display-sm text-primary font-bold tracking-tighter" dir="ltr">${calculatedCost.toFixed(2)}</span>
+                                                                        <span className="font-display-sm text-display-sm text-primary font-bold tracking-tighter" dir="ltr">${(calculatedCost ? Number(calculatedCost).toFixed(2) : "0.00")}</span>
                                                                     </div>
 
                                                                     {costDetails.discount_multiplier < 1.0 && (
@@ -923,7 +923,7 @@ const CreateAdPage = () => {
                                                                             <span className="material-symbols-outlined text-[18px] text-primary">receipt_long</span> إيصال الحوالة البنكية <span className="text-on-surface-variant font-normal ml-2">(اختياري)</span>
                                                                         </label>
                                                                         <p className="font-caption text-caption text-on-surface-variant mb-4 leading-relaxed">
-                                                                            الآن بعد تحديد التكلفة بـ <strong className="text-primary font-bold">${calculatedCost.toFixed(2)}</strong>، يمكنك تحويل المبلغ وإرفاق صورة الإيصال هنا لاعتماد حملتك فوراً،
+                                                                            الآن بعد تحديد التكلفة بـ <strong className="text-primary font-bold">${(calculatedCost ? Number(calculatedCost).toFixed(2) : "0.00")}</strong>، يمكنك تحويل المبلغ وإرفاق صورة الإيصال هنا لاعتماد حملتك فوراً،
                                                                             أو إتمام الإطلاق الآن والدفع لاحقاً (Stripe/حوالة) من إدارة الإعلانات.
                                                                         </p>
                                                                         <div className="relative group">
@@ -1111,7 +1111,7 @@ const CreateAdPage = () => {
                                     </div>
                                     <div className="bg-surface-container-low rounded-xl p-3 text-center border border-border-color">
                                         <span className="material-symbols-outlined text-primary text-[18px] mb-1 block">payments</span>
-                                        <span className="text-[15px] font-extrabold text-on-background block" dir="ltr">{calculatedCost ? `$${calculatedCost.toFixed(2)}` : '—'}</span>
+                                        <span className="text-[15px] font-extrabold text-on-background block" dir="ltr">{calculatedCost ? `$${(calculatedCost ? Number(calculatedCost).toFixed(2) : "0.00")}` : '—'}</span>
                                         <span className="text-[11px] text-on-surface-variant">التكلفة</span>
                                     </div>
                                 </div>
