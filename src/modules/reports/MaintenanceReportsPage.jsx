@@ -1,40 +1,24 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Calendar, FileText, Printer, Search, MonitorPlay, DollarSign, ListVideo, Activity } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Calendar, FileText, Printer, Search, Activity, Wifi, WifiOff, Clock } from 'lucide-react';
 import axiosClient from '../../core/api/axiosClient';
 import { ENDPOINTS } from '../../core/api/endpoints';
 import useToastStore from '../../store/useToastStore';
 import useAuthStore from '../../store/useAuthStore';
 
-const ScreenReportsPage = () => {
+const MaintenanceReportsPage = () => {
     const { user } = useAuthStore();
     const [screens, setScreens] = useState([]);
     const [loadingScreens, setLoadingScreens] = useState(true);
     
     // Filters State
     const [filters, setFilters] = useState({
-        owner_id: '',
         screen_id: '',
-        start_date: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0], // First day of current month
-        end_date: new Date().toISOString().split('T')[0], // Today
+        start_date: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
+        end_date: new Date().toISOString().split('T')[0],
     });
 
     const [reportData, setReportData] = useState(null);
     const [loadingReport, setLoadingReport] = useState(false);
-    
-    const isAdmin = user?.role_id === 1 || user?.role_id === 4 || ['Admin', 'SuperAdmin'].includes(user?.role?.role_name);
-
-    // Extract unique owners from screens
-    const uniqueOwners = screens.reduce((acc, screen) => {
-        if (screen.owner && !acc.find(o => o.user_id === screen.owner.user_id)) {
-            acc.push(screen.owner);
-        }
-        return acc;
-    }, []);
-
-    // Filter screens based on selected owner
-    const filteredScreens = filters.owner_id 
-        ? screens.filter(s => s.owner_id === parseInt(filters.owner_id))
-        : screens;
     
     const addToast = useToastStore(state => state.addToast);
 
@@ -59,13 +43,7 @@ const ScreenReportsPage = () => {
 
     const handleFilterChange = (e) => {
         const { name, value } = e.target;
-        
-        if (name === 'owner_id') {
-            // Reset screen_id when owner changes
-            setFilters(prev => ({ ...prev, owner_id: value, screen_id: '' }));
-        } else {
-            setFilters(prev => ({ ...prev, [name]: value }));
-        }
+        setFilters(prev => ({ ...prev, [name]: value }));
     };
 
     const generateReport = async () => {
@@ -76,9 +54,9 @@ const ScreenReportsPage = () => {
 
         setLoadingReport(true);
         try {
-            const res = await axiosClient.get('/reports/screen', { params: filters });
+            const res = await axiosClient.get('/reports/maintenance', { params: filters });
             setReportData(res.data);
-            addToast('تم استخراج التقرير بنجاح', 'success');
+            addToast('تم استخراج تقرير الصيانة بنجاح', 'success');
         } catch (error) {
             console.error("Error generating report", error);
             addToast('حدث خطأ أثناء استخراج التقرير', 'error');
@@ -98,37 +76,17 @@ const ScreenReportsPage = () => {
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 print:hidden">
                 <div>
                     <h1 className="text-3xl font-bold text-on-background flex items-center gap-3">
-                        <FileText className="w-8 h-8 text-primary" />
-                        تقرير أداء الشاشات
+                        <Activity className="w-8 h-8 text-primary" />
+                        تقرير الصيانة الفني
                     </h1>
-                    <p className="text-on-surface-variant mt-2 text-sm">استخرج تقارير مفصلة حول الإيرادات ومرات العرض لكل شاشة</p>
+                    <p className="text-on-surface-variant mt-2 text-sm">استخرج تقارير فنية حول حالة الشاشات وأوقات الانقطاع</p>
                 </div>
             </div>
 
             {/* Filters Section - Hidden on Print */}
             <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-6 shadow-sm mb-8 print:hidden">
-                <div className={`grid grid-cols-1 md:grid-cols-${isAdmin ? '5' : '4'} gap-6 items-end`}>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
                     
-                    {isAdmin && (
-                        <div className="space-y-2">
-                            <label className="text-sm font-semibold text-on-surface block">تصفية حسب المالك</label>
-                            <select 
-                                name="owner_id" 
-                                value={filters.owner_id} 
-                                onChange={handleFilterChange}
-                                className="w-full h-11 px-4 rounded-xl border border-outline-variant bg-surface text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
-                                disabled={loadingScreens}
-                            >
-                                <option value="">-- جميع الملاك --</option>
-                                {uniqueOwners.map(owner => (
-                                    <option key={owner.user_id} value={owner.user_id}>
-                                        {owner.full_name || owner.username}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                    )}
-
                     <div className="space-y-2">
                         <label className="text-sm font-semibold text-on-surface block">اختر الشاشة</label>
                         <select 
@@ -139,7 +97,7 @@ const ScreenReportsPage = () => {
                             disabled={loadingScreens}
                         >
                             <option value="">-- يرجى اختيار شاشة --</option>
-                            {filteredScreens.map(screen => (
+                            {screens.map(screen => (
                                 <option key={screen.screen_id} value={screen.screen_id}>
                                     {screen.screen_name} {screen.mac_address ? `(${screen.mac_address})` : ''}
                                 </option>
@@ -207,7 +165,7 @@ const ScreenReportsPage = () => {
             <style>
                 {`
                 @media print {
-                    @page { size: A4; margin: 0; } /* Edge to edge printing */
+                    @page { size: A4; margin: 0; }
                     body * { visibility: hidden; }
                     .print-area, .print-area * { visibility: visible; }
                     .print-area {
@@ -239,23 +197,20 @@ const ScreenReportsPage = () => {
                             </div>
                         </div>
                         
-                        {/* Center decorative element */}
                         <div className="w-48 bg-[#102a43]" style={{ clipPath: 'polygon(0 0, 100% 0, 75% 100%, 25% 100%)' }}></div>
 
                         <div className="flex-1 flex items-center justify-end px-12 bg-[#1c5b8e]">
-                            <h1 className="text-5xl font-black tracking-tight" style={{ color: '#ffffff' }}>تقرير الشاشة</h1>
+                            <h1 className="text-5xl font-black tracking-tight" style={{ color: '#ffffff' }}>تقرير فني للصيانة</h1>
                         </div>
                     </div>
 
                     {/* Metadata Section */}
-                    <div className="flex justify-between items-start px-16 py-10">
-                        <div className="flex-1 text-right space-y-2">
-                            <p className="text-xl font-bold text-gray-800">تقرير صادر إلى:</p>
-                            <h2 className="text-3xl font-black text-gray-900">{user?.full_name || user?.username || 'مدير النظام'}</h2>
-                            <p className="text-gray-600 font-medium">مُصدر تقارير معتمد</p>
-                            <p className="text-gray-500 text-sm mt-4 tracking-widest font-mono" dir="ltr">{user?.phone || 'رقم الهاتف غير مدرج'}</p>
+                    <div className="grid grid-cols-2 gap-8 py-10 px-16 bg-white">
+                        <div className="flex-1 text-right space-y-3">
+                            <div className="flex justify-start gap-3"><span className="font-bold text-gray-900 w-32">السيد/ة:</span> <span className="text-gray-700">{reportData.screen.owner ? (reportData.screen.owner.full_name || reportData.screen.owner.username) : 'غير مدرج'}</span></div>
+                            <div className="flex justify-start gap-3"><span className="font-bold text-gray-900 w-32">رقم الجوال:</span> <span className="text-gray-700">{reportData.screen.owner?.phone || 'غير مدرج'}</span></div>
                         </div>
-                        
+
                         <div className="flex-1 text-left space-y-3">
                             <div className="flex justify-end gap-3"><span className="text-gray-700">{reportData.screen.screen_id} - {reportData.screen.screen_name}</span> <span className="font-bold text-gray-900">:رقم الشاشة</span></div>
                             <div className="flex justify-end gap-3"><span className="text-gray-700">{reportData.screen.street ? `${reportData.screen.street.street_name} - ${reportData.screen.street.region?.region_name}` : 'غير محدد'}</span> <span className="font-bold text-gray-900">:موقع الشاشة</span></div>
@@ -264,52 +219,68 @@ const ScreenReportsPage = () => {
                         </div>
                     </div>
 
-                    {/* Table */}
+                    {/* Technical Stats */}
                     <div className="px-16 flex-1 mb-10">
-                        <table className="w-full text-right text-sm border-collapse">
-                            <thead className="bg-[#1c5b8e] text-white font-bold text-lg">
-                                <tr>
-                                    <th className="py-4 px-4 text-center w-16">رقم</th>
-                                    <th className="py-4 px-4">اسم الحملة</th>
-                                    <th className="py-4 px-4">المعلن والفئة</th>
-                                    <th className="py-4 px-4 text-center">التكرار</th>
-                                    <th className="py-4 px-4 text-center">الإيراد</th>
-                                    <th className="py-4 px-4 text-center">مرات العرض</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-200 border-b-2 border-[#1c5b8e]">
-                                {reportData.ads.map((ad, idx) => (
-                                    <tr key={idx} className={idx % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
-                                        <td className="py-4 px-4 text-center font-bold text-gray-700">{String(idx + 1).padStart(2, '0')}</td>
-                                        <td className="py-4 px-4 font-bold text-gray-900">{ad.title}</td>
-                                        <td className="py-4 px-4 text-gray-600">{ad.advertiser} - {ad.category}</td>
-                                        <td className="py-4 px-4 text-center text-gray-700">كل {ad.frequency} د</td>
-                                        <td className="py-4 px-4 text-center font-bold text-gray-900">${parseFloat(ad.revenue).toFixed(2)}</td>
-                                        <td className="py-4 px-4 text-center font-bold text-gray-900">{ad.plays_count}</td>
-                                    </tr>
-                                ))}
-                                {(!reportData.ads || reportData.ads.length === 0) && (
-                                    <tr>
-                                        <td colSpan="6" className="py-8 text-center text-gray-500 font-medium">لا توجد حملات إعلانية مطابقة في هذه الفترة</td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
+                        <h2 className="text-xl font-bold mb-6 text-gray-800 border-b pb-2">الملخص الفني وحالة الشاشة</h2>
+                        
+                        <div className="grid grid-cols-2 gap-6">
+                            {/* Status Card */}
+                            <div className={`p-6 rounded-2xl border ${reportData.summary.status === 'Online' ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                                <div className="flex items-center gap-4">
+                                    <div className={`p-4 rounded-full ${reportData.summary.status === 'Online' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+                                        {reportData.summary.status === 'Online' ? <Wifi className="w-8 h-8" /> : <WifiOff className="w-8 h-8" />}
+                                    </div>
+                                    <div>
+                                        <p className="text-gray-600 font-medium">حالة الاتصال الحالية</p>
+                                        <h3 className={`text-2xl font-bold ${reportData.summary.status === 'Online' ? 'text-green-700' : 'text-red-700'}`}>
+                                            {reportData.summary.status === 'Online' ? 'متصلة (Online)' : 'غير متصلة (Offline)'}
+                                        </h3>
+                                    </div>
+                                </div>
+                            </div>
 
-                        {/* Totals Section */}
-                        <div className="flex justify-end mt-6">
-                            <div className="w-1/3">
-                                <div className="flex justify-between py-2 px-4 border-b border-gray-200">
-                                    <span className="font-bold text-gray-800">إجمالي الحملات</span>
-                                    <span className="font-bold text-gray-900">{reportData.summary.total_ads}</span>
+                            {/* Offline Hours Card */}
+                            <div className="p-6 rounded-2xl border bg-orange-50 border-orange-200">
+                                <div className="flex items-center gap-4">
+                                    <div className="p-4 rounded-full bg-orange-100 text-orange-600">
+                                        <Clock className="w-8 h-8" />
+                                    </div>
+                                    <div>
+                                        <p className="text-gray-600 font-medium">ساعات الانقطاع الحالية</p>
+                                        <h3 className="text-2xl font-bold text-orange-700">
+                                            {reportData.summary.offline_hours} ساعة
+                                        </h3>
+                                    </div>
                                 </div>
-                                <div className="flex justify-between py-2 px-4 border-b border-gray-200">
-                                    <span className="font-bold text-gray-800">إجمالي مرات العرض</span>
-                                    <span className="font-bold text-gray-900">{reportData.summary.total_plays}</span>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-6 mt-6">
+                            {/* Ads count */}
+                            <div className="p-6 rounded-2xl border bg-blue-50 border-blue-200">
+                                <p className="text-gray-600 font-medium mb-1">إجمالي الحملات الفعالة</p>
+                                <h3 className="text-3xl font-bold text-blue-700">{reportData.summary.total_ads}</h3>
+                                <p className="text-xs text-gray-500 mt-2">خلال الفترة المحددة</p>
+                            </div>
+                            
+                            {/* Total Plays */}
+                            <div className="p-6 rounded-2xl border bg-indigo-50 border-indigo-200">
+                                <p className="text-gray-600 font-medium mb-1">إجمالي مرات العرض (Playbacks)</p>
+                                <h3 className="text-3xl font-bold text-indigo-700">{reportData.summary.total_plays}</h3>
+                                <p className="text-xs text-gray-500 mt-2">مؤشر على عمل مشغل الوسائط</p>
+                            </div>
+                        </div>
+
+                        <div className="mt-8 bg-gray-50 p-6 rounded-2xl border border-gray-200">
+                            <h3 className="font-bold text-gray-800 mb-4">سجل الاتصال الأخير</h3>
+                            <div className="space-y-3">
+                                <div className="flex justify-between border-b pb-2">
+                                    <span className="text-gray-600">آخر اتصال بالخادم (Ping):</span>
+                                    <span className="font-medium text-gray-900" dir="ltr">{reportData.summary.last_ping || 'غير متاح'}</span>
                                 </div>
-                                <div className="flex justify-between py-3 px-4 bg-[#1c5b8e] text-white rounded-b-lg mt-1">
-                                    <span className="font-bold text-lg">الإجمالي الكلي</span>
-                                    <span className="font-bold text-lg">${parseFloat(reportData.summary.total_revenue).toFixed(2)}</span>
+                                <div className="flex justify-between border-b pb-2">
+                                    <span className="text-gray-600">تاريخ آخر انقطاع:</span>
+                                    <span className="font-medium text-gray-900" dir="ltr">{reportData.summary.offline_since || 'لا يوجد انقطاع مسجل'}</span>
                                 </div>
                             </div>
                         </div>
@@ -319,11 +290,11 @@ const ScreenReportsPage = () => {
                             <div className="text-right">
                                 <h4 className="font-bold text-gray-900 text-lg mb-2">معلومات إضافية:</h4>
                                 <p className="text-gray-600 text-sm leading-relaxed">
-                                    هذا التقرير صادر آلياً من نظام (SabaPost) لإدارة الشاشات الإعلانية الرقمية، وهو يُعتبر تقريراً معتمداً ولا يتطلب ختماً أو توقيعاً يدوياً للمصادقة على صحة الأرقام.
+                                    هذا التقرير مخصص لفريق الصيانة والدعم الفني لمراقبة أداء الشاشات ولا يحتوي على أي بيانات مالية. التقرير مصدر آلياً.
                                 </p>
                             </div>
                             <div className="flex flex-col items-center justify-end px-12">
-                                <h4 className="font-bold text-gray-900 text-lg mb-10 border-b border-gray-300 pb-2 min-w-[250px] text-center">{user?.full_name || user?.username || 'مدير النظام'}</h4>
+                                <h4 className="font-bold text-gray-900 text-lg mb-10 border-b border-gray-300 pb-2 min-w-[250px] text-center">{user?.full_name || user?.username || 'فريق الصيانة'}</h4>
                                 <p className="text-gray-500 text-sm w-full text-center">التوقيع</p>
                             </div>
                         </div>
@@ -347,14 +318,14 @@ const ScreenReportsPage = () => {
             {!reportData && !loadingReport && (
                 <div className="bg-surface-container-low border border-outline-variant/50 border-dashed rounded-3xl py-24 flex flex-col items-center justify-center text-center print:hidden">
                     <div className="w-20 h-20 bg-surface rounded-full flex items-center justify-center shadow-sm mb-6">
-                        <FileText className="w-10 h-10 text-primary/40" />
+                        <Activity className="w-10 h-10 text-primary/40" />
                     </div>
-                    <h3 className="text-xl font-bold text-on-background mb-2">التقارير جاهزة للاستخراج</h3>
-                    <p className="text-on-surface-variant max-w-md">قم بتحديد الشاشة والفترة الزمنية من الفلاتر العلوية ثم اضغط على زر "استخراج" لعرض التقرير وطباعته.</p>
+                    <h3 className="text-xl font-bold text-on-background mb-2">التقارير الفنية جاهزة للاستخراج</h3>
+                    <p className="text-on-surface-variant max-w-md">قم بتحديد الشاشة والفترة الزمنية ثم اضغط على زر "استخراج" لعرض تقرير الصيانة الفني وطباعته.</p>
                 </div>
             )}
         </div>
     );
 };
 
-export default ScreenReportsPage;
+export default MaintenanceReportsPage;

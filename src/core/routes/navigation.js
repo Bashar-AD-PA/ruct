@@ -98,6 +98,7 @@ export const getNavItems = (roleName, lang = 'ar') => {
             return [
                 { path: '/dashboard',         icon: LayoutDashboard, label: t('nocCenter', lang) },
                 { path: '/dashboard/screens', icon: Monitor,         label: t('screenStatus', lang), badge: { value: 2, color: '#dc2626', bg: '#fee2e2', title: 'شاشات منقطعة' } },
+                { path: '/dashboard/reports/maintenance', icon: FileText, label: t('reports', lang) },
                 { path: '/dashboard/sessions', icon: ShieldCheck,   label: t('mySessions', lang) },
                 { path: '/dashboard/settings', icon: Settings,       label: t('settings', lang) },
             ];

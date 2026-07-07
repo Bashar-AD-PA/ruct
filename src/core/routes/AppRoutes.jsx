@@ -28,6 +28,7 @@ import AdvertiserFinancials from '../../modules/financial/AdvertiserFinancials';
 import SettingsPage from '../../modules/settings/SettingsPage';
 import NotificationsPage from '../../modules/notifications/NotificationsPage';
 import ScreenReportsPage from '../../modules/reports/ScreenReportsPage';
+import MaintenanceReportsPage from '../../modules/reports/MaintenanceReportsPage';
 
 // Admin Modules
 import PaymentMethodsPage from '../../modules/admin/PaymentMethodsPage';
@@ -172,6 +173,11 @@ const AppRoutes = () => {
 
                 {/* Reports */}
                 <Route path="reports/screen" element={<ScreenReportsPage />} />
+                <Route path="reports/maintenance" element={
+                    <RoleRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MAINTENANCE]}>
+                        <MaintenanceReportsPage />
+                    </RoleRoute>
+                } />
             </Route>
 
             {/* Default Redirects */}
