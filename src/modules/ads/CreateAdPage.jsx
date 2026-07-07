@@ -283,6 +283,30 @@ const CreateAdPage = () => {
     ];
 
     const nextStep = () => {
+        if (currentStep === 1) {
+            if (!form.title.trim()) {
+                addToast('الرجاء كتابة عنوان الحملة قبل المتابعة', 'warning');
+                return;
+            }
+        }
+        if (currentStep === 2) {
+            if (!form.start_date || !form.end_date) {
+                addToast('الرجاء تحديد تاريخ الحملة بالكامل', 'warning');
+                return;
+            }
+        }
+        if (currentStep === 3) {
+            if (selectedScreens.length === 0) {
+                addToast('الرجاء تحديد شاشة واحدة على الأقل', 'warning');
+                return;
+            }
+        }
+        if (currentStep === 4) {
+            if (!form.file) {
+                addToast('الرجاء رفع المادة المرئية (فيديو أو صورة)', 'warning');
+                return;
+            }
+        }
         if (currentStep < 5) setCurrentStep(prev => prev + 1);
     };
 
