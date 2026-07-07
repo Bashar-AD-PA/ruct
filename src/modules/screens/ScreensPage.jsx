@@ -963,7 +963,7 @@ const ScreensPage = () => {
                     <h5 style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: '#141b2b' }}>الإحداثيات الجغرافية على الخريطة</h5>
                     <span style={{ fontSize: '11px', color: '#737686' }}>
                       {form.latitude && form.longitude
-                        ? `الطول: ${form.longitude.toFixed(5)} | العرض: ${form.latitude.toFixed(5)}`
+                        ? `الطول: ${Number(form.longitude).toFixed(5)} | العرض: ${Number(form.latitude).toFixed(5)}`
                         : 'لم يتم تحديد موقع دقيق للشاشة'}
                     </span>
                   </div>
@@ -1368,15 +1368,14 @@ const ScreensPage = () => {
         onClose={() => setShowMapModal(false)}
         title="تحديد موقع الشاشة"
       >
-        <LocationPickerMap
+        {showMapModal && <LocationPickerMap
           initialLat={form.latitude}
           initialLng={form.longitude}
           onSelect={(lat, lng) => {
             setForm(p => ({ ...p, latitude: lat, longitude: lng }));
             setShowMapModal(false);
           }}
-          onClose={() => setShowMapModal(false)}
-        />
+          onClose={() => setShowMapModal(false)} />}
       </Modal>
 
       {/* ── Image Preview Modal ── */}
@@ -1432,3 +1431,4 @@ const ScreensPage = () => {
 };
 
 export default ScreensPage;
+
