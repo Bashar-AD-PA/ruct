@@ -7,7 +7,6 @@ import useUIStore from '../../store/useUIStore';
 import { getNavItems } from '../../core/routes/navigation';
 import axiosClient from '../../core/api/axiosClient';
 import { ENDPOINTS } from '../../core/api/endpoints';
-import MainLogo from '../../assets/images/Main_app_logo.png';
 
 /* ─── Stitch colour tokens — light ─── */
 const LIGHT = {
@@ -477,7 +476,7 @@ const DashboardLayout = () => {
                             boxShadow: '0 2px 8px rgba(37,99,235,0.30)',
                         }}>
                             <img
-                                src={MainLogo}
+                                src="/Main_app_logo.png"
                                 alt="SabaControl Logo"
                                 style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                                 onError={e => {
