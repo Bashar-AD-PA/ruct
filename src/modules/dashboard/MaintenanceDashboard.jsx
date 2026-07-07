@@ -313,9 +313,11 @@ const YemenStatusMap = ({ screenData }) => {
     // Build pins from API data or fall back to mock demo data
     const pins = (screenData && screenData.length > 0 ? screenData : MOCK_SCREENS_GEO).map((scr) => ({
         ...scr,
+        id: scr.id || scr.screen_id,
+        name: scr.name || scr.screen_name,
         status: deriveScreenStatus(scr),
-        lat: scr.latitude  ?? scr.lat ?? null,
-        lng: scr.longitude ?? scr.lng ?? null,
+        lat: scr.lat ?? scr.latitude ?? null,
+        lng: scr.lng ?? scr.longitude ?? null,
     })).filter(p => p.lat && p.lng);
 
     const filtered = filterStatus === 'all' ? pins : pins.filter(p => p.status === filterStatus);
@@ -577,14 +579,46 @@ const MaintenanceDashboard = () => {
     const disconnectedCount = screens.filter((s, i) => screenStatusList[i] === 'disconnected').length;
     const totalScreens      = screens.length;
     const uptimePct         = totalScreens > 0 ? Math.round((onlineCount / totalScreens) * 100) : 0;
-    const openIncidents     = MOCK_INCIDENTS.filter(i => i.status === 'open').length;
+    const realIncidents = screens.filter(s => deriveScreenStatus(s) !== 'online').map((s, idx) => {
+        const status = deriveScreenStatus(s);
+        return {
+            id: s.id || idx,
+            type: status === 'broken' ? 'offline' : (status === 'maintenance' ? 'warning' : 'offline'),
+            screen: s.name || s.screen_name,
+            location: s.street?.region?.governorate?.name || 'غير محدد',
+            since: s.disconnected_at ? new Date(s.disconnected_at).toLocaleString('ar-EG') : 'غير معروف',
+            status: status === 'maintenance' ? 'inprogress' : 'open',
+            priority: status === 'disconnected' ? 'critical' : 'high',
+        };
+    });
+
+    const realActivity = screens.filter(s => s.disconnected_at).map(s => ({
+        time: new Date(s.disconnected_at).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
+        msg: `انقطع الاتصال بشاشة ${s.name || s.screen_name}`,
+        type: 'offline'
+    }));
+
+    const openIncidents     = realIncidents.filter(i => i.status === 'open').length;
 
     /* Load screens */
     const loadScreens = useCallback(async () => {
         try {
             const res = await axiosClient.get(ENDPOINTS.SCREENS.ALL);
             const data = res.data.data || res.data || [];
-            setScreens(Array.isArray(data) ? data : []);
+            
+            // Format Laravel API response to match UI expectations
+            const formatted = Array.isArray(data) ? data.map(scr => ({
+                ...scr,
+                id: scr.screen_id || scr.id,
+                name: scr.screen_name || scr.name,
+                lat: scr.latitude ?? scr.lat ?? null,
+                lng: scr.longitude ?? scr.lng ?? null,
+                gov_id: scr.street?.region?.gov_id || scr.gov_id,
+                region_id: scr.street?.region_id || scr.region_id,
+                street_id: scr.street_id,
+            })) : [];
+            
+            setScreens(formatted);
         } catch {
             // silently degrade — show mock KPIs
             setScreens([]);
@@ -632,8 +666,8 @@ const MaintenanceDashboard = () => {
 
     /* Filtered incidents */
     const filteredIncidents = incidentFilter === 'all'
-        ? MOCK_INCIDENTS
-        : MOCK_INCIDENTS.filter(i => i.status === incidentFilter);
+        ? realIncidents
+        : realIncidents.filter(i => i.status === incidentFilter);
 
     /* Quick actions */
     const handleReboot = () => addToast('تم إرسال أمر إعادة التشغيل للشاشات المتعطلة', 'success');
@@ -994,7 +1028,7 @@ const MaintenanceDashboard = () => {
                     </div>
 
                     <div style={{ flex: 1, overflowY: 'auto', maxHeight: '360px' }}>
-                        {MOCK_ACTIVITY.map((act, idx) => {
+                        {realActivity.length > 0 ? realActivity.map((act, idx) => {
                             const dotColor = statusDot(act.type);
                             const bg = act.type === 'offline' ? S.offlineLight : act.type === 'warning' ? S.warningLight : act.type === 'online' ? S.onlineLight : S.infoLight;
                             return (
@@ -1019,7 +1053,9 @@ const MaintenanceDashboard = () => {
                                     </span>
                                 </motion.div>
                             );
-                        })}
+                        }) : (
+                            <div style={{ textAlign: 'center', color: S.outline, padding: '20px' }}>لا توجد أحداث مؤخراً</div>
+                        )}
                     </div>
 
                     <div style={{ padding: '12px 20px', borderTop: `1px solid ${S.outlineVariant}` }}>
