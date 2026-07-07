@@ -210,12 +210,12 @@ const ScreenReportsPage = () => {
                             <p className="text-xl font-bold text-gray-800">تقرير صادر إلى:</p>
                             <h2 className="text-3xl font-black text-gray-900">{user?.full_name || user?.username || 'مدير النظام'}</h2>
                             <p className="text-gray-600 font-medium">مُصدر تقارير معتمد</p>
-                            <p className="text-gray-500 text-sm mt-4 tracking-widest font-mono" dir="ltr">... 966 123 456 7890</p>
+                            <p className="text-gray-500 text-sm mt-4 tracking-widest font-mono" dir="ltr">{user?.phone || 'رقم الهاتف غير مدرج'}</p>
                         </div>
                         
                         <div className="flex-1 text-left space-y-3">
                             <div className="flex justify-end gap-3"><span className="text-gray-700">{reportData.screen.screen_id} - {reportData.screen.screen_name}</span> <span className="font-bold text-gray-900">:رقم الشاشة</span></div>
-                            <div className="flex justify-end gap-3"><span className="text-gray-700">{reportData.screen.street?.street_name} - {reportData.screen.street?.region?.region_name}</span> <span className="font-bold text-gray-900">:موقع الشاشة</span></div>
+                            <div className="flex justify-end gap-3"><span className="text-gray-700">{reportData.screen.street ? `${reportData.screen.street.street_name} - ${reportData.screen.street.region?.region_name}` : 'غير محدد'}</span> <span className="font-bold text-gray-900">:موقع الشاشة</span></div>
                             <div className="flex justify-end gap-3"><span className="text-gray-700">{new Date().toLocaleDateString('ar-SA')}</span> <span className="font-bold text-gray-900">:تاريخ الإصدار</span></div>
                             <div className="flex justify-end gap-3"><span className="text-gray-700" dir="ltr">{filters.start_date} <span className="mx-1">/</span> {filters.end_date}</span> <span className="font-bold text-gray-900">:الفترة</span></div>
                         </div>
@@ -272,15 +272,15 @@ const ScreenReportsPage = () => {
                         </div>
                         
                         {/* Conditions and Info */}
-                        <div className="mt-16 flex justify-between items-end">
-                            <div className="flex-1">
+                        <div className="mt-16 grid grid-cols-2 gap-8 items-end w-full">
+                            <div className="text-right">
                                 <h4 className="font-bold text-gray-900 text-lg mb-2">معلومات إضافية:</h4>
-                                <p className="text-gray-600 text-sm leading-relaxed max-w-md">
+                                <p className="text-gray-600 text-sm leading-relaxed">
                                     هذا التقرير صادر آلياً من نظام (SabaPost) لإدارة الشاشات الإعلانية الرقمية، وهو يُعتبر تقريراً معتمداً ولا يتطلب ختماً أو توقيعاً يدوياً للمصادقة على صحة الأرقام.
                                 </p>
                             </div>
-                            <div className="flex-1 text-left flex flex-col items-start px-12">
-                                <h4 className="font-bold text-gray-900 text-lg mb-10 w-full text-center border-b border-gray-300 pb-2">{user?.full_name || user?.username || 'توقيع المستلم'}</h4>
+                            <div className="flex flex-col items-center justify-end px-12">
+                                <h4 className="font-bold text-gray-900 text-lg mb-10 border-b border-gray-300 pb-2 min-w-[250px] text-center">{user?.full_name || user?.username || 'مدير النظام'}</h4>
                                 <p className="text-gray-500 text-sm w-full text-center">التوقيع</p>
                             </div>
                         </div>
@@ -293,7 +293,7 @@ const ScreenReportsPage = () => {
                             <span dir="ltr">www.sabapost.com.sa</span>
                         </div>
                         <div className="flex items-center gap-2">
-                            <span dir="ltr">.. 966 123 456 7890</span>
+                            <span dir="ltr">{user?.phone || ''}</span>
                             <span>📞</span>
                         </div>
                     </div>
