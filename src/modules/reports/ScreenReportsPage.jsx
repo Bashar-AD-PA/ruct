@@ -3,8 +3,10 @@ import { Calendar, FileText, Printer, Search, MonitorPlay, DollarSign, ListVideo
 import axiosClient from '../../core/api/axiosClient';
 import { ENDPOINTS } from '../../core/api/endpoints';
 import useToastStore from '../../store/useToastStore';
+import useAuthStore from '../../store/useAuthStore';
 
 const ScreenReportsPage = () => {
+    const { user } = useAuthStore();
     const [screens, setScreens] = useState([]);
     const [loadingScreens, setLoadingScreens] = useState(true);
     
@@ -162,7 +164,7 @@ const ScreenReportsPage = () => {
             <style>
                 {`
                 @media print {
-                    @page { size: A4; margin: 10mm; }
+                    @page { size: A4; margin: 0; } /* Edge to edge printing */
                     body * { visibility: hidden; }
                     .print-area, .print-area * { visibility: visible; }
                     .print-area {
@@ -170,6 +172,7 @@ const ScreenReportsPage = () => {
                         left: 0;
                         top: 0;
                         width: 100%;
+                        background-color: white !important;
                     }
                     * {
                         -webkit-print-color-adjust: exact !important;
@@ -181,133 +184,119 @@ const ScreenReportsPage = () => {
 
             {/* Report Content - This area gets printed */}
             {reportData && (
-                <div className="print-area bg-white rounded-2xl shadow-sm border border-outline-variant p-8 relative overflow-hidden" dir="rtl">
+                <div className="print-area bg-white relative overflow-hidden font-sans shadow-sm border border-outline-variant rounded-2xl print:border-none print:rounded-none" dir="rtl" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
                     
-                    {/* Header For Print */}
-                    <div className="flex justify-between items-center border-b-2 border-gray-100 pb-6 mb-8">
-                        <div className="flex-1 text-right">
-                            <h2 className="text-xl font-bold text-gray-800 mb-2">تقرير أداء الشاشة الإعلانية</h2>
-                            <p className="text-gray-500 text-sm mb-1">
-                                <span className="font-semibold ml-1">اسم الشاشة:</span> 
-                                {reportData.screen.screen_name}
-                            </p>
-                            <p className="text-gray-500 text-sm">
-                                <span className="font-semibold ml-1">الموقع:</span> 
-                                {reportData.screen.street?.street_name} - {reportData.screen.street?.region?.region_name}
-                            </p>
-                        </div>
-
-                        {/* Centered Logo */}
-                        <div className="flex-1 flex justify-center items-center">
-                            <img src="/src/assets/images/Main_app_logo.png" alt="SabaPost Logo" className="h-24 object-contain drop-shadow-md" />
-                        </div>
-
-                        <div className="flex-1 text-left">
-                            <p className="text-gray-500 text-sm mb-1">
-                                <span className="font-semibold ml-1">تاريخ الإصدار:</span> 
-                                {new Date().toLocaleDateString('ar-SA')}
-                            </p>
-                            <p className="text-gray-500 text-sm">
-                                <span className="font-semibold ml-1">الفترة:</span> 
-                                {filters.start_date} <span className="mx-1">إلى</span> {filters.end_date}
-                            </p>
-                        </div>
-                    </div>
-
-                    {/* Summary Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-                        <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100 flex items-center gap-5">
-                            <div className="w-14 h-14 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center shrink-0">
-                                <ListVideo className="w-7 h-7" />
-                            </div>
-                            <div>
-                                <p className="text-gray-500 text-sm font-medium mb-1">إجمالي الإعلانات</p>
-                                <h3 className="text-3xl font-bold text-gray-900">{reportData.summary.total_ads}</h3>
+                    {/* Top Header Polygon */}
+                    <div className="w-full bg-[#1c5b8e] text-white flex justify-between items-stretch" style={{ height: '140px' }}>
+                        <div className="flex-1 flex items-center justify-start px-12 bg-[#1c5b8e]">
+                            <div className="text-center">
+                                <img src="/src/assets/images/Main_app_logo.png" alt="SabaPost Logo" className="h-16 object-contain mb-2 brightness-0 invert mx-auto" />
+                                <p className="font-bold text-lg">سبأ بوست - SabaPost</p>
+                                <p className="text-sm opacity-80">نظام إدارة الإعلانات الرقمية</p>
                             </div>
                         </div>
-
-                        <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100 flex items-center gap-5">
-                            <div className="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center shrink-0">
-                                <DollarSign className="w-7 h-7" />
-                            </div>
-                            <div>
-                                <p className="text-gray-500 text-sm font-medium mb-1">إجمالي الإيرادات</p>
-                                <h3 className="text-3xl font-bold text-gray-900">${parseFloat(reportData.summary.total_revenue).toFixed(2)}</h3>
-                            </div>
-                        </div>
-
-                        <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100 flex items-center gap-5">
-                            <div className="w-14 h-14 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center shrink-0">
-                                <Activity className="w-7 h-7" />
-                            </div>
-                            <div>
-                                <p className="text-gray-500 text-sm font-medium mb-1">إجمالي مرات العرض (الفعلي)</p>
-                                <h3 className="text-3xl font-bold text-gray-900">{reportData.summary.total_plays}</h3>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Data Table */}
-                    <div>
-                        <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                            <MonitorPlay className="w-5 h-5 text-gray-500" />
-                            سجل الحملات الإعلانية
-                        </h3>
                         
-                        {reportData.ads && reportData.ads.length > 0 ? (
-                            <div className="overflow-hidden rounded-xl border border-gray-200">
-                                <table className="w-full text-right text-sm">
-                                    <thead className="bg-gray-50 border-b border-gray-200">
-                                        <tr>
-                                            <th className="py-3 px-4 font-semibold text-gray-700">اسم الحملة</th>
-                                            <th className="py-3 px-4 font-semibold text-gray-700">المعلن</th>
-                                            <th className="py-3 px-4 font-semibold text-gray-700">الفئة</th>
-                                            <th className="py-3 px-4 font-semibold text-gray-700">تاريخ العرض</th>
-                                            <th className="py-3 px-4 font-semibold text-gray-700 text-center">التكرار</th>
-                                            <th className="py-3 px-4 font-semibold text-gray-700 text-center">الإيراد</th>
-                                            <th className="py-3 px-4 font-semibold text-gray-700 text-center">مرات البث</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-100">
-                                        {reportData.ads.map((ad, idx) => (
-                                            <tr key={idx} className="hover:bg-gray-50/50">
-                                                <td className="py-3 px-4 font-medium text-gray-900">{ad.title}</td>
-                                                <td className="py-3 px-4 text-gray-600">{ad.advertiser}</td>
-                                                <td className="py-3 px-4 text-gray-600">
-                                                    <span className="inline-flex px-2 py-1 bg-gray-100 text-gray-600 rounded-md text-xs">{ad.category}</span>
-                                                </td>
-                                                <td className="py-3 px-4 text-gray-600 text-xs" dir="ltr">
-                                                    <div className="text-right">{ad.start_date}</div>
-                                                    <div className="text-right text-gray-400">إلى {ad.end_date}</div>
-                                                </td>
-                                                <td className="py-3 px-4 text-center">
-                                                    <span className="text-gray-600">كل {ad.frequency} د</span>
-                                                </td>
-                                                <td className="py-3 px-4 text-center font-semibold text-emerald-600">
-                                                    ${parseFloat(ad.revenue).toFixed(2)}
-                                                </td>
-                                                <td className="py-3 px-4 text-center text-gray-900 font-medium">
-                                                    {ad.plays_count}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        ) : (
-                            <div className="py-12 bg-gray-50 rounded-xl border border-gray-200 text-center flex flex-col items-center justify-center">
-                                <MonitorPlay className="w-12 h-12 text-gray-300 mb-3" />
-                                <p className="text-gray-500 font-medium">لا توجد أي حملات إعلانية مطابقة لهذه الشاشة في الفترة المحددة.</p>
-                            </div>
-                        )}
+                        {/* Center decorative element */}
+                        <div className="w-48 bg-[#102a43]" style={{ clipPath: 'polygon(0 0, 100% 0, 75% 100%, 25% 100%)' }}></div>
+
+                        <div className="flex-1 flex items-center justify-end px-12 bg-[#1c5b8e]">
+                            <h1 className="text-5xl font-black tracking-tight" style={{ color: '#ffffff' }}>تقرير الشاشة</h1>
+                        </div>
                     </div>
 
-                    {/* Footer For Print */}
-                    <div className="mt-12 pt-6 border-t border-gray-100 flex justify-between items-center text-xs text-gray-400">
-                        <p>نظام إدارة اللوحات الإعلانية الرقمية - SabaPost</p>
-                        <p>صفحة 1 من 1</p>
+                    {/* Metadata Section */}
+                    <div className="flex justify-between items-start px-16 py-10">
+                        <div className="flex-1 text-right space-y-2">
+                            <p className="text-xl font-bold text-gray-800">تقرير صادر إلى:</p>
+                            <h2 className="text-3xl font-black text-gray-900">{user?.full_name || user?.username || 'مدير النظام'}</h2>
+                            <p className="text-gray-600 font-medium">مُصدر تقارير معتمد</p>
+                            <p className="text-gray-500 text-sm mt-4 tracking-widest font-mono" dir="ltr">... 966 123 456 7890</p>
+                        </div>
+                        
+                        <div className="flex-1 text-left space-y-3">
+                            <div className="flex justify-end gap-3"><span className="text-gray-700">{reportData.screen.screen_id} - {reportData.screen.screen_name}</span> <span className="font-bold text-gray-900">:رقم الشاشة</span></div>
+                            <div className="flex justify-end gap-3"><span className="text-gray-700">{reportData.screen.street?.street_name} - {reportData.screen.street?.region?.region_name}</span> <span className="font-bold text-gray-900">:موقع الشاشة</span></div>
+                            <div className="flex justify-end gap-3"><span className="text-gray-700">{new Date().toLocaleDateString('ar-SA')}</span> <span className="font-bold text-gray-900">:تاريخ الإصدار</span></div>
+                            <div className="flex justify-end gap-3"><span className="text-gray-700" dir="ltr">{filters.start_date} <span className="mx-1">/</span> {filters.end_date}</span> <span className="font-bold text-gray-900">:الفترة</span></div>
+                        </div>
                     </div>
 
+                    {/* Table */}
+                    <div className="px-16 flex-1 mb-10">
+                        <table className="w-full text-right text-sm border-collapse">
+                            <thead className="bg-[#1c5b8e] text-white font-bold text-lg">
+                                <tr>
+                                    <th className="py-4 px-4 text-center w-16">رقم</th>
+                                    <th className="py-4 px-4">اسم الحملة</th>
+                                    <th className="py-4 px-4">المعلن والفئة</th>
+                                    <th className="py-4 px-4 text-center">التكرار</th>
+                                    <th className="py-4 px-4 text-center">الإيراد</th>
+                                    <th className="py-4 px-4 text-center">مرات العرض</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-200 border-b-2 border-[#1c5b8e]">
+                                {reportData.ads.map((ad, idx) => (
+                                    <tr key={idx} className={idx % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
+                                        <td className="py-4 px-4 text-center font-bold text-gray-700">{String(idx + 1).padStart(2, '0')}</td>
+                                        <td className="py-4 px-4 font-bold text-gray-900">{ad.title}</td>
+                                        <td className="py-4 px-4 text-gray-600">{ad.advertiser} - {ad.category}</td>
+                                        <td className="py-4 px-4 text-center text-gray-700">كل {ad.frequency} د</td>
+                                        <td className="py-4 px-4 text-center font-bold text-gray-900">${parseFloat(ad.revenue).toFixed(2)}</td>
+                                        <td className="py-4 px-4 text-center font-bold text-gray-900">{ad.plays_count}</td>
+                                    </tr>
+                                ))}
+                                {(!reportData.ads || reportData.ads.length === 0) && (
+                                    <tr>
+                                        <td colSpan="6" className="py-8 text-center text-gray-500 font-medium">لا توجد حملات إعلانية مطابقة في هذه الفترة</td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+
+                        {/* Totals Section */}
+                        <div className="flex justify-end mt-6">
+                            <div className="w-1/3">
+                                <div className="flex justify-between py-2 px-4 border-b border-gray-200">
+                                    <span className="font-bold text-gray-800">إجمالي الحملات</span>
+                                    <span className="font-bold text-gray-900">{reportData.summary.total_ads}</span>
+                                </div>
+                                <div className="flex justify-between py-2 px-4 border-b border-gray-200">
+                                    <span className="font-bold text-gray-800">إجمالي مرات العرض</span>
+                                    <span className="font-bold text-gray-900">{reportData.summary.total_plays}</span>
+                                </div>
+                                <div className="flex justify-between py-3 px-4 bg-[#1c5b8e] text-white rounded-b-lg mt-1">
+                                    <span className="font-bold text-lg">الإجمالي الكلي</span>
+                                    <span className="font-bold text-lg">${parseFloat(reportData.summary.total_revenue).toFixed(2)}</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {/* Conditions and Info */}
+                        <div className="mt-16 flex justify-between items-end">
+                            <div className="flex-1">
+                                <h4 className="font-bold text-gray-900 text-lg mb-2">معلومات إضافية:</h4>
+                                <p className="text-gray-600 text-sm leading-relaxed max-w-md">
+                                    هذا التقرير صادر آلياً من نظام (SabaPost) لإدارة الشاشات الإعلانية الرقمية، وهو يُعتبر تقريراً معتمداً ولا يتطلب ختماً أو توقيعاً يدوياً للمصادقة على صحة الأرقام.
+                                </p>
+                            </div>
+                            <div className="flex-1 text-left flex flex-col items-start px-12">
+                                <h4 className="font-bold text-gray-900 text-lg mb-10 w-full text-center border-b border-gray-300 pb-2">{user?.full_name || user?.username || 'توقيع المستلم'}</h4>
+                                <p className="text-gray-500 text-sm w-full text-center">التوقيع</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Footer Bar */}
+                    <div className="w-full bg-[#14355d] text-white py-4 px-16 flex justify-between items-center mt-auto">
+                        <div className="flex items-center gap-2">
+                            <span>🌐</span>
+                            <span dir="ltr">www.sabapost.com.sa</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span dir="ltr">.. 966 123 456 7890</span>
+                            <span>📞</span>
+                        </div>
+                    </div>
                 </div>
             )}
             
