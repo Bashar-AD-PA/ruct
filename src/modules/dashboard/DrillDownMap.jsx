@@ -95,37 +95,6 @@ const govCenter = (name) => {
 };
 
 /* ─────────────────────────────────────────────────────────────
-   MOCK GEOGRAPHIC DATA (fallback when API has no lat/lng)
-   In production, replace with real coordinates from DB.
-───────────────────────────────────────────────────────────── */
-const MOCK_GOVS_GEO = [
-    { gov_id: 1, name: 'صنعاء',    lat: 15.369, lng: 44.191 },
-    { gov_id: 2, name: 'عدن',      lat: 12.779, lng: 45.010 },
-    { gov_id: 3, name: 'تعز',      lat: 13.577, lng: 44.022 },
-    { gov_id: 4, name: 'مأرب',     lat: 15.469, lng: 45.325 },
-    { gov_id: 5, name: 'حضرموت',   lat: 14.533, lng: 49.127 },
-    { gov_id: 6, name: 'إب',       lat: 13.977, lng: 44.177 },
-    { gov_id: 7, name: 'الحديدة',  lat: 14.799, lng: 42.953 },
-    { gov_id: 8, name: 'ذمار',     lat: 14.542, lng: 44.404 },
-    { gov_id: 9, name: 'صعدة',     lat: 16.938, lng: 43.762 },
-];
-
-const MOCK_SCREENS = [
-    { id: 1,  name: 'شاشة التحرير',       gov_id: 1, lat: 15.369, lng: 44.191, status: 'online',       is_online: true,  last_heartbeat: new Date(Date.now()-1*60000).toISOString() },
-    { id: 2,  name: 'شاشة هائل',          gov_id: 1, lat: 15.382, lng: 44.208, status: 'broken',       is_online: false, last_heartbeat: new Date(Date.now()-8*60000).toISOString() },
-    { id: 3,  name: 'شاشة المعلا',        gov_id: 2, lat: 12.785, lng: 44.997, status: 'maintenance',  is_online: false, last_heartbeat: new Date(Date.now()-2*60000).toISOString() },
-    { id: 4,  name: 'شاشة كريتر',         gov_id: 2, lat: 12.772, lng: 45.024, status: 'online',       is_online: true,  last_heartbeat: new Date(Date.now()-3*60000).toISOString() },
-    { id: 5,  name: 'شاشة جمال',          gov_id: 3, lat: 13.579, lng: 44.021, status: 'broken',       is_online: false, last_heartbeat: new Date(Date.now()-6*60000).toISOString() },
-    { id: 6,  name: 'شاشة المركز',        gov_id: 3, lat: 13.572, lng: 44.027, status: 'online',       is_online: true,  last_heartbeat: new Date(Date.now()-2*60000).toISOString() },
-    { id: 7,  name: 'شاشة مأرب مركزي',   gov_id: 4, lat: 15.465, lng: 45.327, status: 'online',       is_online: true,  last_heartbeat: new Date(Date.now()-1*60000).toISOString() },
-    { id: 8,  name: 'شاشة المكلا',        gov_id: 5, lat: 14.532, lng: 49.126, status: 'online',       is_online: true,  last_heartbeat: new Date(Date.now()-4*60000).toISOString() },
-    { id: 9,  name: 'شاشة سيئون',         gov_id: 5, lat: 15.938, lng: 48.782, status: 'maintenance',  is_online: false, last_heartbeat: new Date(Date.now()-5*60000).toISOString() },
-    { id: 10, name: 'شاشة إب المركز',     gov_id: 6, lat: 13.976, lng: 44.176, status: 'online',       is_online: true,  last_heartbeat: new Date(Date.now()-2*60000).toISOString() },
-    { id: 11, name: 'شاشة الحديدة رئيسي', gov_id: 7, lat: 14.798, lng: 42.953, status: 'disconnected', is_online: false, last_heartbeat: null },
-    { id: 12, name: 'شاشة ذمار الوسط',    gov_id: 8, lat: 14.542, lng: 44.403, status: 'online',       is_online: true,  last_heartbeat: new Date(Date.now()-1*60000).toISOString() },
-];
-
-/* ─────────────────────────────────────────────────────────────
    ICON BUILDERS
 ───────────────────────────────────────────────────────────── */
 
@@ -306,8 +275,8 @@ const DrillDownMap = ({ allScreens = [], onStartMaintenance }) => {
         lng: scr.longitude ?? scr.lng ?? null,
     })).filter(scr => scr.lat && scr.lng);
 
-    /* Use API data or fallback to mock */
-    const screens = normalizedScreens.length > 0 ? normalizedScreens : MOCK_SCREENS;
+    /* Use API data directly */
+    const screens = normalizedScreens;
 
     /* Load governorates */
     useEffect(() => {
@@ -315,14 +284,13 @@ const DrillDownMap = ({ allScreens = [], onStartMaintenance }) => {
             try {
                 const r = await axiosClient.get(ENDPOINTS.LOOKUPS.GOVERNORATES);
                 const data = Array.isArray(r.data) ? r.data : [];
-                /* attach lat/lng from mock if missing */
+                
                 const enriched = data.map(g => {
-                    const mock = MOCK_GOVS_GEO.find(m => m.name === g.name || m.gov_id === g.gov_id);
-                    return { ...g, lat: g.lat ?? mock?.lat ?? null, lng: g.lng ?? mock?.lng ?? null };
+                    return { ...g, lat: g.latitude ?? g.lat ?? null, lng: g.longitude ?? g.lng ?? null };
                 });
                 setGovs(enriched.filter(g => g.lat && g.lng));
             } catch {
-                setGovs(MOCK_GOVS_GEO);
+                setGovs([]);
             } finally {
                 setLoading(false);
             }
