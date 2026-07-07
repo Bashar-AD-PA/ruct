@@ -16,6 +16,7 @@ import {
     ShieldCheck,
     Wrench,
     AlertTriangle,
+    FileText,
 } from 'lucide-react';
 import { ROLES } from '../../hooks/usePermission';
 
@@ -36,6 +37,7 @@ const NAV_LABELS = {
     settings:           { ar: 'الإعدادات',        en: 'Settings' },
     myFinancials:       { ar: 'السجل المالي',     en: 'My Financials' },
     earnings:           { ar: 'العوائد المالية',  en: 'Earnings' },
+    reports:            { ar: 'التقارير',         en: 'Reports' },
     // Maintenance specific
     nocCenter:          { ar: 'مركز العمليات',    en: 'NOC Center' },
     screenStatus:       { ar: 'حالة الشاشات',     en: 'Screen Status' },
@@ -57,6 +59,7 @@ export const getNavItems = (roleName, lang = 'ar') => {
                 { path: '/dashboard/ads', icon: Megaphone, label: t('ads', lang) },
                 { path: '/dashboard/screens', icon: Monitor, label: t('screens', lang) },
                 { path: '/dashboard/financial', icon: Wallet, label: t('financial', lang) },
+                { path: '/dashboard/reports/screen', icon: FileText, label: t('reports', lang) },
                 { path: '/dashboard/users', icon: Users, label: t('users', lang) },
                 { path: '/dashboard/roles', icon: Shield, label: t('roles', lang) },
                 { path: '/dashboard/locations', icon: MapPin, label: t('locations', lang) },
@@ -79,6 +82,7 @@ export const getNavItems = (roleName, lang = 'ar') => {
                 { path: '/dashboard', icon: LayoutDashboard, label: t('dashboard', lang) },
                 { path: '/dashboard/screens', icon: Monitor, label: t('screens', lang) },
                 { path: '/dashboard/earnings', icon: Wallet, label: t('earnings', lang) },
+                { path: '/dashboard/reports/screen', icon: FileText, label: t('reports', lang) },
                 { path: '/dashboard/sessions', icon: ShieldCheck, label: t('mySessions', lang) },
                 { path: '/dashboard/settings', icon: Settings, label: t('settings', lang) },
             ];
