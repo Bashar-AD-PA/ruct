@@ -9,6 +9,7 @@ import ConfirmDialog from '../../shared/components/ConfirmDialog';
 import usePermission from '../../hooks/usePermission';
 import useToastStore from '../../store/useToastStore';
 import StripePaymentModal from './components/StripePaymentModal';
+import ReviewAdModal from './components/ReviewAdModal';
 
 const AdsPage = () => {
     const [ads, setAds] = useState([]);
@@ -18,6 +19,7 @@ const AdsPage = () => {
     const [approveModal, setApproveModal] = useState({ open: false, ad: null, action: '' });
     const [detailsModal, setDetailsModal] = useState({ open: false, ad: null });
     const [stripeModal, setStripeModal] = useState({ open: false, ad: null });
+    const [reviewModal, setReviewModal] = useState({ open: false, ad: null });
     const [rejectReason, setRejectReason] = useState('');
     const { can, isAdvertiser, isAdmin } = usePermission();
     const navigate = useNavigate();
@@ -262,24 +264,18 @@ const AdsPage = () => {
                                         <td className="py-2 px-3 font-caption text-caption text-on-surface-variant whitespace-nowrap" dir="ltr">{row.end_date || '—'}</td>
                                         <td className="py-2 px-3">
                                             <div className="flex items-center justify-center gap-1.5 flex-nowrap w-max mx-auto">
-                                                {/* عرض التفاصيل */}
+                                                {/* عرض التفاصيل (Eye) */}
                                                 <button onClick={(e) => { e.stopPropagation(); setDetailsModal({ open: true, ad: row }) }}
                                                     className="w-9 h-9 flex-shrink-0 rounded-xl border border-outline-variant flex items-center justify-center text-on-surface-variant hover:text-primary hover:bg-primary-container hover:border-primary transition-all bg-surface shadow-sm group/btn" title="استعراض التفاصيل">
                                                     <Eye className="w-[18px] h-[18px] transition-transform group-hover/btn:scale-110" />
                                                 </button>
 
-                                                {/* أوامر الرقابة (القبول/الرفض) */}
+                                                {/* أوامر الرقابة (المراجعة المركزية بدلاً من القبول/الرفض المباشر) */}
                                                 {can('approve_ads') && row.status === 'Pending' && (
-                                                    <>
-                                                        <button onClick={(e) => { e.stopPropagation(); setApproveModal({ open: true, ad: row, action: 'waiting_payment' }) }}
-                                                            className="w-9 h-9 flex-shrink-0 rounded-xl border border-outline-variant flex items-center justify-center text-on-surface-variant hover:text-emerald-700 hover:bg-emerald-100 hover:border-emerald-500 transition-all bg-surface shadow-sm group/btn" title="اعتماد وطلب الدفع">
-                                                            <CheckCircle className="w-[18px] h-[18px] transition-transform group-hover/btn:scale-110" />
-                                                        </button>
-                                                        <button onClick={(e) => { e.stopPropagation(); setApproveModal({ open: true, ad: row, action: 'Rejected' }) }}
-                                                            className="w-9 h-9 flex-shrink-0 rounded-xl border border-outline-variant flex items-center justify-center text-on-surface-variant hover:text-error hover:bg-error-container hover:border-error transition-all bg-surface shadow-sm group/btn" title="رفض">
-                                                            <XCircle className="w-[18px] h-[18px] transition-transform group-hover/btn:scale-110" />
-                                                        </button>
-                                                    </>
+                                                    <button onClick={(e) => { e.stopPropagation(); setReviewModal({ open: true, ad: row }) }}
+                                                        className="w-9 h-9 flex-shrink-0 rounded-xl border border-primary/30 flex items-center justify-center text-primary hover:text-white hover:bg-primary transition-all bg-primary/10 shadow-sm group/btn" title="مراجعة واعتماد">
+                                                        <PlayCircle className="w-[18px] h-[18px] transition-transform group-hover/btn:scale-110" />
+                                                    </button>
                                                 )}
 
                                                 {/* تفعيل مباشر للمدير إذا كان بانتظار الدفع (تخطي الدفع) */}
@@ -453,6 +449,24 @@ const AdsPage = () => {
                 onClose={() => setStripeModal({ open: false, ad: null })}
                 advertisement={stripeModal.ad}
                 onSuccess={() => fetchAds()}
+            />
+
+            <ReviewAdModal 
+                isOpen={reviewModal.open}
+                onClose={() => setReviewModal({ open: false, ad: null })}
+                ad={reviewModal.ad}
+                onOpenDetails={() => {
+                    setDetailsModal({ open: true, ad: reviewModal.ad });
+                }}
+                onApproveClick={() => {
+                    setApproveModal({ open: true, ad: reviewModal.ad, action: 'waiting_payment' });
+                    setReviewModal({ open: false, ad: null });
+                }}
+                onRejectSubmit={(reason) => {
+                    setRejectReason(reason);
+                    setApproveModal({ open: true, ad: reviewModal.ad, action: 'Rejected' });
+                    setReviewModal({ open: false, ad: null });
+                }}
             />
         </div>
     );
