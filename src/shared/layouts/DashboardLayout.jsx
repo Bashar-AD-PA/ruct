@@ -117,6 +117,29 @@ const DashboardLayout = () => {
         return () => document.removeEventListener('mousedown', handler);
     }, []);
 
+    /* Fetch unread notifications count */
+    useEffect(() => {
+        let isMounted = true;
+        const fetchUnread = async () => {
+            try {
+                const res = await axiosClient.get(ENDPOINTS.NOTIFICATIONS.ALL);
+                if (isMounted && res.data?.success) {
+                    setUnreadCount(res.data.unread_count || 0);
+                }
+            } catch (error) {
+                console.error("Failed to fetch unread count:", error);
+            }
+        };
+
+        fetchUnread();
+        const intervalId = setInterval(fetchUnread, 60000); // Poll every minute
+
+        return () => {
+            isMounted = false;
+            clearInterval(intervalId);
+        };
+    }, []);
+
     const trueRole = user?.role?.role_name || null;
     const canImpersonate = trueRole === 'SuperAdmin' || trueRole === 'Admin';
 
