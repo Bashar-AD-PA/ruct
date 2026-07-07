@@ -85,6 +85,7 @@ const ScreensPage = () => {
   });
 
   const [quickOwnerModal, setQuickOwnerModal] = useState(false);
+  const [showMapModal, setShowMapModal] = useState(false);
   const [quickOwnerForm, setQuickOwnerForm] = useState({ full_name: '', email: '', phone: '' });
   const [quickOwnerLoading, setQuickOwnerLoading] = useState(false);
 
@@ -1431,4 +1432,5 @@ const ScreensPage = () => {
 };
 
 export default ScreensPage;
+
 
