@@ -46,7 +46,7 @@ const BlocklistTable = ({ blockedItems = [], onUnblock }) => {
                                             <span className="material-symbols-outlined text-emerald-500 text-5xl relative z-10" style={{ fontVariationSettings: "'FILL' 1" }}>verified_user</span>
                                         </div>
                                         <h4 className="font-extrabold text-xl text-on-surface mb-2">النظام آمن ومستقر 100%</h4>
-                                        <p className="text-sm text-on-surface-variant max-w-sm leading-relaxed">
+                                        <p className="text-sm text-on-surface-variant leading-relaxed">
                                             لا توجد أي أجهزة أو عناوين IP محظورة حالياً. لا يوجد أي نشاط مريب مسجل في خوادم النظام.
                                         </p>
                                     </div>

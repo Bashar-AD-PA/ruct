@@ -4,6 +4,7 @@ import axiosClient from '../../core/api/axiosClient';
 import { ENDPOINTS } from '../../core/api/endpoints';
 import useToastStore from '../../store/useToastStore';
 import { useNavigate } from 'react-router-dom';
+import useAuthStore from '../../store/useAuthStore';
 import { parseNotificationContent, getNotificationIconInfo, getNotificationLink } from './utils/notificationTranslator';
 
 const NotificationsPage = () => {
@@ -11,7 +12,12 @@ const NotificationsPage = () => {
     const [unreadCount, setUnreadCount] = useState(0);
     const [loading, setLoading] = useState(true);
     const [loadingMessageIdx, setLoadingMessageIdx] = useState(0);
+    const [filterTab, setFilterTab] = useState('all');
+    
     const addToast = useToastStore(state => state.addToast);
+    const { user } = useAuthStore();
+    const isOwner = user?.role?.role_name === 'ScreenOwner' || user?.role === 'ScreenOwner';
+    
     const navigate = useNavigate();
 
     const handleNotificationClick = (notif) => {
@@ -107,7 +113,15 @@ const NotificationsPage = () => {
         }
     };
 
-    const totalNotifications = notifications.length;
+    const filteredNotifications = notifications.filter(n => {
+        if (!isOwner || filterTab === 'all') return true;
+        const searchArea = ((n.title || '') + ' ' + (n.message || '')).toLowerCase();
+        return searchArea.includes('شاشة') || searchArea.includes('screen') || 
+               searchArea.includes('إعلان') || searchArea.includes('عمل') || 
+               searchArea.includes('انقطع') || searchArea.includes('اتصال') || searchArea.includes('ارتباط') || searchArea.includes('موافقة');
+    });
+
+    const totalNotifications = filteredNotifications.length;
     const readNotifications = totalNotifications - unreadCount;
 
     return (
@@ -115,7 +129,6 @@ const NotificationsPage = () => {
             {/* Header Section */}
             <div className="mb-xl text-right">
                 <h2 className="text-2xl md:text-3xl font-bold text-on-surface mb-xs">مركز الإشعارات</h2>
-                <p className="text-base md:text-lg text-on-surface-variant font-medium">مراقبة الأنشطة، التنبيهات، والتحديثات المالية لنظامك.</p>
             </div>
 
             {/* Summary Statistics Cards */}
@@ -166,6 +179,25 @@ const NotificationsPage = () => {
                     )}
                 </div>
 
+                {/* Filter Tabs for Screen Owner */}
+                {isOwner && (
+                    <div className="px-lg pb-md border-b border-outline-variant bg-surface-bright flex gap-2">
+                        <button 
+                            onClick={() => setFilterTab('all')} 
+                            className={`px-4 py-2 rounded-lg font-bold text-sm transition-colors ${filterTab === 'all' ? 'bg-primary text-white' : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high'}`}
+                        >
+                            جميع الإشعارات
+                        </button>
+                        <button 
+                            onClick={() => setFilterTab('screens')} 
+                            className={`px-4 py-2 rounded-lg font-bold text-sm transition-colors flex items-center gap-1 ${filterTab === 'screens' ? 'bg-primary text-white' : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high'}`}
+                        >
+                            <span className="material-symbols-outlined text-lg" data-icon="monitor">monitor</span>
+                            إشعارات شاشاتي
+                        </button>
+                    </div>
+                )}
+
                 {loading ? (
                     <div className="flex flex-col items-center justify-center p-10 md:p-16 space-y-8 min-h-[400px]">
                         <div className="relative flex items-center justify-center mb-2">
@@ -194,21 +226,21 @@ const NotificationsPage = () => {
                             <div className="w-full h-24 bg-surface-variant rounded-2xl animate-pulse opacity-40" style={{ animationDelay: '0.4s' }}></div>
                         </div>
                     </div>
-                ) : notifications.length === 0 ? (
+                ) : filteredNotifications.length === 0 ? (
                     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="py-20 px-4 text-center flex flex-col items-center justify-center w-full">
                         <div className="w-24 h-24 bg-surface-container rounded-full flex items-center justify-center mb-6 relative">
                             <span className="material-symbols-outlined text-5xl text-outline-variant absolute -top-2 -right-2 rotate-12">sparkles</span>
                             <span className="material-symbols-outlined text-6xl text-primary opacity-80">inbox</span>
                         </div>
-                        <h3 className="text-2xl font-bold text-on-surface mb-2">صندوق الوارد فارغ تماماً 🌟</h3>
-                        <p className="text-base text-on-surface-variant font-medium max-w-md mx-auto leading-relaxed">
+                        <h3 className="text-2xl font-bold text-on-surface mb-2">صندوق الوارد فارغ تماماً</h3>
+                        <p className="text-base text-on-surface-variant font-medium whitespace-nowrap">
                             أنت متصل تماماً ولا توجد إشعارات معلقة. يمكنك الاسترخاء الآن، وسنقوم بتنبيهك عند توفر أي جديد.
                         </p>
                     </motion.div>
                 ) : (
                     <ul className="divide-y divide-outline-variant">
                         <AnimatePresence mode="popLayout">
-                            {notifications.map(notif => {
+                            {filteredNotifications.map(notif => {
                                 const isUnread = notif.read_at === null || notif.is_read === false || notif.is_read === 'false';
                                 const { Icon } = getNotificationIconInfo(notif.title);
                                 
@@ -221,7 +253,7 @@ const NotificationsPage = () => {
                                         key={notif.notification_id} 
                                         onClick={() => handleNotificationClick(notif)}
                                         className={`p-lg transition-colors flex items-start gap-md md:gap-lg group relative cursor-pointer ${
-                                            isUnread ? 'bg-[#F8FAFC] hover:bg-surface-container-low' : 'bg-surface-container-lowest hover:bg-surface-container-low'
+                                            isUnread ? 'bg-[#f8fafc] border-r-4 border-r-[#004ac6] hover:bg-[#f1f5f9]' : 'bg-white border-r-4 border-r-transparent hover:bg-[#f8fafc]'
                                         }`}
                                     >
                                         {/* Status Icon (Right flex position in RTL) */}
@@ -237,15 +269,19 @@ const NotificationsPage = () => {
                                         <div className="flex-1 text-right pt-1">
                                             <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-2 sm:mb-1 gap-1">
                                                 <div className="flex items-center gap-2">
-                                                    <h4 className={`text-lg font-bold ${isUnread ? 'text-on-surface' : 'text-on-surface-variant'}`}>
+                                                    <h4 className={`text-lg font-bold ${isUnread ? 'text-[#141b2b]' : 'text-[#737686]'}`}>
                                                         {parseNotificationContent(notif.title)}
                                                     </h4>
                                                     {isUnread && (
-                                                        <span className="w-2 h-2 bg-error rounded-full block self-center"></span>
+                                                        <span className="bg-[#e1e8fd] text-[#004ac6] text-[11px] font-black px-2 py-0.5 rounded-full block self-center whitespace-nowrap">
+                                                            جديد
+                                                        </span>
                                                     )}
                                                 </div>
-                                                <span className="text-sm font-medium text-outline shrink-0 order-first sm:order-last" dir="ltr">
-                                                    {new Date(notif.created_at).toLocaleString('ar-EG', { dateStyle: 'medium', timeStyle: 'short' })}
+                                                <span className="text-sm font-medium text-outline shrink-0 order-first sm:order-last" dir="ltr" style={{ display: 'inline-flex', gap: '6px', alignItems: 'center' }}>
+                                                    <span>{new Date(notif.created_at).getFullYear()}/{new Date(notif.created_at).getMonth() + 1}/{new Date(notif.created_at).getDate()}</span>
+                                                    <span>-</span>
+                                                    <span>{new Date(notif.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }).replace('AM', 'ص').replace('PM', 'م')}</span>
                                                 </span>
                                             </div>
                                             <p className={`text-base leading-relaxed ${isUnread ? 'text-on-surface-variant font-medium' : 'text-outline font-normal'}`}>

@@ -14,6 +14,7 @@ import useToastStore from '../../store/useToastStore';
 import ScreenCommandModal from './components/ScreenCommandModal';
 import LocationPickerMap from './components/LocationPickerMap';
 import usePermission from '../../hooks/usePermission';
+import { useNavigate } from 'react-router-dom';
 
 // Lazy load map mapping component
 const ScreenMapView = lazy(() => import('./components/ScreenMapView'));
@@ -52,10 +53,10 @@ const ScreensPage = () => {
   const [commandTarget, setCommandTarget] = useState(null);
   const [lookups, setLookups] = useState({ types: [], streets: [], owners: [] });
   const [statusFilter, setStatusFilter] = useState('all');
-  const [detailsModal, setDetailsModal] = useState({ open: false, screen: null });
   const [geoLoading, setGeoLoading] = useState(false);
   const { can } = usePermission();
   const addToast = useToastStore(state => state.addToast);
+  const navigate = useNavigate();
 
   // Geographic filter state
   const [governorates, setGovernorates] = useState([]);
@@ -559,7 +560,7 @@ const ScreensPage = () => {
                 const cfg = STATUS_CFG[screen.status] || STATUS_CFG.Offline;
                 const StatusIcon = cfg.icon;
                 return (
-                  <div key={screen.screen_id} className="border border-[#c3c6d7] rounded-lg p-[8px] bg-[#f9f9ff] hover:border-[#004ac6] transition-colors cursor-pointer" onClick={() => setDetailsModal({ open: true, screen })}>
+                  <div key={screen.screen_id} className="border border-[#c3c6d7] rounded-lg p-[8px] bg-[#f9f9ff] hover:border-[#004ac6] transition-colors cursor-pointer" onClick={() => navigate(`/dashboard/screens/${screen.screen_id}`)}>
                     <div className="flex justify-between items-start mb-[8px]">
                       <div className="min-w-0 pr-1 flex-1">
                         <h4 className="text-[20px] font-semibold text-[#141b2b] truncate">{screen.screen_name}</h4>
@@ -583,7 +584,7 @@ const ScreensPage = () => {
                       </span>
                     </div>
                     <div className="flex gap-[8px]">
-                      <button onClick={(e) => { e.stopPropagation(); setDetailsModal({ open: true, screen }); }} className="flex-1 py-1.5 border border-[#004ac6] text-[#004ac6] rounded text-[14px] hover:bg-[#004ac6] hover:text-[#ffffff] transition-colors">عرض الجداول</button>
+                      <button onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/screens/${screen.screen_id}`); }} className="flex-1 py-1.5 border border-[#004ac6] text-[#004ac6] rounded text-[14px] hover:bg-[#004ac6] hover:text-[#ffffff] transition-colors">تفاصيل وأداء</button>
                       <button onClick={(e) => { e.stopPropagation(); handleOpenModal(true, screen); }} className="flex-1 py-1.5 border border-[#c3c6d7] text-[#141b2b] rounded text-[14px] hover:bg-[#e1e8fd] transition-colors">تعديل الموقع</button>
                     </div>
                   </div>
@@ -754,7 +755,7 @@ const ScreensPage = () => {
                     </td>
                     <td className="p-[8px]">
                       <div className="flex items-center justify-center gap-[4px]">
-                        <button onClick={(e) => { e.stopPropagation(); setDetailsModal({ open: true, screen: row }); }} className="w-8 h-8 rounded-full flex items-center justify-center text-[#004ac6] hover:bg-[#2563eb] hover:text-[#eeefff] transition-colors" title="عرض">
+                        <button onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/screens/${row.screen_id}`); }} className="w-8 h-8 rounded-full flex items-center justify-center text-[#004ac6] hover:bg-[#2563eb] hover:text-[#eeefff] transition-colors" title="عرض">
                           <Eye className="w-[18px] h-[18px]" />
                         </button>
                         {(can('manage_all') || can('manage_screens')) && (
@@ -1081,7 +1082,7 @@ const ScreensPage = () => {
               </div>
 
               {/* مالك الشاشة */}
-              {(can('manage_all') || can('manage_screens')) && (
+              {can('manage_all') && (
                 <div>
                   <label style={{ fontSize: '12px', fontWeight: 600, color: '#434655', display: 'block', marginBottom: '6px' }}>
                     👑 مالك الشاشة (اختياري)
@@ -1281,100 +1282,7 @@ const ScreensPage = () => {
         </form>
       </Modal>
 
-      {/* ── Screen Details & Schedule Modal ── */}
-      <Modal
-        isOpen={detailsModal.open}
-        onClose={() => setDetailsModal({ open: false, screen: null })}
-        title={`معلومات وجدولة الشاشة: ${detailsModal.screen?.screen_name || ''}`}
-      >
-        {detailsModal.screen && (
-          <div className="flex flex-col gap-6" dir="rtl" style={{ fontFamily: "'IBM Plex Sans Arabic', sans-serif" }}>
-            {/* Header Cards */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-[#f8fafc] p-4 rounded-xl border border-[#e5e7eb] flex items-start gap-4">
-                <div className="w-16 h-16 rounded-lg bg-[#e1e8fd] flex items-center justify-center overflow-hidden border border-[#c3c6d7]">
-                  {detailsModal.screen.image_path ? (
-                    <img src={detailsModal.screen.image_path} alt="Screen" className="w-full h-full object-cover" />
-                  ) : (
-                    <Monitor className="w-8 h-8 text-[#004ac6]" />
-                  )}
-                </div>
-                <div>
-                  <h3 className="text-[#141b2b] text-lg font-bold mb-1">{detailsModal.screen.screen_name}</h3>
-                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold border ${detailsModal.screen.status === 'Online' ? 'bg-[#dcfce7] text-[#166534] border-[#166534]' : 'bg-[#f1f3ff] text-[#434655] border-[#c3c6d7]'}`}>
-                    {detailsModal.screen.status ? (STATUS_CFG[detailsModal.screen.status]?.label || detailsModal.screen.status) : 'بإنتظار التفعيل'}
-                  </span>
-                </div>
-              </div>
-              <div className="bg-[#f8fafc] p-4 rounded-xl border border-[#e5e7eb] flex flex-col justify-center">
-                <p className="text-[#737686] text-[11px] font-semibold mb-1">المالك (المستثمر)</p>
-                <p className="text-[#141b2b] text-sm font-bold">{detailsModal.screen.owner?.full_name || '—'}</p>
-                <p className="text-[#004ac6] text-xs mt-1">{detailsModal.screen.owner?.email || ''}</p>
-              </div>
-            </div>
 
-            {/* Info Grid */}
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-              <div className="bg-white p-3 rounded-lg border border-[#e5e7eb]">
-                <p className="text-[11px] text-[#737686] font-medium mb-1">المعرف (MAC)</p>
-                <p className="text-[13px] font-mono text-[#141b2b]">{detailsModal.screen.mac_address || '—'}</p>
-              </div>
-              <div className="bg-white p-3 rounded-lg border border-[#e5e7eb]">
-                <p className="text-[11px] text-[#737686] font-medium mb-1">السعر الأساسي</p>
-                <p className="text-[13px] font-bold text-[#141b2b]">{detailsModal.screen.base_price ? `$${detailsModal.screen.base_price} / يوم` : '—'}</p>
-              </div>
-              <div className="bg-white p-3 rounded-lg border border-[#e5e7eb]">
-                <p className="text-[11px] text-[#737686] font-medium mb-1">صنف ومقاس الشاشة</p>
-                <p className="text-[13px] font-semibold text-[#141b2b]">
-                  {detailsModal.screen.screen_size_inch ? `${detailsModal.screen.screen_size_inch} بوصة` : ''}
-                  {detailsModal.screen.screen_size_inch && detailsModal.screen.type?.type_name ? ' - ' : ''}
-                  {detailsModal.screen.type?.type_name || '—'}
-                </p>
-              </div>
-              <div className="bg-white p-3 col-span-2 lg:col-span-3 rounded-lg border border-[#e5e7eb] flex items-center gap-3">
-                <div className="bg-[#f1f3ff] p-2 rounded-lg text-[#004ac6]">
-                  <MapPin className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="text-[11px] text-[#737686] font-medium mb-1">موقع التغطية الفعلي</p>
-                  <p className="text-[13px] font-semibold text-[#141b2b]">
-                    {detailsModal.screen.street ? `${detailsModal.screen.street.region?.governorate?.name || ''} - ${detailsModal.screen.street.region?.name || ''} - ${detailsModal.screen.street.name}` : 'غير محدد'}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Schedule Section */}
-            <div className="bg-[#f1f3ff] p-4 rounded-xl border border-[#dbe1ff]">
-              <div className="flex items-center gap-2 mb-2">
-                <Clock className="w-5 h-5 text-[#004ac6]" />
-                <h4 className="text-[#004ac6] font-bold text-sm">تفاصيل الجدولة والتسعير</h4>
-              </div>
-              <p className="text-[13px] text-[#434655] leading-relaxed mb-3">
-                تعتمد هذه الشاشة على الجدولة الديناميكية. لتعديل جدول أوقات الذروة أو مضاعفات الأسعار يجب استدعاء النافذة الخاصة بذلك بالنقر على أيقونة (✏️ تعديل) في الجدول.
-              </p>
-              <div className="bg-[#ffffff] px-3 py-2 rounded border border-[#dce2f7] flex items-center gap-2 text-[12px] text-[#434655]">
-                <Activity className="w-4 h-4 text-[#166534]" />
-                <strong>آخر نشاط لنبض الشاشة:</strong>
-                <span dir="ltr" className="ml-2 font-mono">
-                  {detailsModal.screen.linked_at ? new Date(detailsModal.screen.linked_at).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : 'لا يوجد اتصال مسبق'}
-                </span>
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className="flex gap-2 justify-end mt-2">
-              <button
-                type="button"
-                onClick={() => setDetailsModal({ open: false, screen: null })}
-                className="px-6 py-2.5 rounded-lg bg-[#e1e8fd] text-[#004ac6] font-bold hover:bg-[#dce2f7] transition-colors"
-              >
-                إنهاء وإغلاق
-              </button>
-            </div>
-          </div>
-        )}
-      </Modal>
 
       {/* ── Delete Confirm ── */}
       <ConfirmDialog

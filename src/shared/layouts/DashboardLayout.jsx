@@ -752,9 +752,14 @@ const DashboardLayout = () => {
                                         overflow: 'hidden',
                                         animation: 'launcherIn 0.18s cubic-bezier(0.4,0,0.2,1)',
                                     }}>
-                                        <div style={{ padding: '12px 16px', borderBottom: `1px solid ${S.outlineVariant}` }}>
-                                            <span style={{ fontSize: '12px', fontWeight: 700, color: S.onSurface, fontFamily: "'IBM Plex Sans Arabic', sans-serif" }}>
-                                                {isRTL ? 'معاينة النظام بصفة:' : 'Preview System As:'}
+                                        <div style={{ 
+                                            padding: '12px 16px', 
+                                            borderBottom: `1px solid ${S.outlineVariant}`,
+                                            background: S.surfaceContainerLow,
+                                            textAlign: 'center'
+                                        }}>
+                                            <span style={{ fontSize: '13px', fontWeight: 800, color: S.primary, fontFamily: "'IBM Plex Sans Arabic', sans-serif" }}>
+                                                {isRTL ? 'معاينة النظام بصفة' : 'Preview System As:'}
                                             </span>
                                         </div>
                                         <div style={{ padding: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -777,8 +782,8 @@ const DashboardLayout = () => {
                                                         borderRadius: '8px', border: 'none',
                                                         background: (impersonatedRole === r.id || (r.id === null && !impersonatedRole)) ? S.primaryContainer : 'transparent',
                                                         color: (impersonatedRole === r.id || (r.id === null && !impersonatedRole)) ? '#fff' : S.onSurface,
-                                                        textAlign: isRTL ? 'right' : 'left',
-                                                        fontSize: '13px', fontWeight: 500,
+                                                        textAlign: 'center',
+                                                        fontSize: '13px', fontWeight: 600,
                                                         cursor: 'pointer', transition: 'all 0.2s',
                                                         direction: isRTL ? 'rtl' : 'ltr',
                                                         fontFamily: "'IBM Plex Sans Arabic', sans-serif"
