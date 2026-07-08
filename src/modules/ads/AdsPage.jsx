@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Megaphone, Plus, CheckCircle, XCircle, Trash2, Eye, PauseCircle, PlayCircle, CreditCard, Activity, Clock, Ban, DollarSign, Calendar, Info, Layers, User, Server } from 'lucide-react';
+import { Megaphone, Plus, CheckCircle, XCircle, Trash2, Eye, PauseCircle, PlayCircle, CreditCard, Activity, Clock, Ban, DollarSign, Calendar, Info, Layers, User, Server, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import axiosClient from '../../core/api/axiosClient';
 import { ENDPOINTS } from '../../core/api/endpoints';
@@ -14,6 +14,7 @@ import ReviewAdModal from './components/ReviewAdModal';
 const AdsPage = () => {
     const [ads, setAds] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [isRefreshing, setIsRefreshing] = useState(false);
     const [statusFilter, setStatusFilter] = useState('all');
     const [deleteTarget, setDeleteTarget] = useState(null);
     const [approveModal, setApproveModal] = useState({ open: false, ad: null, action: '' });
@@ -25,18 +26,34 @@ const AdsPage = () => {
     const navigate = useNavigate();
     const addToast = useToastStore(state => state.addToast);
 
-    useEffect(() => { fetchAds(); }, []);
+    useEffect(() => {
+        fetchAds();
+        
+        // التحديث التلقائي الصامت كل دقيقتين
+        const intervalId = setInterval(() => {
+            fetchAds(true);
+        }, 120000);
 
-    const fetchAds = async () => {
+        return () => clearInterval(intervalId);
+    }, []);
+
+    const fetchAds = async (silent = false) => {
+        if (!silent) setLoading(true);
         try {
             const res = await axiosClient.get(ENDPOINTS.ADS.ALL);
             setAds(res.data.data || []);
         } catch (e) {
             console.error(e);
-            addToast('واجه النظام مشكلة في جلب الإعلانات', 'error');
+            if (!silent) addToast('واجه النظام مشكلة في جلب الإعلانات', 'error');
         } finally {
-            setLoading(false);
+            if (!silent) setLoading(false);
         }
+    };
+
+    const handleRefresh = async () => {
+        setIsRefreshing(true);
+        await fetchAds(true);
+        setTimeout(() => setIsRefreshing(false), 600);
     };
 
     const filteredAds = ads.filter(a => statusFilter === 'all' || a.status === statusFilter);
@@ -138,11 +155,21 @@ const AdsPage = () => {
                     <p className="text-base text-[#434655]">مراقبة ومراجعة وتوجيه جميع الحملات الإعلانية النشطة والمتوقفة ضمن الشبكة.</p>
                 </div>
                 {can('create_campaigns') && (
-                    <button onClick={() => navigate('/dashboard/ads/create')}
-                        className="bg-[#004ac6] hover:bg-[#2563eb] text-white px-6 py-3 rounded-lg text-sm font-medium flex items-center justify-center gap-2 shadow-sm transition-all hover:shadow-md">
-                        <Plus className="w-5 h-5" />
-                        إطلاق حملة جديدة
-                    </button>
+                    <div className="flex items-center gap-[12px]">
+                        <button
+                            onClick={handleRefresh}
+                            disabled={isRefreshing}
+                            title="تحديث البيانات"
+                            className="w-[48px] h-[48px] flex items-center justify-center rounded-lg bg-white text-[#434655] border border-[#E5E7EB] hover:bg-[#f3f4f6] hover:text-[#141b2b] transition-colors shadow-sm"
+                        >
+                            <RefreshCw className={`w-5 h-5 ${isRefreshing ? 'animate-spin text-[#2563eb]' : ''}`} />
+                        </button>
+                        <button onClick={() => navigate('/dashboard/ads/create')}
+                            className="bg-[#004ac6] hover:bg-[#2563eb] text-white px-6 py-3 rounded-lg text-sm font-medium flex items-center justify-center gap-2 shadow-sm transition-all hover:shadow-md">
+                            <Plus className="w-5 h-5" />
+                            إطلاق حملة جديدة
+                        </button>
+                    </div>
                 )}
             </div>
 
