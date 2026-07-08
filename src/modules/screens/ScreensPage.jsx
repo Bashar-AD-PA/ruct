@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, Suspense, lazy } from 'react';
 import {
   Monitor, Plus, Trash2, TerminalSquare, Edit2, Image as ImageIcon,
   Eye, Activity, Info, MapPin, UploadCloud, AlertCircle, Layers,
-  ChevronDown, Wifi, WifiOff, Wrench, Navigation, Star, X, Building, Clock, Zap
+  ChevronDown, Wifi, WifiOff, Wrench, Navigation, Star, X, Building, Clock, Zap, RefreshCw
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axiosClient from '../../core/api/axiosClient';
@@ -44,6 +44,7 @@ const CascadingSelect = ({ label, value, onChange, options, placeholder, disable
 const ScreensPage = () => {
   const [screens, setScreens] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [modalConfig, setModalConfig] = useState({ open: false, isEdit: false, screen: null });
   const [formLoading, setFormLoading] = useState(false);
   const [showImageModal, setShowImageModal] = useState(null);
@@ -93,18 +94,32 @@ const ScreensPage = () => {
     fetchScreens();
     fetchLookups();
     fetchGovernorates();
+
+    // التحديث التلقائي الصامت كل دقيقتين
+    const intervalId = setInterval(() => {
+      fetchScreens(true);
+    }, 120000);
+
+    return () => clearInterval(intervalId);
   }, []);
 
-  const fetchScreens = async () => {
+  const fetchScreens = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const res = await axiosClient.get(ENDPOINTS.SCREENS.ALL);
       setScreens(res.data);
     } catch (e) {
       console.error(e);
-      addToast('حدث خطأ أثناء جلب الشاشات', 'error');
+      if (!silent) addToast('حدث خطأ أثناء جلب الشاشات', 'error');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
+  };
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await fetchScreens(true);
+    setTimeout(() => setIsRefreshing(false), 600);
   };
 
   const fetchLookups = async () => {
@@ -458,13 +473,23 @@ const ScreensPage = () => {
           <p className="text-[16px] text-[#434655]">مراقبة شاشات العرض جغرافياً، وتتبع حالتها التشغيلية الفورية.</p>
         </div>
         {(can('manage_all') || can('manage_screens')) && (
-          <button
-            onClick={() => handleOpenModal(false)}
-            className="flex items-center gap-[8px] bg-[#2563eb] text-[#ffffff] px-[24px] py-3 rounded-lg hover:bg-[#004ac6] transition-colors shadow-sm text-[14px] font-medium"
-          >
-            <Plus className="w-5 h-5" />
-            إضافة شاشة جديدة
-          </button>
+          <div className="flex items-center gap-[12px]">
+            <button
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              title="تحديث البيانات"
+              className="w-[48px] h-[48px] flex items-center justify-center rounded-lg bg-[#ffffff] text-[#434655] border border-[#E5E7EB] hover:bg-[#f3f4f6] hover:text-[#141b2b] transition-colors shadow-sm"
+            >
+              <RefreshCw className={`w-5 h-5 ${isRefreshing ? 'animate-spin text-[#2563eb]' : ''}`} />
+            </button>
+            <button
+              onClick={() => handleOpenModal(false)}
+              className="flex items-center gap-[8px] bg-[#2563eb] text-[#ffffff] px-[24px] py-3 rounded-lg hover:bg-[#004ac6] transition-colors shadow-sm text-[14px] font-medium"
+            >
+              <Plus className="w-5 h-5" />
+              إضافة شاشة جديدة
+            </button>
+          </div>
         )}
       </div>
 
