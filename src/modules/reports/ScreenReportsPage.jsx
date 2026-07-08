@@ -345,12 +345,12 @@ const ScreenReportsPage = () => {
             
             {/* Empty State when no report is generated yet */}
             {!reportData && !loadingReport && (
-                <div className="bg-surface-container-low border border-outline-variant/50 border-dashed rounded-3xl py-24 flex flex-col items-center justify-center text-center print:hidden">
+                <div className="w-full bg-surface-container-low border border-outline-variant/50 border-dashed rounded-3xl py-24 px-4 flex flex-col items-center justify-center text-center print:hidden">
                     <div className="w-20 h-20 bg-surface rounded-full flex items-center justify-center shadow-sm mb-6">
                         <FileText className="w-10 h-10 text-primary/40" />
                     </div>
                     <h3 className="text-xl font-bold text-on-background mb-2">التقارير جاهزة للاستخراج</h3>
-                    <p className="text-on-surface-variant max-w-md">قم بتحديد الشاشة والفترة الزمنية من الفلاتر العلوية ثم اضغط على زر "استخراج" لعرض التقرير وطباعته.</p>
+                    <p className="text-on-surface-variant max-w-md w-full">قم بتحديد الشاشة والفترة الزمنية من الفلاتر العلوية ثم اضغط على زر "استخراج" لعرض التقرير وطباعته.</p>
                 </div>
             )}
         </div>
