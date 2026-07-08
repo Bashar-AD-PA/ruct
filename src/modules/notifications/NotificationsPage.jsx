@@ -195,7 +195,7 @@ const NotificationsPage = () => {
                         </div>
                     </div>
                 ) : notifications.length === 0 ? (
-                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="p-20 text-center flex flex-col items-center justify-center">
+                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="py-20 px-4 text-center flex flex-col items-center justify-center w-full">
                         <div className="w-24 h-24 bg-surface-container rounded-full flex items-center justify-center mb-6 relative">
                             <span className="material-symbols-outlined text-5xl text-outline-variant absolute -top-2 -right-2 rotate-12">sparkles</span>
                             <span className="material-symbols-outlined text-6xl text-primary opacity-80">inbox</span>

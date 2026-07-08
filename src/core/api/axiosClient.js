@@ -25,7 +25,7 @@ if (!API_BASE_URL) {
 
 const axiosClient = axios.create({
     baseURL: API_BASE_URL,
-    timeout: 20000, // 20 seconds timeout
+    timeout: 60000, // 60 seconds timeout to handle Vercel cold starts
     headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json'
