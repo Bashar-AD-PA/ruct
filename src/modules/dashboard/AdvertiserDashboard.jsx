@@ -359,7 +359,7 @@ const AdvertiserDashboard = () => {
                                        <motion.div 
                                             initial={{ opacity: 0, scale: 0.95 }}
                                             animate={{ opacity: 1, scale: 1 }}
-                                            className="flex flex-col items-center justify-center w-full max-w-sm mx-auto"
+                                            className="flex flex-col items-center justify-center w-full max-w-sm mx-auto min-w-[300px]"
                                        >
                                            <div className="w-24 h-24 mb-6 relative">
                                                <div className="absolute inset-0 bg-[var(--color-dark-turquoise)]/10 rounded-full animate-ping"></div>
@@ -367,7 +367,7 @@ const AdvertiserDashboard = () => {
                                                    <Megaphone className="w-10 h-10 text-gray-300" />
                                                </div>
                                            </div>
-                                           <h4 className="text-lg font-black text-gray-900 mb-2">
+                                           <h4 className="text-lg font-black text-gray-900 mb-2 whitespace-nowrap">
                                                {searchQuery || statusFilter !== 'all' ? 'لا توجد نتائج مطابقة' : 'لا توجد حملات إعلانية حتى الآن'}
                                            </h4>
                                            <p className="text-sm font-medium text-gray-500 mb-8 leading-relaxed">
