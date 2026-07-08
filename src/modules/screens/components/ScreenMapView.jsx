@@ -198,9 +198,9 @@ export default function ScreenMapView({
           </LayersControl.BaseLayer>
           <LayersControl.BaseLayer name="خريطة القمر الصناعي (حقيقية)" checked>
             <TileLayer
-              attribution='Tiles &copy; Esri'
-              url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-              maxZoom={19}
+              attribution='&copy; Google Maps'
+              url="https://mt1.google.com/vt/lyrs=y&hl=ar&x={x}&y={y}&z={z}"
+              maxZoom={20}
             />
           </LayersControl.BaseLayer>
         </LayersControl>
