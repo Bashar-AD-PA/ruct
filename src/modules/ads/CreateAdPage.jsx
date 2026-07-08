@@ -48,23 +48,39 @@ const CreateAdPage = () => {
     const [geoFilterLoading, setGeoFilterLoading] = useState(false);
 
     useEffect(() => {
-        const fetchData = async () => {
+        const fetchScreens = async () => {
             try {
-                const [screensRes, freqRes, advRes, govRes] = await Promise.all([
-                    axiosClient.get(ENDPOINTS.SCREENS.ALL),
-                    axiosClient.get(ENDPOINTS.FREQUENCY_PACKAGES.ALL),
-                    can('manage_all') ? axiosClient.get(ENDPOINTS.LOOKUPS.USERS_BY_ROLE('Advertiser')) : Promise.resolve({ data: [] }),
-                    axiosClient.get(ENDPOINTS.LOOKUPS.GOVERNORATES)
-                ]);
-                setScreens(screensRes.data || []);
-                setFrequencyPackages(freqRes.data?.data || freqRes.data || []);
-                setAdvertisers(advRes.data || []);
-                setGovList(govRes.data || []);
-            } catch (e) {
-                console.error(e);
-            }
+                const res = await axiosClient.get(ENDPOINTS.SCREENS.ALL);
+                setScreens(res.data || []);
+            } catch (e) { console.error(e); }
         };
-        fetchData();
+        
+        const fetchPackages = async () => {
+            try {
+                const res = await axiosClient.get(ENDPOINTS.FREQUENCY_PACKAGES.ALL);
+                setFrequencyPackages(res.data?.data || res.data || []);
+            } catch (e) { console.error(e); }
+        };
+        
+        const fetchAdvertisers = async () => {
+            if (!can('manage_all')) return;
+            try {
+                const res = await axiosClient.get(ENDPOINTS.LOOKUPS.USERS_BY_ROLE('Advertiser'));
+                setAdvertisers(res.data || []);
+            } catch (e) { console.error(e); }
+        };
+        
+        const fetchGovs = async () => {
+            try {
+                const res = await axiosClient.get(ENDPOINTS.LOOKUPS.GOVERNORATES);
+                setGovList(res.data || []);
+            } catch (e) { console.error(e); }
+        };
+
+        fetchScreens();
+        fetchPackages();
+        fetchAdvertisers();
+        fetchGovs();
 
         return () => {
             if (previewUrl) URL.revokeObjectURL(previewUrl);
