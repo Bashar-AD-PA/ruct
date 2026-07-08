@@ -24,7 +24,7 @@ const PaymentOperationsPage = () => {
                     ledger.filter(item => item.transaction_type === 'payment_pending' && item.status === 'pending')
                 );
                 setCompletedPayments(
-                    ledger.filter(item => item.transaction_type === 'payment_in' && item.status === 'completed')
+                    ledger.filter(item => (item.transaction_type === 'payment_in' && item.status === 'completed') || item.status === 'rejected')
                 );
             }
         } catch (error) {
@@ -47,11 +47,29 @@ const PaymentOperationsPage = () => {
         }
     };
 
-    const openReceipt = (path) => {
-        if (!path) return;
-        const fullUrl = axiosClient.defaults.baseURL.replace('/api', '') + path;
-        setSelectedReceipt(fullUrl);
-        setIsReceiptModalOpen(true);
+    const handleReject = async (ledgerId) => {
+        if (!window.confirm('هل أنت متأكد من رفض هذه الدفعة؟ سيتم إرجاع الإعلان ليكون غير مدفوع.')) return;
+        try {
+            // سنضيف هذا المسار لاحقاً في endpoints.js ولكن يمكننا استخدامه مباشرة هنا الآن
+            await axiosClient.post(`/financial/reject-payment/${ledgerId}`);
+            addToast('تم رفض الدفعة بنجاح', 'success');
+            fetchPayments();
+        } catch (error) {
+            addToast(error.response?.data?.message || 'فشل رفض الدفعة', 'error');
+        }
+    };
+
+    const openReceipt = async (ledgerId) => {
+        try {
+            const res = await axiosClient.get(`/financial/receipt/${ledgerId}`);
+            if (res.data.success && res.data.receipt_path) {
+                // Since it is a base64 string, we use it directly
+                setSelectedReceipt(res.data.receipt_path);
+                setIsReceiptModalOpen(true);
+            }
+        } catch (error) {
+            addToast('لا يوجد إيصال لهذه الدفعة أو حدث خطأ.', 'warning');
+        }
     };
 
     const currentList = activeTab === 'pending' ? pendingPayments : completedPayments;
@@ -278,9 +296,9 @@ const PaymentOperationsPage = () => {
                                             )}
                                             <td className="py-4 px-6 text-left whitespace-nowrap">
                                                 <div className="flex items-center justify-end gap-2">
-                                                    {!isCompleted && item.receipt_path && (
+                                                    {!isCompleted && item.has_receipt == 1 && (
                                                         <button
-                                                            onClick={() => openReceipt(item.receipt_path)}
+                                                            onClick={() => openReceipt(item.ledger_id)}
                                                             className="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-primary/10 hover:text-primary transition-colors"
                                                             title="عرض الإيصال"
                                                         >
@@ -288,19 +306,29 @@ const PaymentOperationsPage = () => {
                                                         </button>
                                                     )}
                                                     {!isCompleted && (
-                                                        <button
-                                                            onClick={() => handleApprove(item.ledger_id)}
-                                                            className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold transition-colors shadow-sm"
-                                                            title="اعتماد الدفعة"
-                                                        >
-                                                            <span className="material-symbols-outlined text-[15px]">check_circle</span>
-                                                            اعتماد
-                                                        </button>
+                                                        <>
+                                                            <button
+                                                                onClick={() => handleApprove(item.ledger_id)}
+                                                                className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold transition-colors shadow-sm"
+                                                                title="اعتماد الدفعة"
+                                                            >
+                                                                <span className="material-symbols-outlined text-[15px]">check_circle</span>
+                                                                اعتماد
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleReject(item.ledger_id)}
+                                                                className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-error hover:bg-error/90 text-white text-xs font-bold transition-colors shadow-sm"
+                                                                title="رفض الدفعة"
+                                                            >
+                                                                <span className="material-symbols-outlined text-[15px]">cancel</span>
+                                                                رفض
+                                                            </button>
+                                                        </>
                                                     )}
                                                     {isCompleted && (
-                                                        <span className="text-xs text-emerald-600 font-bold flex items-center gap-1">
-                                                            <span className="material-symbols-outlined text-[15px]">verified</span>
-                                                            معتمد
+                                                        <span className={`text-xs font-bold flex items-center gap-1 ${item.status === 'rejected' ? 'text-error' : 'text-emerald-600'}`}>
+                                                            <span className="material-symbols-outlined text-[15px]">{item.status === 'rejected' ? 'cancel' : 'verified'}</span>
+                                                            {item.status === 'rejected' ? 'مرفوض' : 'معتمد'}
                                                         </span>
                                                     )}
                                                 </div>
