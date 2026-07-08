@@ -188,19 +188,19 @@ export default function ScreenMapView({
         zoomControl={false}
       >
         <LayersControl position="topright">
+          <LayersControl.BaseLayer name="خريطة القمر الصناعي (واقعية مع أسماء)" checked>
+            <TileLayer
+              attribution='&copy; Google Maps'
+              url="https://mt1.google.com/vt/lyrs=y&hl=ar&x={x}&y={y}&z={z}"
+              maxZoom={20}
+            />
+          </LayersControl.BaseLayer>
           <LayersControl.BaseLayer name="خريطة الشوارع (فاتحة)">
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
               url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
               maxZoom={19}
               subdomains="abcd"
-            />
-          </LayersControl.BaseLayer>
-          <LayersControl.BaseLayer name="خريطة القمر الصناعي (حقيقية)" checked>
-            <TileLayer
-              attribution='&copy; Google Maps'
-              url="https://mt1.google.com/vt/lyrs=y&hl=ar&x={x}&y={y}&z={z}"
-              maxZoom={20}
             />
           </LayersControl.BaseLayer>
         </LayersControl>
