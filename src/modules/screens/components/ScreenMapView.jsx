@@ -1,6 +1,6 @@
 import React, { useMemo, useEffect } from 'react';
 import { Monitor } from 'lucide-react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap, LayersControl } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -187,12 +187,23 @@ export default function ScreenMapView({
         style={{ minHeight: '400px', height: '100%', width: '100%' }}
         zoomControl={false}
       >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-          maxZoom={19}
-          subdomains="abcd"
-        />
+        <LayersControl position="topright">
+          <LayersControl.BaseLayer name="خريطة الشوارع (فاتحة)">
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+              maxZoom={19}
+              subdomains="abcd"
+            />
+          </LayersControl.BaseLayer>
+          <LayersControl.BaseLayer name="خريطة القمر الصناعي (حقيقية)" checked>
+            <TileLayer
+              attribution='Tiles &copy; Esri'
+              url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+              maxZoom={19}
+            />
+          </LayersControl.BaseLayer>
+        </LayersControl>
 
         <MapUpdater view={mapView} />
 
