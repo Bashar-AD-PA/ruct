@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-    Megaphone, 
-    Clock, 
-    DollarSign, 
-    PlusCircle, 
-    Search, 
+import {
+    Megaphone,
+    Clock,
+    DollarSign,
+    PlusCircle,
+    Search,
     Calendar,
     Tv,
     Sparkles,
@@ -40,14 +40,14 @@ const DashboardSkeleton = () => (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6">
             {[...Array(3)].map((_, i) => (
                 <div key={i} className="h-[160px] bg-white border border-gray-100 rounded-3xl animate-pulse p-6 flex flex-col justify-between shadow-sm">
-                   <div className="flex justify-between items-start">
+                    <div className="flex justify-between items-start">
                         <div className="space-y-3 w-full">
                             <div className="w-24 h-3 bg-gray-100 rounded-full"></div>
                             <div className="w-16 h-8 bg-gray-100 rounded-full"></div>
                         </div>
                         <div className="w-12 h-12 bg-gray-100 rounded-2xl shrink-0"></div>
-                   </div>
-                   <div className="h-8 bg-gray-50 rounded-xl w-full"></div>
+                    </div>
+                    <div className="h-8 bg-gray-50 rounded-xl w-full"></div>
                 </div>
             ))}
         </div>
@@ -66,8 +66,8 @@ const DashboardError = ({ onRetry }) => (
                 واجهنا مشكلة أثناء جلب الإحصائيات أو التحقق من بياناتك.
             </p>
         </div>
-        <button 
-            onClick={onRetry} 
+        <button
+            onClick={onRetry}
             className="flex items-center gap-2 px-6 py-3 mt-2 bg-gray-900 text-white text-sm font-bold rounded-xl hover:bg-gray-800 transition-colors shadow-lg shadow-gray-900/20"
         >
             <RefreshCw className="w-4 h-4" />
@@ -86,24 +86,39 @@ const AdvertiserDashboard = () => {
     const [statusFilter, setStatusFilter] = useState('all');
     const addToast = useToastStore(state => state.addToast);
 
-    const fetchDashboard = async () => {
-        setLoading(true);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+
+    const fetchDashboard = async (silent = false) => {
+        if (!silent) setLoading(true);
         setError(false);
         try {
             const res = await axiosClient.get(ENDPOINTS.ADVERTISER.DASHBOARD);
             setData(res.data.data || res.data);
         } catch (error) {
             console.error('Error fetching dashboard', error);
-            addToast('لم نتمكن من جلب إحصائيات لوحة التحكم', 'error');
-            setData(null);
+            if (!silent) addToast('لم نتمكن من جلب إحصائيات لوحة التحكم', 'error');
+            if (!silent) setData(null);
             setError(true);
         } finally {
-            setLoading(false);
+            if (!silent) setLoading(false);
         }
+    };
+
+    const handleRefresh = async () => {
+        setIsRefreshing(true);
+        await fetchDashboard(true);
+        setTimeout(() => setIsRefreshing(false), 600);
     };
 
     useEffect(() => {
         fetchDashboard();
+        
+        // التحديث التلقائي الصامت في الخلفية كل دقيقة
+        const intervalId = setInterval(() => {
+            fetchDashboard(true);
+        }, 60000);
+
+        return () => clearInterval(intervalId);
     }, []);
 
     const getGreeting = () => {
@@ -119,22 +134,22 @@ const AdvertiserDashboard = () => {
     // Filter recent ads by Status AND Search
     const filteredAds = data?.recent_ads?.filter(ad => {
         const matchesSearch = ad.title?.toLowerCase().includes(searchQuery.toLowerCase());
-        const matchesStatus = statusFilter === 'all' || 
+        const matchesStatus = statusFilter === 'all' ||
             (statusFilter === 'Active' && ad.status === 'Active') ||
             (statusFilter === 'Pending' && (ad.status === 'Pending' || ad.status === 'waiting_payment'));
         return matchesSearch && matchesStatus;
     }) || [];
 
     return (
-        <motion.div 
+        <motion.div
             variants={containerVariants}
             initial="hidden"
             animate="show"
-            className="space-y-6 pb-12 font-sans w-full max-w-[1600px] mx-auto min-h-screen" 
+            className="space-y-6 pb-12 font-sans w-full max-w-[1600px] mx-auto min-h-screen"
             dir="rtl"
         >
             {/* 1. Header (Matched to Admin Dashboard) */}
-            <motion.div 
+            <motion.div
                 variants={itemVariants}
                 className="flex items-end justify-between mb-2"
             >
@@ -146,9 +161,17 @@ const AdvertiserDashboard = () => {
                         Dashboard Overview
                     </p>
                 </div>
-                
+
                 <div className="flex items-center gap-2.5">
-                    <button 
+                    <button
+                        onClick={handleRefresh}
+                        disabled={isRefreshing}
+                        title="تحديث البيانات"
+                        className="w-10 h-10 flex items-center justify-center rounded-[10px] bg-white text-gray-500 border border-gray-200 hover:bg-gray-50 hover:text-gray-900 transition-colors shadow-sm"
+                    >
+                        <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-[#2563EB]' : ''}`} />
+                    </button>
+                    <button
                         onClick={() => navigate('/dashboard/ads/create')}
                         className="flex items-center gap-1.5 px-4 py-2 rounded-[10px] bg-[#2563EB] text-white text-[13px] font-bold cursor-pointer font-sans shadow-[0_2px_8px_rgba(37,99,235,0.30)] hover:bg-[#1D4ED8] transition-colors border-none"
                     >
@@ -159,18 +182,17 @@ const AdvertiserDashboard = () => {
             </motion.div>
 
             {/* 2. KPI Stats Cards */}
-            <motion.div 
+            <motion.div
                 variants={itemVariants}
                 className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6"
             >
                 {/* Active Cards */}
-                <div 
+                <div
                     onClick={() => setStatusFilter(statusFilter === 'Active' ? 'all' : 'Active')}
-                    className={`bg-white rounded-3xl p-6 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.03)] cursor-pointer flex flex-col justify-between transition-all duration-300 group relative overflow-hidden ${
-                        statusFilter === 'Active' 
-                            ? 'border-2 border-emerald-500 shadow-[0_8px_30px_-4px_rgba(16,185,129,0.2)] -translate-y-1' 
+                    className={`bg-white rounded-3xl p-6 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.03)] cursor-pointer flex flex-col justify-between transition-all duration-300 group relative overflow-hidden ${statusFilter === 'Active'
+                            ? 'border-2 border-emerald-500 shadow-[0_8px_30px_-4px_rgba(16,185,129,0.2)] -translate-y-1'
                             : 'border-2 border-transparent hover:border-emerald-500/30 hover:shadow-[0_8px_30px_-4px_rgba(0,0,0,0.08)] hover:-translate-y-1 border border-gray-100'
-                    }`}
+                        }`}
                 >
                     <div className="absolute top-0 left-0 w-32 h-32 bg-emerald-50 rounded-full blur-3xl -ml-16 -mt-16 opacity-50 group-hover:scale-150 transition-transform duration-700 pointer-events-none"></div>
                     <div className="flex justify-between items-start mb-6 relative z-10">
@@ -184,21 +206,20 @@ const AdvertiserDashboard = () => {
                     </div>
                     <div className="relative z-10 bg-gray-50 rounded-xl px-3.5 py-2.5 flex justify-between items-center text-[10px] md:text-xs font-bold transition-colors">
                         <div className="flex items-center gap-2 text-emerald-600">
-                             <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
-                             <span>متصل بالشبكة</span>
+                            <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                            <span>متصل بالشبكة</span>
                         </div>
                         <span className="text-gray-400">{statusFilter === 'Active' ? 'إلغاء التصفية' : 'تصفية الجدول'}</span>
                     </div>
                 </div>
 
                 {/* Pending Card */}
-                <div 
+                <div
                     onClick={() => setStatusFilter(statusFilter === 'Pending' ? 'all' : 'Pending')}
-                    className={`bg-white rounded-3xl p-6 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.03)] cursor-pointer flex flex-col justify-between transition-all duration-300 group relative overflow-hidden ${
-                        statusFilter === 'Pending' 
-                            ? 'border-2 border-[var(--color-gold)] shadow-[0_8px_30px_-4px_rgba(196,160,82,0.2)] -translate-y-1' 
+                    className={`bg-white rounded-3xl p-6 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.03)] cursor-pointer flex flex-col justify-between transition-all duration-300 group relative overflow-hidden ${statusFilter === 'Pending'
+                            ? 'border-2 border-[var(--color-gold)] shadow-[0_8px_30px_-4px_rgba(196,160,82,0.2)] -translate-y-1'
                             : 'border-2 border-transparent hover:border-[var(--color-gold)]/30 hover:shadow-[0_8px_30px_-4px_rgba(0,0,0,0.08)] hover:-translate-y-1 border border-gray-100'
-                    }`}
+                        }`}
                 >
                     <div className="absolute top-0 left-0 w-32 h-32 bg-[var(--color-gold)]/10 rounded-full blur-3xl -ml-16 -mt-16 opacity-50 group-hover:scale-150 transition-transform duration-700 pointer-events-none"></div>
                     <div className="flex justify-between items-start mb-6 relative z-10">
@@ -212,8 +233,8 @@ const AdvertiserDashboard = () => {
                     </div>
                     <div className="relative z-10 bg-gray-50 rounded-xl px-3.5 py-2.5 flex justify-between items-center text-[10px] md:text-xs font-bold transition-colors">
                         <div className="flex items-center gap-2 text-amber-600">
-                             <Clock className="w-3.5 h-3.5" />
-                             <span>تنتظر الموافقة</span>
+                            <Clock className="w-3.5 h-3.5" />
+                            <span>تنتظر الموافقة</span>
                         </div>
                         <span className="text-gray-400">{statusFilter === 'Pending' ? 'إلغاء التصفية' : 'تصفية الجدول'}</span>
                     </div>
@@ -232,14 +253,14 @@ const AdvertiserDashboard = () => {
                         </div>
                     </div>
                     <div className="relative z-10 bg-gray-50 rounded-xl px-3.5 py-2.5 flex items-center gap-2 text-gray-500 text-[10px] md:text-xs font-bold">
-                         <span className="w-1.5 h-1.5 bg-gray-300 rounded-full"></span>
-                         <span>حساب الفواتير المعتمدة</span>
+                        <span className="w-1.5 h-1.5 bg-gray-300 rounded-full"></span>
+                        <span>حساب الفواتير المعتمدة</span>
                     </div>
                 </div>
             </motion.div>
 
             {/* 3. Filterable Campaigns / Ads registry */}
-            <motion.div 
+            <motion.div
                 variants={itemVariants}
                 className="bg-white rounded-3xl border border-gray-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.03)] overflow-hidden flex flex-col"
             >
@@ -312,12 +333,12 @@ const AdvertiserDashboard = () => {
                                     }
 
                                     return (
-                                        <motion.tr 
+                                        <motion.tr
                                             initial={{ opacity: 0, y: 10 }}
                                             animate={{ opacity: 1, y: 0 }}
                                             exit={{ opacity: 0 }}
                                             transition={{ duration: 0.2 }}
-                                            key={`${ad.id}-${idx}`} 
+                                            key={`${ad.id}-${idx}`}
                                             className="hover:bg-gray-50/60 transition-colors group cursor-default"
                                         >
                                             <td className="py-5 px-6 md:px-8">
@@ -356,35 +377,35 @@ const AdvertiserDashboard = () => {
                             {!filteredAds?.length && (
                                 <tr>
                                     <td colSpan="4" className="py-24 text-center">
-                                       <motion.div 
+                                        <motion.div
                                             initial={{ opacity: 0, scale: 0.95 }}
                                             animate={{ opacity: 1, scale: 1 }}
                                             className="flex flex-col items-center justify-center w-full max-w-sm mx-auto min-w-[300px]"
-                                       >
-                                           <div className="w-24 h-24 mb-6 relative">
-                                               <div className="absolute inset-0 bg-[var(--color-dark-turquoise)]/10 rounded-full animate-ping"></div>
-                                               <div className="absolute inset-0 bg-white border border-gray-100 rounded-full flex items-center justify-center shadow-lg">
-                                                   <Megaphone className="w-10 h-10 text-gray-300" />
-                                               </div>
-                                           </div>
-                                           <h4 className="text-lg font-black text-gray-900 mb-2 whitespace-nowrap">
-                                               {searchQuery || statusFilter !== 'all' ? 'لا توجد نتائج مطابقة' : 'لا توجد حملات إعلانية حتى الآن'}
-                                           </h4>
-                                           <p className="text-sm font-medium text-gray-500 mb-8 leading-relaxed">
-                                               {searchQuery || statusFilter !== 'all' 
-                                                   ? 'حاول تغيير الفلاتر أو استخدام كلمات بحث مختلفة للوصول إلى الحملة المطلوبة.' 
-                                                   : 'أنت في المكان الصحيح لبدء رحلتك. قم بإنشاء أول حملة إعلانية لك وشاهد النتائج.'}
-                                           </p>
-                                           {!searchQuery && statusFilter === 'all' && (
-                                               <button 
-                                                   onClick={() => navigate('/dashboard/ads/create')}
-                                                   className="px-8 py-3.5 bg-[var(--color-dark-turquoise)] text-white text-sm font-bold rounded-xl hover:opacity-90 shadow-[0_8px_16px_rgba(20,93,106,0.2)] transition-opacity flex items-center gap-2"
-                                               >
+                                        >
+                                            <div className="w-24 h-24 mb-6 relative">
+                                                <div className="absolute inset-0 bg-[var(--color-dark-turquoise)]/10 rounded-full animate-ping"></div>
+                                                <div className="absolute inset-0 bg-white border border-gray-100 rounded-full flex items-center justify-center shadow-lg">
+                                                    <Megaphone className="w-10 h-10 text-gray-300" />
+                                                </div>
+                                            </div>
+                                            <h4 className="text-lg font-black text-gray-900 mb-2 whitespace-nowrap">
+                                                {searchQuery || statusFilter !== 'all' ? 'لا توجد نتائج مطابقة' : 'لا يوجد محتوى إعلاني حتى الآن'}
+                                            </h4>
+                                            <p className="text-sm font-medium text-gray-500 mb-8 leading-relaxed">
+                                                {searchQuery || statusFilter !== 'all'
+                                                    ? 'حاول تغيير الفلاتر أو استخدام كلمات بحث مختلفة للوصول إلى الحملة المطلوبة.'
+                                                    : 'أنت في المكان الصحيح لبدء رحلتك. قم بإنشاء أول حملة إعلانية لك وشاهد النتائج.'}
+                                            </p>
+                                            {!searchQuery && statusFilter === 'all' && (
+                                                <button
+                                                    onClick={() => navigate('/dashboard/ads/create')}
+                                                    className="px-8 py-3.5 bg-[var(--color-dark-turquoise)] text-white text-sm font-bold rounded-xl hover:opacity-90 shadow-[0_8px_16px_rgba(20,93,106,0.2)] transition-opacity flex items-center gap-2"
+                                                >
                                                     <PlusCircle className="w-5 h-5" />
                                                     بدء حملة إعلانية جديدة
-                                               </button>
-                                           )}
-                                       </motion.div>
+                                                </button>
+                                            )}
+                                        </motion.div>
                                     </td>
                                 </tr>
                             )}
