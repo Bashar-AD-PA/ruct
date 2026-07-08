@@ -160,10 +160,18 @@ const SessionsTable = ({ sessions = [], loading, error, isSuperAdmin, onRevoke, 
                                                             <span className="bg-primary/10 text-primary px-2 py-0.5 rounded text-[10px] font-bold">الحالية</span>
                                                         )}
                                                     </p>
-                                                    <p className="text-on-surface-variant font-caption text-caption capitalize">
-                                                        {guessDeviceType(session.device_name) === 'desktop' ? 'Desktop' :
-                                                         guessDeviceType(session.device_name) === 'mobile' ? 'Mobile' : 'Tablet'}
-                                                    </p>
+                                                    <div className="flex items-center gap-2 mt-0.5">
+                                                        <p className="text-on-surface-variant font-caption text-caption capitalize">
+                                                            {guessDeviceType(session.device_name) === 'desktop' ? 'Desktop' :
+                                                             guessDeviceType(session.device_name) === 'mobile' ? 'Mobile' : 'Tablet'}
+                                                        </p>
+                                                        {session.ip_address && (
+                                                            <p className="text-on-surface-variant font-caption text-caption flex items-center gap-1">
+                                                                <span className="w-1 h-1 rounded-full bg-outline-variant"></span>
+                                                                <span className="font-mono text-[10px]" dir="ltr">{session.ip_address}</span>
+                                                            </p>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
                                         </td>
