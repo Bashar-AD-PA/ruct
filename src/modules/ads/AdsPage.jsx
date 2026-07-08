@@ -26,22 +26,32 @@ const AdsPage = () => {
     const navigate = useNavigate();
     const addToast = useToastStore(state => state.addToast);
 
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pagination, setPagination] = useState({ current_page: 1, last_page: 1, total: 0 });
+    const [globalStats, setGlobalStats] = useState({ total: 0, active: 0, pending: 0, rejected: 0, paused: 0 });
+
     useEffect(() => {
-        fetchAds();
+        fetchAds(false, currentPage);
         
-        // التحديث التلقائي الصامت كل دقيقتين
+        // التحديث التلقائي الصامت كل دقيقتين للصفحة الحالية
         const intervalId = setInterval(() => {
-            fetchAds(true);
+            fetchAds(true, currentPage);
         }, 120000);
 
         return () => clearInterval(intervalId);
-    }, []);
+    }, [currentPage]);
 
-    const fetchAds = async (silent = false) => {
+    const fetchAds = async (silent = false, page = 1) => {
         if (!silent) setLoading(true);
         try {
-            const res = await axiosClient.get(ENDPOINTS.ADS.ALL);
+            const res = await axiosClient.get(`${ENDPOINTS.ADS.ALL}?page=${page}`);
             setAds(res.data.data || []);
+            if (res.data.pagination) {
+                setPagination(res.data.pagination);
+            }
+            if (res.data.stats) {
+                setGlobalStats(res.data.stats);
+            }
         } catch (e) {
             console.error(e);
             if (!silent) addToast('واجه النظام مشكلة في جلب الإعلانات', 'error');
@@ -52,7 +62,7 @@ const AdsPage = () => {
 
     const handleRefresh = async () => {
         setIsRefreshing(true);
-        await fetchAds(true);
+        await fetchAds(true, currentPage);
         setTimeout(() => setIsRefreshing(false), 600);
     };
 
@@ -94,13 +104,7 @@ const AdsPage = () => {
         { key: 'Rejected', label: 'مرفوضة رقابياً' },
     ];
 
-    const stats = {
-        total: ads.length,
-        active: ads.filter(a => a.status === 'Active').length,
-        pending: ads.filter(a => a.status === 'Pending').length,
-        rejected: ads.filter(a => a.status === 'Rejected').length,
-        paused: ads.filter(a => a.status === 'Paused').length,
-    };
+    const stats = globalStats;
 
     const renderStatusBadge = (status) => {
         switch (status) {
@@ -349,6 +353,31 @@ const AdsPage = () => {
                         </tbody>
                     </table>
                 </div>
+
+                {/* Pagination Controls */}
+                {pagination && pagination.last_page > 1 && (
+                    <div className="flex items-center justify-between px-6 py-4 border-t border-outline-variant bg-surface-container-lowest">
+                        <span className="text-sm text-on-surface-variant font-body-md">
+                            صفحة {pagination.current_page} من {pagination.last_page} ({pagination.total} إعلان)
+                        </span>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                disabled={pagination.current_page === 1}
+                                className="px-4 py-2 text-sm font-label-md text-primary bg-primary-container/20 rounded-lg hover:bg-primary-container/40 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                                السابق
+                            </button>
+                            <button
+                                onClick={() => setCurrentPage(p => Math.min(pagination.last_page, p + 1))}
+                                disabled={pagination.current_page === pagination.last_page}
+                                className="px-4 py-2 text-sm font-label-md text-primary bg-primary-container/20 rounded-lg hover:bg-primary-container/40 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                                التالي
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Approve/Reject Modal */}
