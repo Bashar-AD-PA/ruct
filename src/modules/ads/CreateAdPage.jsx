@@ -721,10 +721,10 @@ const CreateAdPage = () => {
                                             </div>
 
                                             {/* ── Screens Layout (Map + Cards) ── */}
-                                            <div className="flex flex-col gap-6">
+                                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
                                                 {/* Map View */}
-                                                <div className="h-[450px] w-full bg-surface-container-lowest border border-border-color rounded-xl overflow-hidden shadow-sm relative z-0">
+                                                <div className="lg:col-span-2 h-[450px] lg:h-[500px] w-full bg-surface-container-lowest border border-border-color rounded-xl overflow-hidden shadow-sm relative z-0">
                                                     <ScreenMapView
                                                         screens={screens}
                                                         selectedGov={filterGov}
@@ -737,7 +737,7 @@ const CreateAdPage = () => {
                                                 </div>
 
                                                 {/* Screen Cards Grid */}
-                                                <div className="max-h-[600px] bg-surface-container-lowest border border-border-color rounded-xl overflow-hidden p-4 shadow-sm flex flex-col">
+                                                <div className="lg:col-span-1 h-[450px] bg-surface-container-lowest border border-border-color rounded-xl overflow-hidden p-4 shadow-sm flex flex-col">
                                                     <div className="h-full overflow-y-auto custom-scrollbar pr-2">
                                                         {screens.length === 0 ? (
                                                             <div className="text-center py-16">
