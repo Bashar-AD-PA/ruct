@@ -227,7 +227,7 @@ const DashboardLayout = () => {
                     transition: 'width 0.3s, height 0.3s',
                 }}>
                     <img
-                        src="/src/assets/images/Main_app_logo.png"
+                        src="/Main_app_logo.png"
                         alt="Logo"
                         style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                         onError={e => {
