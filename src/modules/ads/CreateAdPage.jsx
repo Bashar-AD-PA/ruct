@@ -752,50 +752,61 @@ const CreateAdPage = () => {
                                                                 <p className="font-body-md text-body-md text-outline">جرّب تعديل كلمة البحث أو الفلاتر الجغرافية.</p>
                                                             </div>
                                                         ) : (
-                                                            <div className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-3 gap-4 p-2">
+                                                            <div className="grid grid-cols-2 gap-3 p-2">
                                                                 {filteredScreensForAd.map(screen => {
                                                                     const isSelected = selectedScreens.includes(screen.screen_id);
+                                                                    const statusColorClass = screen.status === 'Online' ? 'bg-green-500' : screen.status === 'Offline' ? 'bg-red-500' : screen.status === 'Maintenance' ? 'bg-yellow-500' : 'bg-gray-400';
+                                                                    const statusLabel = screen.status === 'Online' ? 'متصل' : screen.status === 'Offline' ? 'غير متصل' : screen.status === 'Maintenance' ? 'صيانة' : screen.status;
+                                                                    
                                                                     return (
                                                                         <div key={screen.screen_id}
                                                                             onClick={() => toggleScreen(screen.screen_id)}
-                                                                            className={`flex flex-col p-5 rounded-xl border transition-all cursor-pointer relative
-                                                                    ${isSelected ? 'border-primary-container bg-surface-container shadow-sm ring-1 ring-primary-container' : 'border-border-color bg-white hover:border-primary-container/40 hover:shadow-sm'}`}>
-
-                                                                            <div className="flex justify-between items-start mb-3">
-                                                                                <div className="flex-1 pr-1 min-w-0">
-                                                                                    <h5 className={`font-label-md text-label-md mb-1 truncate ${isSelected ? 'text-primary' : 'text-on-background'}`} title={screen.screen_name}>
-                                                                                        {screen.screen_name}
-                                                                                    </h5>
-                                                                                    {screen.street?.region?.name && (
-                                                                                        <p className="font-caption text-caption text-outline flex items-center gap-1 truncate">
-                                                                                            <span className="material-symbols-outlined text-[12px]">map</span>
-                                                                                            {screen.street.region.name}
-                                                                                        </p>
-                                                                                    )}
-                                                                                    <p className="font-caption text-caption text-on-surface-variant flex items-center gap-1 truncate mt-0.5">
-                                                                                        <span className="material-symbols-outlined text-[13px]">fork_right</span>
-                                                                                        {screen.street?.name || 'موقع غير محدد'}
-                                                                                    </p>
-                                                                                </div>
+                                                                            className={`flex flex-col p-3 rounded-xl border transition-all cursor-pointer relative aspect-square
+                                                                    ${isSelected ? 'border-primary-container bg-primary-container/5 shadow-sm ring-1 ring-primary-container' : 'border-border-color bg-white hover:border-primary-container/40 hover:shadow-sm'}`}>
+                                                                            
+                                                                            {/* Status Dot & Info Icon */}
+                                                                            <div className="flex justify-between items-start mb-2">
+                                                                                <span className="flex items-center gap-1.5 bg-surface-container-low px-1.5 py-0.5 rounded-full">
+                                                                                    <span className={`w-2 h-2 rounded-full ${statusColorClass}`}></span>
+                                                                                    <span className="text-[10px] text-on-surface-variant font-bold truncate">{statusLabel}</span>
+                                                                                </span>
                                                                                 <button
                                                                                     type="button"
                                                                                     onClick={(e) => { e.stopPropagation(); setAvailabilityScreen(screen); }}
-                                                                                    className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-colors
-                                                                            ${isSelected ? 'bg-primary text-white hover:bg-on-primary-fixed-variant' : 'bg-surface-container text-on-surface-variant hover:bg-outline-variant'}`}
+                                                                                    className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 transition-colors
+                                                                            ${isSelected ? 'bg-primary text-white' : 'bg-surface-container text-on-surface-variant hover:bg-outline-variant'}`}
                                                                                     title="التأكد من توفر المساحة الزمنية"
                                                                                 >
-                                                                                    <span className="material-symbols-outlined text-[18px]">info</span>
+                                                                                    <span className="material-symbols-outlined text-[14px]">info</span>
                                                                                 </button>
                                                                             </div>
 
-                                                                            <div className="flex items-center justify-between mt-auto pt-3 border-t border-border-color">
-                                                                                <span className="font-caption text-caption text-outline">الحالة</span>
+                                                                            {/* Main Info */}
+                                                                            <div className="flex-1 min-w-0 flex flex-col justify-center">
+                                                                                <h5 className={`font-bold text-[13px] leading-tight mb-1.5 truncate ${isSelected ? 'text-primary' : 'text-on-background'}`} title={screen.screen_name}>
+                                                                                    {screen.screen_name}
+                                                                                </h5>
+                                                                                <p className="font-caption text-[10px] text-outline flex items-center gap-1 truncate mb-0.5">
+                                                                                    <span className="material-symbols-outlined text-[12px]">map</span>
+                                                                                    {screen.street?.region?.name || 'منطقة غير محددة'}
+                                                                                </p>
+                                                                                <p className="font-caption text-[10px] text-on-surface-variant flex items-center gap-1 truncate">
+                                                                                    <span className="material-symbols-outlined text-[12px]">fork_right</span>
+                                                                                    {screen.street?.name || 'موقع غير محدد'}
+                                                                                </p>
+                                                                            </div>
+
+                                                                            {/* Footer (Price & Selection state) */}
+                                                                            <div className="flex items-center justify-between mt-auto pt-2.5 border-t border-border-color/50">
+                                                                                <span className="text-[11px] font-bold text-on-surface-variant">
+                                                                                    {screen.price ? `$${screen.price}/يوم` : 'عرض'}
+                                                                                </span>
                                                                                 {isSelected ? (
-                                                                                    <span className="flex items-center gap-1 font-label-md text-label-md text-primary bg-primary-container/10 px-2 py-0.5 rounded">
-                                                                                        <span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: '"FILL" 1' }}>check_circle</span> مستهدفة
+                                                                                    <span className="flex items-center gap-0.5 font-bold text-[10px] text-primary">
+                                                                                        <span className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: '"FILL" 1' }}>check_circle</span>
                                                                                     </span>
                                                                                 ) : (
-                                                                                    <span className="font-label-md text-label-md text-outline">تخطي</span>
+                                                                                    <span className="font-bold text-[10px] text-outline">تحديد</span>
                                                                                 )}
                                                                             </div>
                                                                         </div>
