@@ -60,8 +60,12 @@ const UsersPage = () => {
                 axiosClient.get(ENDPOINTS.USERS.ALL),
                 axiosClient.get(ENDPOINTS.LOOKUPS.ROLES)
             ]);
-            setUsers(usersRes.data);
-            setRoles(rolesRes.data?.data || rolesRes.data);
+            
+            const usersData = Array.isArray(usersRes.data) ? usersRes.data : Array.isArray(usersRes.data?.data) ? usersRes.data.data : [];
+            const rolesData = Array.isArray(rolesRes.data) ? rolesRes.data : Array.isArray(rolesRes.data?.data) ? rolesRes.data.data : [];
+            
+            setUsers(usersData);
+            setRoles(rolesData);
         } catch (e) {
             console.error(e);
             addToast('حدث خطأ أثناء جلب بيانات المستخدمين', 'error');
