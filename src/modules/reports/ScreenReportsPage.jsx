@@ -256,11 +256,20 @@ const ScreenReportsPage = () => {
                             <p className="text-gray-500 text-sm mt-4 tracking-widest font-mono" dir="ltr">{user?.phone || 'رقم الهاتف غير مدرج'}</p>
                         </div>
                         
-                        <div className="flex-1 text-left space-y-3">
-                            <div className="flex justify-end gap-3"><span className="text-gray-700">{reportData.screen.screen_id} - {reportData.screen.screen_name}</span> <span className="font-bold text-gray-900">:رقم الشاشة</span></div>
-                            <div className="flex justify-end gap-3"><span className="text-gray-700">{reportData.screen.street ? `${reportData.screen.street.street_name} - ${reportData.screen.street.region?.region_name}` : 'غير محدد'}</span> <span className="font-bold text-gray-900">:موقع الشاشة</span></div>
-                            <div className="flex justify-end gap-3"><span className="text-gray-700">{new Date().toLocaleDateString('ar-SA')}</span> <span className="font-bold text-gray-900">:تاريخ الإصدار</span></div>
-                            <div className="flex justify-end gap-3"><span className="text-gray-700" dir="ltr">{filters.start_date} <span className="mx-1">/</span> {filters.end_date}</span> <span className="font-bold text-gray-900">:الفترة</span></div>
+                        <div className="flex-1" dir="rtl">
+                            <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-3 text-right">
+                                <span className="font-bold text-gray-900">رقم الشاشة:</span>
+                                <span className="text-gray-700">{reportData.screen.screen_id} - {reportData.screen.screen_name}</span>
+
+                                <span className="font-bold text-gray-900">موقع الشاشة:</span>
+                                <span className="text-gray-700">{reportData.screen.street ? `${reportData.screen.street.name} - ${reportData.screen.street.region?.name}` : 'غير محدد'}</span>
+
+                                <span className="font-bold text-gray-900">تاريخ الإصدار:</span>
+                                <span className="text-gray-700">{new Date().toLocaleDateString('ar-SA')}</span>
+
+                                <span className="font-bold text-gray-900">الفترة:</span>
+                                <span className="text-gray-700 text-right" dir="ltr">{filters.start_date} <span className="mx-1">/</span> {filters.end_date}</span>
+                            </div>
                         </div>
                     </div>
 
