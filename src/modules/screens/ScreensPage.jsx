@@ -15,6 +15,9 @@ import ScreenCommandModal from './components/ScreenCommandModal';
 import LocationPickerMap from './components/LocationPickerMap';
 import usePermission from '../../hooks/usePermission';
 import { useNavigate } from 'react-router-dom';
+import { useScreens, useCreateScreen, useUpdateScreen, useDeleteScreen } from '../../hooks/api/useScreens';
+import { useGovernorates, useScreenTypes, useStreets, useUsersByRole, useRoles } from '../../hooks/api/useLookups';
+import { useQueryClient } from '@tanstack/react-query';
 
 // Lazy load map mapping component
 const ScreenMapView = lazy(() => import('./components/ScreenMapView'));
@@ -43,23 +46,33 @@ const CascadingSelect = ({ label, value, onChange, options, placeholder, disable
 );
 
 const ScreensPage = () => {
-  const [screens, setScreens] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { data: screens = [], isLoading: screensLoading, refetch: refetchScreens } = useScreens();
+  const { data: governorates = [], isLoading: geoLoading } = useGovernorates();
+  const { data: types = [] } = useScreenTypes();
+  const { data: streetsData = [] } = useStreets();
+  const { data: ownersData = [] } = useUsersByRole('ScreenOwner');
+  const { data: roles = [] } = useRoles();
+
+  const { mutateAsync: createScreen } = useCreateScreen();
+  const { mutateAsync: updateScreen } = useUpdateScreen();
+  const { mutateAsync: deleteScreenAPI } = useDeleteScreen();
+
+  const lookups = { types, streets: streetsData, owners: ownersData };
+
+  const loading = screensLoading;
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [modalConfig, setModalConfig] = useState({ open: false, isEdit: false, screen: null });
   const [formLoading, setFormLoading] = useState(false);
   const [showImageModal, setShowImageModal] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [commandTarget, setCommandTarget] = useState(null);
-  const [lookups, setLookups] = useState({ types: [], streets: [], owners: [] });
   const [statusFilter, setStatusFilter] = useState('all');
-  const [geoLoading, setGeoLoading] = useState(false);
   const { can } = usePermission();
   const addToast = useToastStore(state => state.addToast);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   // Geographic filter state
-  const [governorates, setGovernorates] = useState([]);
   const [regions, setRegions] = useState([]);
   const [streets, setStreets] = useState([]);
   const [selectedGov, setSelectedGov] = useState('');
@@ -91,58 +104,10 @@ const ScreensPage = () => {
   const [quickOwnerForm, setQuickOwnerForm] = useState({ full_name: '', email: '', phone: '' });
   const [quickOwnerLoading, setQuickOwnerLoading] = useState(false);
 
-  useEffect(() => {
-    fetchScreens();
-    fetchLookups();
-    fetchGovernorates();
-
-    // التحديث التلقائي الصامت كل دقيقتين
-    const intervalId = setInterval(() => {
-      fetchScreens(true);
-    }, 120000);
-
-    return () => clearInterval(intervalId);
-  }, []);
-
-  const fetchScreens = async (silent = false) => {
-    if (!silent) setLoading(true);
-    try {
-      const res = await axiosClient.get(ENDPOINTS.SCREENS.ALL);
-      setScreens(Array.isArray(res.data) ? res.data : (Array.isArray(res.data?.data) ? res.data.data : []));
-    } catch (e) {
-      console.error(e);
-      if (!silent) addToast('حدث خطأ أثناء جلب الشاشات', 'error');
-    } finally {
-      if (!silent) setLoading(false);
-    }
-  };
-
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await fetchScreens(true);
+    await refetchScreens();
     setTimeout(() => setIsRefreshing(false), 600);
-  };
-
-  const fetchLookups = async () => {
-    try {
-      const [types, streetsRes, owners] = await Promise.all([
-        axiosClient.get(ENDPOINTS.LOOKUPS.SCREEN_TYPES),
-        axiosClient.get(ENDPOINTS.LOOKUPS.STREETS),
-        axiosClient.get(ENDPOINTS.LOOKUPS.USERS_BY_ROLE('ScreenOwner')),
-      ]);
-      setLookups({ types: types.data, streets: streetsRes.data, owners: owners.data });
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  const fetchGovernorates = async () => {
-    try {
-      const res = await axiosClient.get(ENDPOINTS.LOOKUPS.GOVERNORATES);
-      setGovernorates(res.data);
-    } catch (e) {
-      console.error(e);
-    }
   };
 
   const handleGovChange = async (govId) => {
@@ -343,8 +308,8 @@ const ScreensPage = () => {
           street: newLocation.street
         });
         finalStreetId = locRes.data.data.street.street_id;
-        fetchLookups();
-        fetchGovernorates();
+        queryClient.invalidateQueries({ queryKey: ['governorates'] });
+        queryClient.invalidateQueries({ queryKey: ['streets'] });
       }
 
       const fd = new FormData();
@@ -354,16 +319,11 @@ const ScreensPage = () => {
       let screenIdStr = null;
 
       if (modalConfig.isEdit) {
-        fd.append('_method', 'PUT'); // Fallback logic
-        await axiosClient.post(ENDPOINTS.SCREENS.UPDATE(modalConfig.screen.screen_id), fd, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
+        const res = await updateScreen({ id: modalConfig.screen.screen_id, payload: fd });
         screenIdStr = modalConfig.screen.screen_id;
-        addToast('تم تحديث بيانات الشاشة بنجاح', 'success');
       } else {
-        const res = await axiosClient.post(ENDPOINTS.SCREENS.ALL, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
-        screenIdStr = res.data?.data?.screen_id || res.data?.screen_id;
-        addToast('تمت إضافة الشاشة الجديدة بنجاح', 'success');
+        const res = await createScreen(fd);
+        screenIdStr = res?.data?.screen_id || res?.screen_id;
       }
 
       // Sync Peak Slots
@@ -397,7 +357,6 @@ const ScreensPage = () => {
       }
 
       setModalConfig({ open: false, isEdit: false, screen: null });
-      fetchScreens();
     } catch (e) {
       addToast(e.response?.data?.message || 'تعذر إتمام العملية', 'error');
     } finally {
@@ -409,9 +368,6 @@ const ScreensPage = () => {
     e.preventDefault();
     setQuickOwnerLoading(true);
     try {
-      // Get the roles to find ScreenOwner role ID
-      const rolesRes = await axiosClient.get(ENDPOINTS.LOOKUPS.ROLES);
-      const roles = rolesRes.data?.data || rolesRes.data || [];
       const ownerRole = roles.find(r => r.role_name === 'ScreenOwner');
 
       if (!ownerRole) throw new Error("لم يتم العثور على صلاحية 'ScreenOwner' في النظام");
@@ -427,12 +383,8 @@ const ScreensPage = () => {
 
       addToast('تمت إضافة المالك بنجاح', 'success');
 
-      // Add the new user to local array and select it
-      setLookups(prev => {
-        let updatedOwners = prev.owners?.data || prev.owners || [];
-        updatedOwners = [...updatedOwners, newUser];
-        return { ...prev, owners: updatedOwners };
-      });
+      queryClient.invalidateQueries({ queryKey: ['users', 'role', 'ScreenOwner'] });
+      
       setForm(p => ({ ...p, owner_id: newUser.user_id }));
       setQuickOwnerModal(false);
       setQuickOwnerForm({ full_name: '', email: '', phone: '' });
@@ -445,12 +397,10 @@ const ScreensPage = () => {
 
   const handleDelete = async () => {
     try {
-      await axiosClient.delete(ENDPOINTS.SCREENS.DELETE(deleteTarget));
-      addToast('تم إسقاط الشاشة من الشبكة', 'success');
+      await deleteScreenAPI(deleteTarget);
       setDeleteTarget(null);
-      fetchScreens();
     } catch {
-      addToast('فشلت عملية الحذف. قد تكون الشاشة مرتبطة بإعلانات نشطة', 'error');
+      // Error is handled by mutation hook
     }
   };
 

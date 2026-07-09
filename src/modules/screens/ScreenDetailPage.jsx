@@ -6,6 +6,8 @@ import axiosClient from '../../core/api/axiosClient';
 import { ENDPOINTS } from '../../core/api/endpoints';
 import useToastStore from '../../store/useToastStore';
 
+import { useScreens } from '../../hooks/api/useScreens';
+
 const S = {
     primary: '#004ac6', primaryContainer: '#2563eb', surfaceContainerLowest: '#ffffff',
     surfaceContainerLow: '#f1f3ff', surfaceContainer: '#e9edff', onBackground: '#141b2b',
@@ -19,30 +21,15 @@ const ScreenDetailPage = () => {
     const navigate = useNavigate();
     const addToast = useToastStore(s => s.addToast);
     
-    const [screen, setScreen] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const { data: screens = [], isLoading: loading } = useScreens();
+    const screen = screens.find(s => String(s.screen_id) === String(id));
 
     useEffect(() => {
-        const fetchScreen = async () => {
-            setLoading(true);
-            try {
-                // For now, fetch all and filter since we might not have a specific GET /screens/:id endpoint
-                const res = await axiosClient.get(ENDPOINTS.SCREENS.ALL);
-                const found = res.data?.find(s => String(s.screen_id) === String(id));
-                if (found) {
-                    setScreen(found);
-                } else {
-                    addToast('لم يتم العثور على الشاشة', 'error');
-                    navigate('/dashboard/screens');
-                }
-            } catch (e) {
-                addToast('حدث خطأ أثناء جلب تفاصيل الشاشة', 'error');
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchScreen();
-    }, [id, navigate]);
+        if (!loading && !screen) {
+            addToast('لم يتم العثور على الشاشة', 'error');
+            navigate('/dashboard/screens');
+        }
+    }, [loading, screen, navigate, addToast]);
 
     if (loading) {
         return (
