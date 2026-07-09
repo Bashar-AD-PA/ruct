@@ -5,10 +5,13 @@ import { ENDPOINTS } from '../../core/api/endpoints';
 import DataTable from '../../shared/components/DataTable';
 import DynamicPageLoader from '../../shared/components/DynamicPageLoader';
 import Modal from '../../shared/components/Modal';
+import { useLedger, useRecordPayment } from '../../hooks/api/useFinancial';
 
 const FinancialPage = () => {
-    const [data, setData] = useState({ total_payments: 0, transactions: [] });
-    const [loading, setLoading] = useState(true);
+    const { data: ledgerData, isLoading: loading } = useLedger();
+    const { mutateAsync: recordPayment } = useRecordPayment();
+
+    const data = ledgerData || { total_payments: 0, transactions: [] };
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
     const [activeFilter, setActiveFilter] = useState('all'); // 'all', 'completed', 'pending', 'rejected'
@@ -16,44 +19,19 @@ const FinancialPage = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isAmountVisible, setIsAmountVisible] = useState(true);
 
-    useEffect(() => {
-        const fetchFinancials = async () => {
-            try {
-                const res = await axiosClient.get(ENDPOINTS.FINANCIAL.LEDGER);
-                setData(res.data?.data || res.data || { total_payments: 0, transactions: [] });
-            } catch (error) {
-                console.error(error);
-                setData({ total_payments: 0, transactions: [] });
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchFinancials();
-    }, []);
-
     const handleSubmit = async (e) => {
         e.preventDefault();
         setIsSubmitting(true);
         try {
-            await new Promise(resolve => setTimeout(resolve, 800));
-            const newTransaction = {
-                id: Math.random(),
-                created_at: new Date().toISOString(),
+            await recordPayment({
                 amount: parseFloat(formData.amount),
                 reference_number: formData.reference_number,
                 payment_method: formData.payment_method,
-                status: 'completed', // Make it auto-approved for manually added ones
-                user: { full_name: 'إضافة يدوية (أنت)' }
-            };
-            setData(prev => ({
-                ...prev,
-                total_payments: prev.total_payments + newTransaction.amount,
-                transactions: [newTransaction, ...prev.transactions]
-            }));
+            });
             setIsAddModalOpen(false);
             setFormData({ amount: '', reference_number: '', payment_method: 'bank_transfer' });
         } catch (error) {
-            console.error(error);
+            // Handled by hook
         } finally {
             setIsSubmitting(false);
         }

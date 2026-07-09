@@ -19,6 +19,7 @@ import axiosClient from '../../core/api/axiosClient';
 import { ENDPOINTS } from '../../core/api/endpoints';
 import useAuthStore from '../../store/useAuthStore';
 import useToastStore from '../../store/useToastStore';
+import { useAdvertiserDashboard } from '../../hooks/api/useDashboard';
 
 // Animation variants
 const containerVariants = {
@@ -79,43 +80,27 @@ const DashboardError = ({ onRetry }) => (
 const AdvertiserDashboard = () => {
     const { user } = useAuthStore();
     const navigate = useNavigate();
-    const [data, setData] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(false);
+    
+    const { data: dashboardData, isLoading: loading, error: fetchError, refetch: fetchDashboard } = useAdvertiserDashboard();
+    const data = dashboardData;
+    const error = fetchError ? true : false;
+    
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
     const addToast = useToastStore(state => state.addToast);
 
     const [isRefreshing, setIsRefreshing] = useState(false);
 
-    const fetchDashboard = async (silent = false) => {
-        if (!silent) setLoading(true);
-        setError(false);
-        try {
-            const res = await axiosClient.get(ENDPOINTS.ADVERTISER.DASHBOARD);
-            setData(res.data.data || res.data);
-        } catch (error) {
-            console.error('Error fetching dashboard', error);
-            if (!silent) addToast('لم نتمكن من جلب إحصائيات لوحة التحكم', 'error');
-            if (!silent) setData(null);
-            setError(true);
-        } finally {
-            if (!silent) setLoading(false);
-        }
-    };
-
     const handleRefresh = async () => {
         setIsRefreshing(true);
-        await fetchDashboard(true);
+        await fetchDashboard();
         setTimeout(() => setIsRefreshing(false), 600);
     };
 
     useEffect(() => {
-        fetchDashboard();
-        
         // التحديث التلقائي الصامت في الخلفية كل دقيقة
         const intervalId = setInterval(() => {
-            fetchDashboard(true);
+            fetchDashboard();
         }, 60000);
 
         return () => clearInterval(intervalId);

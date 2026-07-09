@@ -4,6 +4,7 @@ import { Monitor, PlayCircle, DollarSign, Users, AlertCircle, RefreshCw, Search,
 import { motion, AnimatePresence } from 'framer-motion';
 import axiosClient from '../../core/api/axiosClient';
 import { ENDPOINTS } from '../../core/api/endpoints';
+import { useAdminDashboard } from '../../hooks/api/useDashboard';
 import useToastStore from '../../store/useToastStore';
 
 /* ─── Stitch colour tokens ─── */
@@ -409,9 +410,10 @@ const DashboardSkeleton = () => (
 ══════════════════════════════════════════════════════ */
 const Dashboard = () => {
     const navigate = useNavigate();
-    const [data, setData] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(false);
+    const { data: dashboardData, isLoading: loading, error: fetchError, refetch: load } = useAdminDashboard();
+    
+    const data = dashboardData;
+    const error = fetchError ? true : false;
 
     /* table */
     const [search, setSearch] = useState('');
@@ -449,22 +451,6 @@ const Dashboard = () => {
     };
 
     const addToast = useToastStore(s => s.addToast);
-
-    const load = useCallback(async () => {
-        setLoading(true); setError(false);
-        try {
-            const res = await axiosClient.get(ENDPOINTS.DASHBOARD.OVERVIEW);
-            setData(res.data.data || res.data);
-        } catch (e) {
-            console.error(e);
-            addToast('لم نتمكن من جلب بيانات لوحة التحكم', 'error');
-            setError(true);
-        } finally {
-            setLoading(false);
-        }
-    }, [addToast]);
-
-    useEffect(() => { load(); }, [load]);
 
     if (loading) return <DashboardSkeleton />;
 

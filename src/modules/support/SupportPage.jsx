@@ -19,6 +19,8 @@ import {
 } from 'lucide-react';
 import axiosClient from '../../core/api/axiosClient';
 import { ENDPOINTS } from '../../core/api/endpoints';
+import { useSupportTickets, useCreateSupportTicket } from '../../hooks/api/useSupportTickets';
+import { useScreens } from '../../hooks/api/useScreens';
 
 /* ─── Status Configs ─────────────────────────────────────────── */
 const STATUS_MAP = {
@@ -111,25 +113,9 @@ const NewTicketModal = ({ onClose, onSuccess }) => {
         description: '',
         screen_id: '',
     });
-    const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    const [screens, setScreens] = useState([]);
-
-    useEffect(() => {
-        const fetchScreens = async () => {
-            try {
-                const response = await axiosClient.get(ENDPOINTS.SCREENS.ALL);
-                if (response.data && Array.isArray(response.data)) {
-                    setScreens(response.data);
-                } else if (response.data && response.data.data) {
-                    setScreens(response.data.data);
-                }
-            } catch (err) {
-                console.error('Failed to fetch screens:', err);
-            }
-        };
-        fetchScreens();
-    }, []);
+    const { data: screens = [] } = useScreens();
+    const { mutateAsync: createTicket, isLoading: loading } = useCreateSupportTicket();
 
     const handleChange = (field, value) =>
         setForm(prev => ({ ...prev, [field]: value }));
@@ -140,15 +126,12 @@ const NewTicketModal = ({ onClose, onSuccess }) => {
             setError('يرجى ملء جميع الحقول المطلوبة.');
             return;
         }
-        setLoading(true);
         setError('');
         try {
-            await axiosClient.post(ENDPOINTS.SUPPORT.CREATE, form);
+            await createTicket(form);
             onSuccess();
         } catch (err) {
             setError(err.response?.data?.message || 'حدث خطأ أثناء إرسال التذكرة. حاول مرة أخرى.');
-        } finally {
-            setLoading(false);
         }
     };
 
@@ -442,29 +425,13 @@ const StatCard = ({ label, value, color, delay = 0 }) => (
 
 /* ─── Main Page ──────────────────────────────────────────────── */
 const SupportPage = () => {
-    const [tickets, setTickets]           = useState([]);
-    const [loading, setLoading]           = useState(true);
+    const { data: tickets = [], isLoading: loading } = useSupportTickets();
     const [showNewModal, setShowNewModal] = useState(false);
     const [selectedTicket, setSelectedTicket] = useState(null);
     const [activeFilter, setActiveFilter] = useState('all');
 
-    const fetchTickets = useCallback(async () => {
-        setLoading(true);
-        try {
-            const res = await axiosClient.get(ENDPOINTS.SUPPORT.ALL);
-            setTickets(res.data?.data || res.data || []);
-        } catch {
-            setTickets([]);
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    useEffect(() => { fetchTickets(); }, [fetchTickets]);
-
     const handleNewSuccess = () => {
         setShowNewModal(false);
-        fetchTickets();
     };
 
     /* Filter Tabs */

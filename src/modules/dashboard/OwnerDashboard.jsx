@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import axiosClient from '../../core/api/axiosClient';
 import { ENDPOINTS } from '../../core/api/endpoints';
 import useToastStore from '../../store/useToastStore';
+import { useOwnerDashboard } from '../../hooks/api/useDashboard';
 
 /* ─── Stitch colour tokens ─── */
 const S = {
@@ -236,58 +237,32 @@ const StatusDonutChart = ({ data = [] }) => {
    OWNER DASHBOARD COMPONENT
 ══════════════════════════════════════════════════════ */
 const OwnerDashboard = () => {
-    const [loading, setLoading] = useState(true);
-    const [stats, setStats] = useState({
-        total_screens: 0,
-        online_screens: 0,
-        offline_screens: 0,
-        monthly_revenue: 0,
-    });
-    
+    const { data: dashboardData, isLoading: loading } = useOwnerDashboard();
+    const kpis = dashboardData || {};
+
+    const stats = {
+        total_screens: kpis.kpis?.total_screens ?? kpis.total_screens ?? 0,
+        online_screens: kpis.kpis?.active_screens ?? kpis.active_screens ?? 0,
+        offline_screens: (kpis.kpis?.total_screens ?? 0) - (kpis.kpis?.active_screens ?? 0),
+        monthly_revenue: kpis.kpis?.today_earnings ?? kpis.monthly_earnings ?? 0,
+        revenue_growth: '+0%', // Can be calculated from history
+        notifications: kpis.financial_activities ? kpis.financial_activities.length : 0
+    };
+
+    let weeklyData = [
+        { day: 'Sun', amount: 0 }, { day: 'Mon', amount: 0 }, { day: 'Tue', amount: 0 },
+        { day: 'Wed', amount: 0 }, { day: 'Thu', amount: 0 }, { day: 'Fri', amount: 0 }, { day: 'Sat', amount: 0 }
+    ];
+    if (kpis.charts && kpis.charts.weekly_revenue) {
+        weeklyData = kpis.charts.weekly_revenue;
+    }
+
     // Mock Data
     const quickAlerts = [
         { id: 1, text: "توقفت شاشة 'شارع الستين' عن العمل. نرجو تفقد المصدر.", type: "error", time: "قبل 15 دقيقة" },
         { id: 2, text: "حملة إعلانية جديدة بدأت البث على 3 من شاشاتك.", type: "success", time: "قبل ساعتين" },
         { id: 3, text: "تم تحويل أرباح شهر يونيو بنجاح إلى حسابك.", type: "success", time: "أمس" },
     ];
-    
-        const [weeklyData, setWeeklyData] = useState([]);
-
-    useEffect(() => {
-        const fetchDashboardData = async () => {
-            setLoading(true);
-            try {
-                const res = await axiosClient.get(ENDPOINTS.OWNER.DASHBOARD).catch(() => ({ data: {} }));
-                const kpis = res.data?.data || res.data || {};
-                
-                // ...existing setStats...
-                setStats({
-                    total_screens: kpis.kpis?.total_screens ?? kpis.total_screens ?? 0,
-                    online_screens: kpis.kpis?.active_screens ?? kpis.active_screens ?? 0,
-                    offline_screens: (kpis.kpis?.total_screens ?? 0) - (kpis.kpis?.active_screens ?? 0),
-                    monthly_revenue: kpis.kpis?.today_earnings ?? kpis.monthly_earnings ?? 0,
-                    revenue_growth: '+0%', // Can be calculated from history
-                    notifications: kpis.financial_activities ? kpis.financial_activities.length : 0
-                });
-
-                if (kpis.charts && kpis.charts.weekly_revenue) {
-                    setWeeklyData(kpis.charts.weekly_revenue);
-                } else {
-                    setWeeklyData([
-                        { day: 'Sun', amount: 0 }, { day: 'Mon', amount: 0 }, { day: 'Tue', amount: 0 },
-                        { day: 'Wed', amount: 0 }, { day: 'Thu', amount: 0 }, { day: 'Fri', amount: 0 }, { day: 'Sat', amount: 0 }
-                    ]);
-                }
-
-            } catch (error) {
-                console.error("Failed to fetch dashboard data:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchDashboardData();
-    }, []);
 
     if (loading) {
         return <div className="flex justify-center py-20"><RefreshCw className="w-10 h-10 animate-spin text-blue-600" /></div>;

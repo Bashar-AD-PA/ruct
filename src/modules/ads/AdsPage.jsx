@@ -10,10 +10,20 @@ import usePermission from '../../hooks/usePermission';
 import useToastStore from '../../store/useToastStore';
 import StripePaymentModal from './components/StripePaymentModal';
 import ReviewAdModal from './components/ReviewAdModal';
+import { useAds, useUpdateAdStatus, useDeleteAd } from '../../hooks/api/useAds';
+import { useQueryClient } from '@tanstack/react-query';
 
 const AdsPage = () => {
-    const [ads, setAds] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [currentPage, setCurrentPage] = useState(1);
+    
+    const { data: adsData, isLoading: adsLoading, refetch: refetchAds } = useAds(currentPage);
+    const { mutateAsync: updateAdStatus } = useUpdateAdStatus();
+    const { mutateAsync: deleteAd } = useDeleteAd();
+    
+    const ads = adsData?.data || [];
+    const pagination = adsData?.pagination || { current_page: 1, last_page: 1, total: 0 };
+    const globalStats = adsData?.stats || { total: 0, active: 0, pending: 0, rejected: 0, paused: 0 };
+    const loading = adsLoading;
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [statusFilter, setStatusFilter] = useState('all');
     const [deleteTarget, setDeleteTarget] = useState(null);
@@ -25,44 +35,11 @@ const AdsPage = () => {
     const { can, isAdvertiser, isAdmin } = usePermission();
     const navigate = useNavigate();
     const addToast = useToastStore(state => state.addToast);
-
-    const [currentPage, setCurrentPage] = useState(1);
-    const [pagination, setPagination] = useState({ current_page: 1, last_page: 1, total: 0 });
-    const [globalStats, setGlobalStats] = useState({ total: 0, active: 0, pending: 0, rejected: 0, paused: 0 });
-
-    useEffect(() => {
-        fetchAds(false, currentPage);
-        
-        // التحديث التلقائي الصامت كل دقيقتين للصفحة الحالية
-        const intervalId = setInterval(() => {
-            fetchAds(true, currentPage);
-        }, 120000);
-
-        return () => clearInterval(intervalId);
-    }, [currentPage]);
-
-    const fetchAds = async (silent = false, page = 1) => {
-        if (!silent) setLoading(true);
-        try {
-            const res = await axiosClient.get(`${ENDPOINTS.ADS.ALL}?page=${page}`);
-            setAds(res.data.data || []);
-            if (res.data.pagination) {
-                setPagination(res.data.pagination);
-            }
-            if (res.data.stats) {
-                setGlobalStats(res.data.stats);
-            }
-        } catch (e) {
-            console.error(e);
-            if (!silent) addToast('واجه النظام مشكلة في جلب الإعلانات', 'error');
-        } finally {
-            if (!silent) setLoading(false);
-        }
-    };
+    const queryClient = useQueryClient();
 
     const handleRefresh = async () => {
         setIsRefreshing(true);
-        await fetchAds(true, currentPage);
+        await refetchAds();
         setTimeout(() => setIsRefreshing(false), 600);
     };
 
@@ -71,27 +48,26 @@ const AdsPage = () => {
     const handleStatusChange = async () => {
         const { ad, action } = approveModal;
         try {
-            await axiosClient.put(ENDPOINTS.ADS.STATUS(ad.ad_id), {
-                status: action,
-                reason: action === 'Rejected' ? rejectReason : null,
+            await updateAdStatus({
+                id: ad.ad_id,
+                payload: {
+                    status: action,
+                    reason: action === 'Rejected' ? rejectReason : null,
+                }
             });
-            addToast(`تم ${action === 'Active' ? 'قبول وبدء عرض' : action === 'Rejected' ? 'رفض' : 'إيقاف'} الحملة الإعلانية بنجاح`, 'success');
             setApproveModal({ open: false, ad: null, action: '' });
             setRejectReason('');
-            fetchAds();
         } catch (e) {
-            addToast('فشلت العملية المحددة. يرجى المحاولة مرة أخرى', 'error');
+            // Error is handled by hook
         }
     };
 
     const handleDelete = async () => {
         try {
-            await axiosClient.delete(ENDPOINTS.ADS.DELETE(deleteTarget));
-            addToast('تم حذف الحملة الإعلانية من السجلات نهائياً', 'success');
+            await deleteAd(deleteTarget);
             setDeleteTarget(null);
-            fetchAds();
         } catch (e) {
-            addToast('لا يمكن حذف الحملة الإعلانية حالياً لارتباطها بجدولة سابقة', 'error');
+            // Error is handled by hook
         }
     };
 

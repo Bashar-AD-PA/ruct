@@ -4,6 +4,8 @@ import { ENDPOINTS } from '../../core/api/endpoints';
 import ConfirmDialog from '../../shared/components/ConfirmDialog';
 import Modal from '../../shared/components/Modal';
 import useToastStore from '../../store/useToastStore';
+import { useUsers, useCreateUser, useUpdateUser, useUpdateUserRole, useUpdateUserStatus, useDeleteUser } from '../../hooks/api/useUsers';
+import { useRoles } from '../../hooks/api/useLookups';
 
 const StatCard = ({ title, value, icon, colorClass }) => (
     <div className="bg-surface border border-outline-variant rounded-xl p-5 flex items-center gap-4 shadow-sm hover:shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1)] transition-shadow">
@@ -20,9 +22,16 @@ const StatCard = ({ title, value, icon, colorClass }) => (
 );
 
 const UsersPage = () => {
-    const [users, setUsers] = useState([]);
-    const [roles, setRoles] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const { data: users = [], isLoading: usersLoading } = useUsers();
+    const { data: roles = [] } = useRoles();
+    
+    const { mutateAsync: createUser } = useCreateUser();
+    const { mutateAsync: updateUser } = useUpdateUser();
+    const { mutateAsync: updateUserRole } = useUpdateUserRole();
+    const { mutateAsync: updateUserStatus } = useUpdateUserStatus();
+    const { mutateAsync: deleteUser } = useDeleteUser();
+
+    const loading = usersLoading;
     const [deleteTarget, setDeleteTarget] = useState(null);
     const [modalConfig, setModalConfig] = useState({ open: false, type: '', user: null });
     const addToast = useToastStore(state => state.addToast);
@@ -48,40 +57,12 @@ const UsersPage = () => {
         account_number: ''
     });
 
-    useEffect(() => {
-        fetchData();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
-
-    const fetchData = async () => {
-        setLoading(true);
-        try {
-            const [usersRes, rolesRes] = await Promise.all([
-                axiosClient.get(ENDPOINTS.USERS.ALL),
-                axiosClient.get(ENDPOINTS.LOOKUPS.ROLES)
-            ]);
-            
-            const usersData = Array.isArray(usersRes.data) ? usersRes.data : Array.isArray(usersRes.data?.data) ? usersRes.data.data : [];
-            const rolesData = Array.isArray(rolesRes.data) ? rolesRes.data : Array.isArray(rolesRes.data?.data) ? rolesRes.data.data : [];
-            
-            setUsers(usersData);
-            setRoles(rolesData);
-        } catch (e) {
-            console.error(e);
-            addToast('حدث خطأ أثناء جلب بيانات المستخدمين', 'error');
-        } finally {
-            setLoading(false);
-        }
-    };
-
     const handleDelete = async () => {
         try {
-            await axiosClient.delete(ENDPOINTS.USERS.DELETE(deleteTarget));
-            addToast('تم إسقاط الحساب من النظام بنجاح', 'success');
+            await deleteUser(deleteTarget);
             setDeleteTarget(null);
-            fetchData();
         } catch (e) {
-            addToast('لا يمكن حذف الحساب نظراً لارتباطه ببيانات نشطة', 'error');
+            // Handled by mutation hook
         }
     };
 
@@ -96,13 +77,9 @@ const UsersPage = () => {
         e.stopPropagation();
         const newStatus = (item.account_status === 'Active' || !item.account_status) ? 'Suspended' : 'Active';
         try {
-            await axiosClient.put(ENDPOINTS.USERS.UPDATE_STATUS(item.user_id), {
-                account_status: newStatus
-            });
-            setUsers(prev => prev.map(u => u.user_id === item.user_id ? { ...u, account_status: newStatus } : u));
-            addToast(`تم ${newStatus === 'Active' ? 'تفعيل' : 'إيقاف'} الحساب بنجاح`, 'success');
+            await updateUserStatus({ id: item.user_id, payload: { account_status: newStatus } });
         } catch (error) {
-            addToast(error.response?.data?.message || 'واجه النظام مشكلة أثناء المعالجة', 'error');
+            // Handled by mutation hook
         }
     };
 
@@ -149,24 +126,20 @@ const UsersPage = () => {
         setFormLoading(true);
         try {
             if (modalConfig.type === 'add') {
-                await axiosClient.post(ENDPOINTS.USERS.ALL, form);
-                addToast('تم تنشيط الحساب الجديد بنجاح', 'success');
+                await createUser(form);
             } else if (modalConfig.type === 'edit') {
-                await axiosClient.put(ENDPOINTS.USERS.UPDATE(modalConfig.user.user_id), form);
-                addToast('تم تعديل بيانات الحساب بنجاح', 'success');
+                await updateUser({ id: modalConfig.user.user_id, payload: form });
             } else if (modalConfig.type === 'edit-role') {
-                await axiosClient.put(ENDPOINTS.USERS.UPDATE_ROLE(modalConfig.user.user_id), {
+                await updateUserRole({ id: modalConfig.user.user_id, payload: {
                     role_id: form.role_id,
                     bank_name: form.bank_name,
                     account_name: form.account_name,
                     account_number: form.account_number
-                });
-                addToast('تم تحديث صلاحيات الحساب المحددة', 'success');
+                }});
             }
             setModalConfig({ open: false, type: '', user: null });
-            fetchData();
         } catch (error) {
-            addToast(error.response?.data?.message || 'واجه النظام مشكلة أثناء المعالجة', 'error');
+            // Error is handled by mutation hooks
         } finally {
             setFormLoading(false);
         }

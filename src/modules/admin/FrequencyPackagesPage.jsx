@@ -5,11 +5,14 @@ import Modal from '../../shared/components/Modal';
 import ConfirmDialog from '../../shared/components/ConfirmDialog';
 import { ENDPOINTS } from '../../core/api/endpoints';
 import usePermission from '../../hooks/usePermission';
+import { useFrequencyPackages, useCreateFrequencyPackage, useUpdateFrequencyPackage, useDeleteFrequencyPackage } from '../../hooks/api/usePackages';
 
 const FrequencyPackagesPage = () => {
-    const addToast = useToastStore(state => state.addToast);
-    const [packages, setPackages] = useState([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const { data: packages = [], isLoading } = useFrequencyPackages();
+    const { mutateAsync: createPackage } = useCreateFrequencyPackage();
+    const { mutateAsync: updatePackage } = useUpdateFrequencyPackage();
+    const { mutateAsync: deletePackage } = useDeleteFrequencyPackage();
+
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingPackage, setEditingPackage] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -21,22 +24,6 @@ const FrequencyPackagesPage = () => {
         display_interval: '1',
         price_multiplier: '1.0'
     });
-
-    const fetchData = async () => {
-        setIsLoading(true);
-        try {
-            const res = await axiosClient.get(ENDPOINTS.FREQUENCY_PACKAGES.ALL);
-            setPackages(res.data?.data || []);
-        } catch (error) {
-            addToast(error.response?.data?.message || 'فشل في جلب باقات التكرار', 'error');
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchData();
-    }, []);
 
     const openModal = (pkg = null) => {
         if (pkg) {
@@ -74,22 +61,15 @@ const FrequencyPackagesPage = () => {
             };
 
             if (editingPackage) {
-                await axiosClient.put(ENDPOINTS.FREQUENCY_PACKAGES.UPDATE(editingPackage.id), payload);
+                await updatePackage({ id: editingPackage.id, payload });
                 addToast('تم تحديث باقة التكرار بنجاح', 'success');
             } else {
-                await axiosClient.post(ENDPOINTS.FREQUENCY_PACKAGES.CREATE, payload);
+                await createPackage(payload);
                 addToast('تم إضافة باقة التكرار بنجاح', 'success');
             }
             closeModal();
-            fetchData();
         } catch (error) {
-            const errList = error.response?.data?.errors;
-            if (errList) {
-                const firstErr = Object.values(errList)[0][0];
-                addToast(firstErr, 'error');
-            } else {
-                addToast(error.response?.data?.message || 'حدث خطأ أثناء حفظ الباقة', 'error');
-            }
+            // Handled by hook
         } finally {
             setIsSubmitting(false);
         }
@@ -98,13 +78,11 @@ const FrequencyPackagesPage = () => {
     const handleDelete = async () => {
         const { id } = deleteDialog;
         try {
-            await axiosClient.delete(ENDPOINTS.FREQUENCY_PACKAGES.DELETE(id));
+            await deletePackage(id);
             addToast('تم حذف الباقة بنجاح', 'success');
-            fetchData();
-        } catch (error) {
-            addToast(error.response?.data?.message || 'فشل الحذف', 'error');
-        } finally {
             setDeleteDialog({ open: false, id: null });
+        } catch (error) {
+            // Handled by hook
         }
     };
 

@@ -9,6 +9,7 @@ import useToastStore from '../../store/useToastStore';
 import axiosClient from '../../core/api/axiosClient';
 import { ENDPOINTS } from '../../core/api/endpoints';
 import Modal from '../../shared/components/Modal';
+import { useOwnerEarnings, useRequestPayout } from '../../hooks/api/useFinancial';
 
 /* ─── Premium Colour Tokens ─── */
 const S = {
@@ -32,58 +33,36 @@ const S = {
 
 const OwnerEarningsPage = () => {
     // ─── 1. DATA FROM BACKEND ───
-    const [balance, setBalance] = useState(0);
-    const [totalEarned, setTotalEarned] = useState(0);
-    const [pendingPayouts, setPendingPayouts] = useState(0);
-    const [transactions, setTransactions] = useState([]);
-    const [isFetching, setIsFetching] = useState(true);
+    const { data, isLoading: isFetching } = useOwnerEarnings();
+    const { mutateAsync: requestPayout } = useRequestPayout();
 
-    const fetchEarnings = async () => {
-        setIsFetching(true);
-        try {
-            const res = await axiosClient.get(ENDPOINTS.FINANCIAL.MY_EARNINGS);
-            const data = res.data.data;
-            setBalance(data.available_balance || 0);
-            setTotalEarned(data.total_earnings || 0);
-            
-            const logs = data.pending_logs || [];
-            
-            const formattedTx = logs.map(log => {
-                let type = 'earning';
-                if (log.transaction_type === 'payout_requested' || log.transaction_type === 'payout_completed' || log.transaction_type === 'payout_rejected') {
-                    type = 'payout';
-                }
-                
-                let source = log.notes || 'معاملة مالية';
-                if (log.advertisement) {
-                     source = 'إعلان: ' + log.advertisement.title;
-                }
-                
-                return {
-                    id: log.ledger_id || log.id,
-                    type: type,
-                    amount: Math.abs(log.amount),
-                    source: source,
-                    date: new Date(log.created_at).toLocaleString('ar-EG'),
-                    status: log.status
-                };
-            });
-            
-            setTransactions(formattedTx);
-            
-            const pendingTotal = formattedTx.filter(t => t.type === 'payout' && t.status === 'pending').reduce((sum, t) => sum + t.amount, 0);
-            setPendingPayouts(pendingTotal);
-
-        } catch (error) {
-            console.error('Failed to fetch earnings', error);
-        } finally {
-            setIsFetching(false);
+    const balance = data?.available_balance || 0;
+    const totalEarned = data?.total_earnings || 0;
+    const logs = data?.pending_logs || [];
+    
+    const formattedTx = logs.map(log => {
+        let type = 'earning';
+        if (log.transaction_type === 'payout_requested' || log.transaction_type === 'payout_completed' || log.transaction_type === 'payout_rejected') {
+            type = 'payout';
         }
-    };
-
-    useEffect(() => {
-        fetchEarnings();
-    }, []);
+        
+        let source = log.notes || 'معاملة مالية';
+        if (log.advertisement) {
+             source = 'إعلان: ' + log.advertisement.title;
+        }
+        
+        return {
+            id: log.ledger_id || log.id,
+            type: type,
+            amount: Math.abs(log.amount),
+            source: source,
+            date: new Date(log.created_at).toLocaleString('ar-EG'),
+            status: log.status
+        };
+    });
+    
+    const transactions = formattedTx;
+    const pendingPayouts = formattedTx.filter(t => t.type === 'payout' && t.status === 'pending').reduce((sum, t) => sum + t.amount, 0);
 
     // ─── 2. STATE & UI CONTROLS ───
     const [activeTab, setActiveTab] = useState('all'); // 'all', 'earnings', 'payouts'
@@ -98,20 +77,18 @@ const OwnerEarningsPage = () => {
         const amt = parseFloat(payoutForm.amount);
         if (amt > balance) return addToast('المبلغ المطلوب يتخطى الرصيد المتاح!', 'error');
         if (amt < 50) return addToast('الحد الأدنى للسحب هو $50', 'warning');
-
+        
         setLoading(true);
         try {
-            await axiosClient.post(ENDPOINTS.FINANCIAL.REQUEST_PAYOUT, {
+            await requestPayout({
                 amount: amt,
                 bank_name: payoutForm.bank,
                 account_number: payoutForm.account_number
             });
-            addToast('تم رفع طلب السحب للمراجعة بنجاح', 'success');
             setPayoutModalOpen(false);
             setPayoutForm({ amount: '', bank: '', account_number: '' });
-            fetchEarnings();
         } catch (error) {
-            addToast(error.response?.data?.message || 'فشلت عملية طلب السحب', 'error');
+            // Error is handled by hook
         } finally {
             setLoading(false);
         }
