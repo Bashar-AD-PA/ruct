@@ -58,12 +58,17 @@ export const ENDPOINTS = {
     FINANCIAL: {
         LEDGER: '/financial/ledger',
         MY_EARNINGS: '/financial/my-earnings',
+        REQUEST_PAYOUT: '/financial/request-payout',
         APPROVE: (id) => `/financial/approve-payment/${id}`,
         RECORD_PAYMENT: '/financial/payments',
     },
     PAYMENT: {
         METHODS: '/payment-methods',
         METHOD: (id) => `/payment-methods/${id}`
+    },
+    REPORTS: {
+        OWNER_ANALYTICS: '/reports/owner-analytics',
+        SCREEN: '/reports/screen'
     },
     PAYMENTS: {
         STRIPE_CREATE_INTENT: '/payments/stripe/create-intent',

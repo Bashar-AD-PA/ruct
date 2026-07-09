@@ -1,7 +1,13 @@
-import React, { useState } from 'react';
-import { Wallet, ArrowDownRight, ArrowUpRight, Clock, CheckCircle2, AlertCircle, Building, Landmark, ChevronDown, ListFilter, CreditCard, Banknote } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { 
+    Wallet, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, 
+    Calendar, Clock, CheckCircle2, AlertCircle, RefreshCw, 
+    ChevronDown, Download, Landmark, FileText, Filter, ListFilter, Banknote, CreditCard, Building
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import useToastStore from '../../store/useToastStore';
+import axiosClient from '../../core/api/axiosClient';
+import { ENDPOINTS } from '../../core/api/endpoints';
 import Modal from '../../shared/components/Modal';
 
 /* ─── Premium Colour Tokens ─── */
@@ -25,18 +31,59 @@ const S = {
 };
 
 const OwnerEarningsPage = () => {
-    // ─── 1. MOCK DATA (Until Backend is Connected) ───
-    const [balance] = useState(4250.75);
-    const [totalEarned] = useState(15800.00);
-    const [pendingPayouts] = useState(1200.00);
+    // ─── 1. DATA FROM BACKEND ───
+    const [balance, setBalance] = useState(0);
+    const [totalEarned, setTotalEarned] = useState(0);
+    const [pendingPayouts, setPendingPayouts] = useState(0);
+    const [transactions, setTransactions] = useState([]);
+    const [isFetching, setIsFetching] = useState(true);
 
-    const [transactions] = useState([
-        { id: 'TRX-1092', type: 'earning', amount: 450, source: 'شاشة مول السعيد', date: '12 يونيه 2026, 14:30', status: 'completed' },
-        { id: 'TRX-1091', type: 'earning', amount: 120, source: 'شاشة شارع حدة', date: '11 يونيه 2026, 09:15', status: 'completed' },
-        { id: 'TRX-1090', type: 'payout', amount: 1200, source: 'تحويل بنكي - حساب رقم تنتهي بـ 4545', date: '05 يونيه 2026, 10:00', status: 'pending' },
-        { id: 'TRX-1089', type: 'earning', amount: 800, source: 'مكافأة أداء المنظومة', date: '01 يونيه 2026, 00:00', status: 'completed' },
-        { id: 'TRX-1088', type: 'payout', amount: 2500, source: 'تحويل بنكي - بنك الكريمي', date: '28 مايو 2026, 16:45', status: 'completed' },
-    ]);
+    const fetchEarnings = async () => {
+        setIsFetching(true);
+        try {
+            const res = await axiosClient.get(ENDPOINTS.FINANCIAL.MY_EARNINGS);
+            const data = res.data.data;
+            setBalance(data.available_balance || 0);
+            setTotalEarned(data.total_earnings || 0);
+            
+            const logs = data.pending_logs || [];
+            
+            const formattedTx = logs.map(log => {
+                let type = 'earning';
+                if (log.transaction_type === 'payout_requested' || log.transaction_type === 'payout_completed' || log.transaction_type === 'payout_rejected') {
+                    type = 'payout';
+                }
+                
+                let source = log.notes || 'معاملة مالية';
+                if (log.advertisement) {
+                     source = 'إعلان: ' + log.advertisement.title;
+                }
+                
+                return {
+                    id: log.ledger_id || log.id,
+                    type: type,
+                    amount: Math.abs(log.amount),
+                    source: source,
+                    date: new Date(log.created_at).toLocaleString('ar-EG'),
+                    status: log.status
+                };
+            });
+            
+            setTransactions(formattedTx);
+            
+            const pendingTotal = formattedTx.filter(t => t.type === 'payout' && t.status === 'pending').reduce((sum, t) => sum + t.amount, 0);
+            setPendingPayouts(pendingTotal);
+
+        } catch (error) {
+            console.error('Failed to fetch earnings', error);
+        } finally {
+            setIsFetching(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchEarnings();
+    }, []);
 
     // ─── 2. STATE & UI CONTROLS ───
     const [activeTab, setActiveTab] = useState('all'); // 'all', 'earnings', 'payouts'
@@ -46,20 +93,28 @@ const OwnerEarningsPage = () => {
     const addToast = useToastStore(s => s.addToast);
 
     // ─── 3. HANDLERS ───
-    const handleRequestPayout = (e) => {
+    const handleRequestPayout = async (e) => {
         e.preventDefault();
         const amt = parseFloat(payoutForm.amount);
         if (amt > balance) return addToast('المبلغ المطلوب يتخطى الرصيد المتاح!', 'error');
         if (amt < 50) return addToast('الحد الأدنى للسحب هو $50', 'warning');
 
         setLoading(true);
-        // Simulate API call
-        setTimeout(() => {
-            setLoading(false);
+        try {
+            await axiosClient.post(ENDPOINTS.FINANCIAL.REQUEST_PAYOUT, {
+                amount: amt,
+                bank_name: payoutForm.bank,
+                account_number: payoutForm.account_number
+            });
+            addToast('تم رفع طلب السحب للمراجعة بنجاح', 'success');
             setPayoutModalOpen(false);
             setPayoutForm({ amount: '', bank: '', account_number: '' });
-            addToast('تم رفع طلب السحب للمراجعة بنجاح', 'success');
-        }, 1200);
+            fetchEarnings();
+        } catch (error) {
+            addToast(error.response?.data?.message || 'فشلت عملية طلب السحب', 'error');
+        } finally {
+            setLoading(false);
+        }
     };
 
     const filteredTransactions = transactions.filter(t => {

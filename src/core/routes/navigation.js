@@ -87,7 +87,7 @@ export const getNavItems = (roleName, lang = 'ar') => {
                 { path: '/dashboard/screens', icon: Monitor, label: t('screens', lang) },
                 { path: '/dashboard/earnings', icon: Wallet, label: t('earnings', lang) },
                 { path: '/dashboard/analytics/owner', icon: BarChart2, label: t('analytics', lang) },
-                { path: '/dashboard/support', icon: HeadphonesIcon, label: t('support', lang) },
+                // { path: '/dashboard/support', icon: HeadphonesIcon, label: t('support', lang) },
                 { path: '/dashboard/sessions', icon: ShieldCheck, label: t('mySessions', lang) },
                 { path: '/dashboard/settings', icon: Settings, label: t('settings', lang) },
             ];

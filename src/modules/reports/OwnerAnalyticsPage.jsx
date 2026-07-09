@@ -412,20 +412,32 @@ const OwnerAnalyticsPage = () => {
         const fetchData = async () => {
             setLoading(true);
             try {
-                const res = await axiosClient.get(ENDPOINTS.SCREENS.ALL).catch(() => ({ data: [] }));
-                const ownerScreens = (res.data || []).map((s, i) => ({
-                    screen_id: s.screen_id,
-                    screen_name: s.screen_name,
-                    location: s.street ? `${s.street.street_name}, ${s.street.region?.region_name || ''}` : 'غير محدد',
-                    status: i % 4 === 0 ? 'offline' : 'online',
-                    fill_rate: Math.round(55 + Math.random() * 40),
-                    impressions: Math.round(800 + Math.random() * 3200),
-                    revenue: (200 + Math.random() * 800).toFixed(2),
-                }));
-                setScreens(ownerScreens);
-
-                /* Build aggregate analytics */
-                buildAnalytics(ownerScreens);
+                const res = await axiosClient.get(ENDPOINTS.REPORTS.OWNER_ANALYTICS).catch(() => ({ data: { screens: [], summary: {} } }));
+                const { screens: ownerScreens, summary } = res.data;
+                
+                setScreens(ownerScreens || []);
+                
+                if (summary) {
+                    setAnalytics({
+                        totalImpressions: summary.total_impressions || 0,
+                        avgFillRate: ownerScreens && ownerScreens.length > 0 ? (ownerScreens.reduce((s, x) => s + (x.fill_rate || 0), 0) / ownerScreens.length) : 0,
+                        totalRevenue: summary.total_revenue || 0,
+                        onlineCount: summary.online_screens || 0,
+                        offlineCount: (summary.total_screens || 0) - (summary.online_screens || 0),
+                        totalScreens: summary.total_screens || 0,
+                        dailyData: [
+                            { label: 'الأحد', impressions: Math.round((summary.total_impressions || 0) / 7) },
+                            { label: 'الإثنين', impressions: Math.round((summary.total_impressions || 0) / 7) },
+                            { label: 'الثلاثاء', impressions: Math.round((summary.total_impressions || 0) / 7) },
+                            { label: 'الأربعاء', impressions: Math.round((summary.total_impressions || 0) / 7) },
+                            { label: 'الخميس', impressions: Math.round((summary.total_impressions || 0) / 7) },
+                            { label: 'الجمعة', impressions: Math.round((summary.total_impressions || 0) / 7) },
+                            { label: 'السبت', impressions: Math.round((summary.total_impressions || 0) / 7) }
+                        ],
+                    });
+                } else {
+                    buildAnalytics(ownerScreens || []);
+                }
             } catch (e) {
                 console.error(e);
                 addToast('حدث خطأ أثناء جلب البيانات', 'error');
@@ -833,3 +845,4 @@ const OwnerAnalyticsPage = () => {
 };
 
 export default OwnerAnalyticsPage;
+
