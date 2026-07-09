@@ -109,9 +109,27 @@ const NewTicketModal = ({ onClose, onSuccess }) => {
         category: 'screen_offline',
         priority: 'medium',
         description: '',
+        screen_id: '',
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [screens, setScreens] = useState([]);
+
+    useEffect(() => {
+        const fetchScreens = async () => {
+            try {
+                const response = await axiosClient.get(ENDPOINTS.SCREENS.ALL);
+                if (response.data && Array.isArray(response.data)) {
+                    setScreens(response.data);
+                } else if (response.data && response.data.data) {
+                    setScreens(response.data.data);
+                }
+            } catch (err) {
+                console.error('Failed to fetch screens:', err);
+            }
+        };
+        fetchScreens();
+    }, []);
 
     const handleChange = (field, value) =>
         setForm(prev => ({ ...prev, [field]: value }));
@@ -171,6 +189,28 @@ const NewTicketModal = ({ onClose, onSuccess }) => {
 
                 {/* Form */}
                 <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                    {/* Screen Selection */}
+                    <div>
+                        <label className="block text-xs font-bold text-[#434655] mb-1.5">
+                            الشاشة المتعلقة بالمشكلة (اختياري)
+                        </label>
+                        <div className="relative">
+                            <select
+                                value={form.screen_id}
+                                onChange={e => handleChange('screen_id', e.target.value)}
+                                className="w-full appearance-none bg-[#f1f3ff] border border-[#c3c6d7] rounded-xl px-4 py-2.5 text-sm text-[#141b2b] focus:outline-none focus:border-[#004ac6]/50 transition-colors"
+                            >
+                                <option value="" style={{ background: '#ffffff' }}>-- مشكلة عامة / غير محددة --</option>
+                                {screens.map(s => (
+                                    <option key={s.screen_id} value={s.screen_id} style={{ background: '#ffffff' }}>
+                                        {s.screen_name} (رقم: {s.screen_id})
+                                    </option>
+                                ))}
+                            </select>
+                            <ChevronDown className="absolute left-3 top-3 w-4 h-4 text-[#737686] pointer-events-none" />
+                        </div>
+                    </div>
+
                     {/* Subject */}
                     <div>
                         <label className="block text-xs font-bold text-[#434655] mb-1.5">
@@ -315,7 +355,7 @@ const TicketDetailDrawer = ({ ticket, onClose }) => {
 
                 <div className="p-6 space-y-5 max-h-[70vh] overflow-y-auto">
                     {/* Status + Priority Row */}
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-3">
                         <span
                             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold"
                             style={{ color: status.color, background: status.bg }}
@@ -331,12 +371,18 @@ const TicketDetailDrawer = ({ ticket, onClose }) => {
                                 {CATEGORIES.find(c => c.value === ticket.category)?.label || ticket.category}
                             </span>
                         )}
+                        {ticket.screen && (
+                            <span className="text-xs text-[#004ac6] bg-[#e9edff] px-2 py-1 rounded-full flex items-center gap-1">
+                                <Monitor className="w-3 h-3" />
+                                {ticket.screen.screen_name} (رقم: {ticket.screen.screen_id})
+                            </span>
+                        )}
                     </div>
 
                     {/* Description */}
                     <div className="bg-[#f1f3ff] border border-[#c3c6d7] rounded-2xl p-4">
                         <p className="text-xs font-bold text-[#737686] mb-2">وصف المشكلة</p>
-                        <p className="text-sm text-gray-300 leading-relaxed">{ticket.description}</p>
+                        <p className="text-sm text-[#141b2b] leading-relaxed">{ticket.description}</p>
                     </div>
 
                     {/* Admin Reply */}
@@ -346,7 +392,7 @@ const TicketDetailDrawer = ({ ticket, onClose }) => {
                                 <MessageSquare className="w-3.5 h-3.5 text-[#004ac6]" />
                                 <p className="text-xs font-bold text-[#004ac6]">رد فريق الدعم</p>
                             </div>
-                            <p className="text-sm text-gray-300 leading-relaxed">{ticket.admin_reply}</p>
+                            <p className="text-sm text-[#141b2b] leading-relaxed">{ticket.admin_reply}</p>
                         </div>
                     )}
 
