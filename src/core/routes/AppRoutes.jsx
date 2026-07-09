@@ -63,8 +63,8 @@ const PublicRoute = ({ children }) => {
  * Role-Based Route - restricts access to specific roles
  */
 const RoleRoute = ({ children, allowedRoles }) => {
-    const { user, isAuthenticated } = useAuthStore();
-    const roleName = user?.role?.role_name;
+    const { isAuthenticated, getRoleName } = useAuthStore();
+    const roleName = getRoleName();
     if (!isAuthenticated) return <Navigate to="/login" replace />;
     if (allowedRoles && !allowedRoles.includes(roleName)) return <Navigate to="/dashboard" replace />;
     return children;
