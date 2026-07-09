@@ -41,8 +41,9 @@ const LocationPickerMap = ({ onSelect, initialLat, initialLng, onClose }) => {
         style={{ width: '100%', height: '100%' }}
       >
         <TileLayer
-          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://mt1.google.com/vt/lyrs=y&hl=ar&x={x}&y={y}&z={z}"
+          attribution='&copy; <a href="https://www.google.com/intl/ar/help/terms_maps/">Google Maps</a>'
+          maxZoom={20}
         />
         <MapEvents onLocationSelect={setPosition} />
         {position && <Marker position={[position.lat, position.lng]} />}
