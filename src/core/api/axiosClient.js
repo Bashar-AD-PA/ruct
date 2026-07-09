@@ -71,7 +71,7 @@ axiosClient.interceptors.response.use(
         // 2. Handle 401 Unauthorized
         if (response.status === 401) {
             useAuthStore.getState().logout();
-            addToast("انتهت صلاحية الجلسة، يرجى تسجيل الدخول مرة أخرى.", 'error');
+            addToast("انتهت صلاحية الجلسة أو تم تحديث صلاحياتك، يرجى تسجيل الدخول مرة أخرى.", 'error');
             return Promise.reject(error);
         }
 
