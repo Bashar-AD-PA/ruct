@@ -37,7 +37,7 @@ const LocationPickerMap = ({ onSelect, initialLat, initialLng, onClose }) => {
     <div style={{ position: 'relative', width: '100%', height: '400px', borderRadius: '12px', overflow: 'hidden' }}>
       <MapContainer
         center={position ? [position.lat, position.lng] : defaultCenter}
-        zoom={position ? 15 : 6}
+        zoom={position ? 15 : 12}
         style={{ width: '100%', height: '100%' }}
       >
         <TileLayer
@@ -51,44 +51,54 @@ const LocationPickerMap = ({ onSelect, initialLat, initialLng, onClose }) => {
       {/* Overlay UI */}
       <div style={{
         position: 'absolute', bottom: 20, left: 20, right: 20, zIndex: 1000,
-        display: 'flex', gap: '10px', justifyContent: 'center', direction: 'rtl'
+        display: 'flex', flexDirection: 'column', gap: '12px', direction: 'rtl'
       }}>
+        {/* Info Box */}
         <div style={{
-          background: 'white', padding: '10px 20px', borderRadius: '8px',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.1)', display: 'flex', alignItems: 'center', gap: '10px', flex: 1
+          background: 'rgba(255, 255, 255, 0.95)', backdropFilter: 'blur(10px)',
+          padding: '12px 20px', borderRadius: '12px', border: '1px solid #c3c6d7',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.08)', display: 'flex', alignItems: 'center', gap: '10px'
         }}>
-          <MapPin style={{ color: '#004ac6' }} />
-          <span style={{ fontSize: '13px', fontWeight: 600 }}>
-            {position ? `الطول: ${position.lng.toFixed(5)}, العرض: ${position.lat.toFixed(5)}` : 'انقر على الخريطة لتحديد الموقع'}
+          <div style={{ width: 32, height: 32, borderRadius: '8px', background: '#e9edff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <MapPin style={{ color: '#004ac6', width: 18, height: 18 }} />
+          </div>
+          <span style={{ fontSize: '13px', fontWeight: 700, color: '#141b2b', lineHeight: '1.4' }}>
+            {position ? `خط الطول: ${position.lng.toFixed(5)} | خط العرض: ${position.lat.toFixed(5)}` : 'قم بالنقر على الخريطة لتحديد موقع الشاشة بدقة'}
           </span>
         </div>
         
-        <button
-          type="button"
-          onClick={handleSelect}
-          disabled={!position}
-          style={{
-            background: position ? '#004ac6' : '#c3c6d7', color: 'white',
-            border: 'none', padding: '0 24px', borderRadius: '8px',
-            fontSize: '14px', fontWeight: 700, cursor: position ? 'pointer' : 'not-allowed',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-          }}
-        >
-          اعتماد الموقع
-        </button>
-        {onClose && (
-            <button
+        {/* Actions Box */}
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button
             type="button"
-            onClick={onClose}
+            onClick={handleSelect}
+            disabled={!position}
             style={{
-                background: '#fff', color: '#ba1a1a', border: '1px solid #ba1a1a',
-                padding: '0 24px', borderRadius: '8px', fontSize: '14px', fontWeight: 700,
-                cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+              flex: 1, background: position ? 'linear-gradient(135deg, #004ac6 0%, #2563eb 100%)' : '#c3c6d7',
+              color: 'white', border: 'none', padding: '12px 24px', borderRadius: '10px',
+              fontSize: '14px', fontWeight: 700, cursor: position ? 'pointer' : 'not-allowed',
+              boxShadow: position ? '0 4px 16px rgba(0,74,198,0.30)' : 'none',
+              transition: 'all 0.2s'
             }}
+          >
+            اعتماد الموقع
+          </button>
+          {onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              style={{
+                background: '#f1f3ff', color: '#434655', border: 'none',
+                padding: '12px 24px', borderRadius: '10px', fontSize: '14px', fontWeight: 700,
+                cursor: 'pointer', transition: 'background 0.2s'
+              }}
+              onMouseEnter={e => e.target.style.background = '#e9edff'}
+              onMouseLeave={e => e.target.style.background = '#f1f3ff'}
             >
-            إلغاء
+              إلغاء
             </button>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
