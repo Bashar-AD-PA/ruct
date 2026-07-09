@@ -108,7 +108,7 @@ const ScreensPage = () => {
     if (!silent) setLoading(true);
     try {
       const res = await axiosClient.get(ENDPOINTS.SCREENS.ALL);
-      setScreens(res.data);
+      setScreens(Array.isArray(res.data) ? res.data : (Array.isArray(res.data?.data) ? res.data.data : []));
     } catch (e) {
       console.error(e);
       if (!silent) addToast('حدث خطأ أثناء جلب الشاشات', 'error');
