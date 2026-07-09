@@ -256,7 +256,7 @@ const ScreenReportsPage = () => {
                             <p className="text-gray-500 text-sm mt-4 tracking-widest font-mono" dir="ltr">{user?.phone || 'رقم الهاتف غير مدرج'}</p>
                         </div>
                         
-                        <div className="flex-1" dir="rtl">
+                        <div className="flex-1 flex justify-end" dir="rtl">
                             <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-3 text-right">
                                 <span className="font-bold text-gray-900">رقم الشاشة:</span>
                                 <span className="text-gray-700">{reportData.screen.screen_id} - {reportData.screen.screen_name}</span>
