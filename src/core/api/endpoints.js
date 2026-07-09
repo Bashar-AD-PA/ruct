@@ -93,6 +93,11 @@ export const ENDPOINTS = {
     DASHBOARD: {
         OVERVIEW: '/dashboard/overview'
     },
+    SUPPORT: {
+        ALL:    '/support/tickets',
+        CREATE: '/support/tickets',
+        SHOW:   (id) => `/support/tickets/${id}`,
+    },
     OWNER: {
         DASHBOARD: '/owner/dashboard'
     }

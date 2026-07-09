@@ -1,0 +1,562 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+    HeadphonesIcon,
+    Plus,
+    X,
+    Send,
+    Clock,
+    CheckCircle,
+    AlertCircle,
+    XCircle,
+    ChevronDown,
+    Monitor,
+    Wifi,
+    Zap,
+    HelpCircle,
+    RefreshCw,
+    MessageSquare,
+} from 'lucide-react';
+import axiosClient from '../../core/api/axiosClient';
+import { ENDPOINTS } from '../../core/api/endpoints';
+
+/* ─── Status Configs ─────────────────────────────────────────── */
+const STATUS_MAP = {
+    open:        { label: 'مفتوحة',       color: '#3b82f6', bg: 'rgba(59,130,246,0.1)',  Icon: Clock },
+    in_progress: { label: 'قيد المعالجة', color: '#f59e0b', bg: 'rgba(245,158,11,0.1)',  Icon: RefreshCw },
+    resolved:    { label: 'محلولة',        color: '#10b981', bg: 'rgba(16,185,129,0.1)',  Icon: CheckCircle },
+    closed:      { label: 'مغلقة',         color: '#6b7280', bg: 'rgba(107,114,128,0.1)', Icon: XCircle },
+};
+
+/* ─── Priority Configs ───────────────────────────────────────── */
+const PRIORITY_MAP = {
+    low:    { label: 'منخفضة', color: '#6b7280' },
+    medium: { label: 'متوسطة', color: '#f59e0b' },
+    high:   { label: 'عالية',  color: '#ef4444' },
+    urgent: { label: 'عاجلة',  color: '#dc2626' },
+};
+
+/* ─── Category Configs ───────────────────────────────────────── */
+const CATEGORIES = [
+    { value: 'screen_offline',    label: 'شاشة غير متصلة',        Icon: Wifi },
+    { value: 'display_issue',     label: 'مشكلة في العرض',         Icon: Monitor },
+    { value: 'technical_fault',   label: 'عطل تقني',               Icon: Zap },
+    { value: 'billing_query',     label: 'استفسار مالي',            Icon: AlertCircle },
+    { value: 'other',             label: 'أخرى',                   Icon: HelpCircle },
+];
+
+/* ─── Skeleton Loader ────────────────────────────────────────── */
+const SkeletonCard = () => (
+    <div className="bg-[#121215]/60 backdrop-blur-xl border border-white/5 rounded-2xl p-5 animate-pulse">
+        <div className="flex justify-between items-start mb-3">
+            <div className="h-4 bg-white/10 rounded w-1/3" />
+            <div className="h-6 bg-white/10 rounded-full w-20" />
+        </div>
+        <div className="h-3 bg-white/5 rounded w-2/3 mb-2" />
+        <div className="h-3 bg-white/5 rounded w-1/2" />
+    </div>
+);
+
+/* ─── Ticket Card ────────────────────────────────────────────── */
+const TicketCard = ({ ticket, onClick }) => {
+    const status  = STATUS_MAP[ticket.status]   || STATUS_MAP.open;
+    const priority = PRIORITY_MAP[ticket.priority] || PRIORITY_MAP.medium;
+    const StatusIcon = status.Icon;
+
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            whileHover={{ y: -2, borderColor: 'rgba(255,255,255,0.12)' }}
+            onClick={() => onClick(ticket)}
+            className="bg-[#121215]/60 backdrop-blur-xl border border-white/5 rounded-2xl p-5 cursor-pointer transition-all"
+        >
+            <div className="flex items-start justify-between gap-3 mb-3">
+                <div className="flex-1 min-w-0">
+                    <p className="text-sm font-black text-white truncate">{ticket.subject}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">#{ticket.id} · {ticket.created_at_human || ticket.created_at}</p>
+                </div>
+                {/* Status Badge */}
+                <span
+                    className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold flex-shrink-0"
+                    style={{ color: status.color, background: status.bg }}
+                >
+                    <StatusIcon className="w-3 h-3" />
+                    {status.label}
+                </span>
+            </div>
+
+            <p className="text-xs text-gray-500 line-clamp-2 mb-3">{ticket.description}</p>
+
+            <div className="flex items-center justify-between">
+                <span className="text-xs font-bold" style={{ color: priority.color }}>
+                    ● أولوية {priority.label}
+                </span>
+                {ticket.category && (
+                    <span className="text-xs text-gray-600 bg-white/5 px-2 py-0.5 rounded-full">
+                        {CATEGORIES.find(c => c.value === ticket.category)?.label || ticket.category}
+                    </span>
+                )}
+            </div>
+        </motion.div>
+    );
+};
+
+/* ─── New Ticket Modal ───────────────────────────────────────── */
+const NewTicketModal = ({ onClose, onSuccess }) => {
+    const [form, setForm] = useState({
+        subject: '',
+        category: 'screen_offline',
+        priority: 'medium',
+        description: '',
+    });
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+
+    const handleChange = (field, value) =>
+        setForm(prev => ({ ...prev, [field]: value }));
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (!form.subject.trim() || !form.description.trim()) {
+            setError('يرجى ملء جميع الحقول المطلوبة.');
+            return;
+        }
+        setLoading(true);
+        setError('');
+        try {
+            await axiosClient.post(ENDPOINTS.SUPPORT.CREATE, form);
+            onSuccess();
+        } catch (err) {
+            setError(err.response?.data?.message || 'حدث خطأ أثناء إرسال التذكرة. حاول مرة أخرى.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)' }}
+            onClick={(e) => e.target === e.currentTarget && onClose()}
+        >
+            <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="w-[95%] sm:w-[500px] shrink-0 bg-[#0f0f12] border border-white/10 rounded-3xl overflow-hidden"
+                dir="rtl"
+            >
+                {/* Header */}
+                <div className="flex items-center justify-between px-6 py-5 border-b border-white/5">
+                    <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-indigo-500/10 flex items-center justify-center">
+                            <Plus className="w-4 h-4 text-indigo-400" />
+                        </div>
+                        <div>
+                            <h2 className="text-sm font-black text-white">تذكرة دعم جديدة</h2>
+                            <p className="text-xs text-gray-500">أخبرنا بمشكلتك وسنتواصل معك</p>
+                        </div>
+                    </div>
+                    <button
+                        onClick={onClose}
+                        className="w-8 h-8 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors"
+                    >
+                        <X className="w-4 h-4 text-gray-400" />
+                    </button>
+                </div>
+
+                {/* Form */}
+                <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                    {/* Subject */}
+                    <div>
+                        <label className="block text-xs font-bold text-gray-400 mb-1.5">
+                            عنوان المشكلة <span className="text-red-400">*</span>
+                        </label>
+                        <input
+                            type="text"
+                            placeholder="مثال: شاشة الرياض لا تتصل بالإنترنت"
+                            value={form.subject}
+                            onChange={e => handleChange('subject', e.target.value)}
+                            maxLength={120}
+                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/50 transition-colors"
+                        />
+                    </div>
+
+                    {/* Category + Priority */}
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <label className="block text-xs font-bold text-gray-400 mb-1.5">نوع المشكلة</label>
+                            <div className="relative">
+                                <select
+                                    value={form.category}
+                                    onChange={e => handleChange('category', e.target.value)}
+                                    className="w-full appearance-none bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500/50 transition-colors"
+                                >
+                                    {CATEGORIES.map(c => (
+                                        <option key={c.value} value={c.value} style={{ background: '#1a1a1e' }}>
+                                            {c.label}
+                                        </option>
+                                    ))}
+                                </select>
+                                <ChevronDown className="absolute left-3 top-3 w-4 h-4 text-gray-500 pointer-events-none" />
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold text-gray-400 mb-1.5">الأولوية</label>
+                            <div className="relative">
+                                <select
+                                    value={form.priority}
+                                    onChange={e => handleChange('priority', e.target.value)}
+                                    className="w-full appearance-none bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500/50 transition-colors"
+                                >
+                                    {Object.entries(PRIORITY_MAP).map(([val, cfg]) => (
+                                        <option key={val} value={val} style={{ background: '#1a1a1e' }}>
+                                            {cfg.label}
+                                        </option>
+                                    ))}
+                                </select>
+                                <ChevronDown className="absolute left-3 top-3 w-4 h-4 text-gray-500 pointer-events-none" />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Description */}
+                    <div>
+                        <label className="block text-xs font-bold text-gray-400 mb-1.5">
+                            وصف المشكلة <span className="text-red-400">*</span>
+                        </label>
+                        <textarea
+                            placeholder="اشرح المشكلة بالتفصيل: متى بدأت؟ ما الشاشة المتأثرة؟ ما الخطوات التي جربتها؟"
+                            value={form.description}
+                            onChange={e => handleChange('description', e.target.value)}
+                            rows={4}
+                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/50 transition-colors resize-none"
+                        />
+                    </div>
+
+                    {/* Error */}
+                    {error && (
+                        <motion.p
+                            initial={{ opacity: 0, y: -4 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-2.5"
+                        >
+                            {error}
+                        </motion.p>
+                    )}
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-3 pt-1">
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl text-sm font-black text-white transition-colors"
+                        >
+                            {loading ? (
+                                <RefreshCw className="w-4 h-4 animate-spin" />
+                            ) : (
+                                <Send className="w-4 h-4" />
+                            )}
+                            {loading ? 'جاري الإرسال...' : 'إرسال التذكرة'}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="px-5 py-2.5 bg-white/5 hover:bg-white/10 rounded-xl text-sm font-bold text-gray-400 transition-colors"
+                        >
+                            إلغاء
+                        </button>
+                    </div>
+                </form>
+            </motion.div>
+        </motion.div>
+    );
+};
+
+/* ─── Ticket Detail Drawer ───────────────────────────────────── */
+const TicketDetailDrawer = ({ ticket, onClose }) => {
+    const status   = STATUS_MAP[ticket.status]    || STATUS_MAP.open;
+    const priority = PRIORITY_MAP[ticket.priority] || PRIORITY_MAP.medium;
+    const StatusIcon = status.Icon;
+
+    return (
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)' }}
+            onClick={(e) => e.target === e.currentTarget && onClose()}
+        >
+            <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="w-[95%] sm:w-[500px] shrink-0 bg-[#0f0f12] border border-white/10 rounded-3xl overflow-hidden"
+                dir="rtl"
+            >
+                {/* Header */}
+                <div className="flex items-start justify-between px-6 py-5 border-b border-white/5">
+                    <div className="flex-1 min-w-0">
+                        <p className="text-xs text-gray-500 mb-1">#{ticket.id}</p>
+                        <h2 className="text-sm font-black text-white">{ticket.subject}</h2>
+                    </div>
+                    <button
+                        onClick={onClose}
+                        className="w-8 h-8 ml-3 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors flex-shrink-0"
+                    >
+                        <X className="w-4 h-4 text-gray-400" />
+                    </button>
+                </div>
+
+                <div className="p-6 space-y-5 max-h-[70vh] overflow-y-auto">
+                    {/* Status + Priority Row */}
+                    <div className="flex items-center gap-3">
+                        <span
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold"
+                            style={{ color: status.color, background: status.bg }}
+                        >
+                            <StatusIcon className="w-3 h-3" />
+                            {status.label}
+                        </span>
+                        <span className="text-xs font-bold" style={{ color: priority.color }}>
+                            ● أولوية {priority.label}
+                        </span>
+                        {ticket.category && (
+                            <span className="text-xs text-gray-600 bg-white/5 px-2 py-1 rounded-full">
+                                {CATEGORIES.find(c => c.value === ticket.category)?.label || ticket.category}
+                            </span>
+                        )}
+                    </div>
+
+                    {/* Description */}
+                    <div className="bg-white/5 border border-white/5 rounded-2xl p-4">
+                        <p className="text-xs font-bold text-gray-500 mb-2">وصف المشكلة</p>
+                        <p className="text-sm text-gray-300 leading-relaxed">{ticket.description}</p>
+                    </div>
+
+                    {/* Admin Reply */}
+                    {ticket.admin_reply && (
+                        <div className="bg-indigo-500/5 border border-indigo-500/20 rounded-2xl p-4">
+                            <div className="flex items-center gap-2 mb-2">
+                                <MessageSquare className="w-3.5 h-3.5 text-indigo-400" />
+                                <p className="text-xs font-bold text-indigo-400">رد فريق الدعم</p>
+                            </div>
+                            <p className="text-sm text-gray-300 leading-relaxed">{ticket.admin_reply}</p>
+                        </div>
+                    )}
+
+                    {/* Timeline */}
+                    <div>
+                        <p className="text-xs font-bold text-gray-500 mb-3">المعلومات</p>
+                        <div className="space-y-2">
+                            <div className="flex justify-between text-xs">
+                                <span className="text-gray-600">تاريخ الإنشاء</span>
+                                <span className="text-gray-400">{ticket.created_at_human || ticket.created_at}</span>
+                            </div>
+                            {ticket.updated_at && ticket.updated_at !== ticket.created_at && (
+                                <div className="flex justify-between text-xs">
+                                    <span className="text-gray-600">آخر تحديث</span>
+                                    <span className="text-gray-400">{ticket.updated_at_human || ticket.updated_at}</span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                <div className="px-6 py-4 border-t border-white/5">
+                    <button
+                        onClick={onClose}
+                        className="w-full py-2.5 bg-white/5 hover:bg-white/10 rounded-xl text-sm font-bold text-gray-400 transition-colors"
+                    >
+                        إغلاق
+                    </button>
+                </div>
+            </motion.div>
+        </motion.div>
+    );
+};
+
+/* ─── Statistics Card ────────────────────────────────────────── */
+const StatCard = ({ label, value, color, delay = 0 }) => (
+    <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay }}
+        className="bg-[#121215]/60 backdrop-blur-xl border border-white/5 rounded-2xl p-5"
+    >
+        <p className="text-xs font-bold text-gray-500 mb-1">{label}</p>
+        <p className="text-2xl font-black" style={{ color }}>{value}</p>
+    </motion.div>
+);
+
+/* ─── Main Page ──────────────────────────────────────────────── */
+const SupportPage = () => {
+    const [tickets, setTickets]           = useState([]);
+    const [loading, setLoading]           = useState(true);
+    const [showNewModal, setShowNewModal] = useState(false);
+    const [selectedTicket, setSelectedTicket] = useState(null);
+    const [activeFilter, setActiveFilter] = useState('all');
+
+    const fetchTickets = useCallback(async () => {
+        setLoading(true);
+        try {
+            const res = await axiosClient.get(ENDPOINTS.SUPPORT.ALL);
+            setTickets(res.data?.data || res.data || []);
+        } catch {
+            setTickets([]);
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    useEffect(() => { fetchTickets(); }, [fetchTickets]);
+
+    const handleNewSuccess = () => {
+        setShowNewModal(false);
+        fetchTickets();
+    };
+
+    /* Filter Tabs */
+    const FILTERS = [
+        { key: 'all',        label: 'الكل' },
+        { key: 'open',       label: 'مفتوحة' },
+        { key: 'in_progress', label: 'قيد المعالجة' },
+        { key: 'resolved',   label: 'محلولة' },
+        { key: 'closed',     label: 'مغلقة' },
+    ];
+
+    const filtered = activeFilter === 'all'
+        ? tickets
+        : tickets.filter(t => t.status === activeFilter);
+
+    /* Stats */
+    const stats = {
+        total:      tickets.length,
+        open:       tickets.filter(t => t.status === 'open').length,
+        inProgress: tickets.filter(t => t.status === 'in_progress').length,
+        resolved:   tickets.filter(t => t.status === 'resolved').length,
+    };
+
+    return (
+        <div className="space-y-6" dir="rtl">
+            {/* ── Page Header ── */}
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-2xl font-black text-white tracking-tight flex items-center gap-3">
+                        <HeadphonesIcon className="w-7 h-7 text-indigo-400" />
+                        الدعم والصيانة
+                    </h1>
+                    <p className="text-sm text-gray-500 font-bold mt-1">
+                        تتبع تذاكر الدعم الفني لشاشاتك
+                    </p>
+                </div>
+                <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => setShowNewModal(true)}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-sm font-black text-white transition-colors shadow-lg shadow-indigo-500/20"
+                >
+                    <Plus className="w-4 h-4" />
+                    تذكرة جديدة
+                </motion.button>
+            </div>
+
+            {/* ── Stats ── */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <StatCard label="إجمالي التذاكر"  value={stats.total}      color="#ffffff"  delay={0}    />
+                <StatCard label="مفتوحة"           value={stats.open}       color="#3b82f6"  delay={0.05} />
+                <StatCard label="قيد المعالجة"    value={stats.inProgress}  color="#f59e0b"  delay={0.1}  />
+                <StatCard label="تم الحل"          value={stats.resolved}    color="#10b981"  delay={0.15} />
+            </div>
+
+            {/* ── Filter Tabs ── */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                {FILTERS.map(f => (
+                    <button
+                        key={f.key}
+                        onClick={() => setActiveFilter(f.key)}
+                        className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all ${
+                            activeFilter === f.key
+                                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20'
+                                : 'bg-white/5 text-gray-500 hover:bg-white/10 hover:text-gray-300'
+                        }`}
+                    >
+                        {f.label}
+                        {f.key !== 'all' && tickets.filter(t => t.status === f.key).length > 0 && (
+                            <span className="mr-1.5 text-[10px] opacity-70">
+                                ({tickets.filter(t => t.status === f.key).length})
+                            </span>
+                        )}
+                    </button>
+                ))}
+            </div>
+
+            {/* ── Tickets List ── */}
+            {loading ? (
+                <div className="space-y-3">
+                    {[1, 2, 3].map(i => <SkeletonCard key={i} />)}
+                </div>
+            ) : filtered.length === 0 ? (
+                <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex flex-col items-center justify-center py-20 text-center"
+                >
+                    <div className="w-16 h-16 rounded-3xl bg-white/5 flex items-center justify-center mb-4">
+                        <HeadphonesIcon className="w-8 h-8 text-gray-600" />
+                    </div>
+                    <p className="text-base font-black text-gray-500">لا توجد تذاكر</p>
+                    <p className="text-xs text-gray-600 mt-1">
+                        {activeFilter === 'all'
+                            ? 'لم تقم بفتح أي تذكرة دعم بعد.'
+                            : `لا توجد تذاكر بحالة "${FILTERS.find(f => f.key === activeFilter)?.label}".`}
+                    </p>
+                    {activeFilter === 'all' && (
+                        <button
+                            onClick={() => setShowNewModal(true)}
+                            className="mt-4 flex items-center gap-2 px-4 py-2 bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 rounded-xl text-sm font-bold text-indigo-400 transition-colors"
+                        >
+                            <Plus className="w-4 h-4" />
+                            افتح أول تذكرة
+                        </button>
+                    )}
+                </motion.div>
+            ) : (
+                <div className="space-y-3">
+                    <AnimatePresence>
+                        {filtered.map(ticket => (
+                            <TicketCard
+                                key={ticket.id}
+                                ticket={ticket}
+                                onClick={setSelectedTicket}
+                            />
+                        ))}
+                    </AnimatePresence>
+                </div>
+            )}
+
+            {/* ── Modals ── */}
+            <AnimatePresence>
+                {showNewModal && (
+                    <NewTicketModal
+                        onClose={() => setShowNewModal(false)}
+                        onSuccess={handleNewSuccess}
+                    />
+                )}
+                {selectedTicket && (
+                    <TicketDetailDrawer
+                        ticket={selectedTicket}
+                        onClose={() => setSelectedTicket(null)}
+                    />
+                )}
+            </AnimatePresence>
+        </div>
+    );
+};
+
+export default SupportPage;

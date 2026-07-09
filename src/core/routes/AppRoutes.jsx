@@ -16,9 +16,11 @@ import Dashboard from '../../modules/dashboard/Dashboard';
 import AdvertiserDashboard from '../../modules/dashboard/AdvertiserDashboard';
 import MaintenanceDashboard from '../../modules/dashboard/MaintenanceDashboard';
 import SecretaryDashboard from '../../modules/dashboard/SecretaryDashboard';
+import OwnerDashboard from '../../modules/dashboard/OwnerDashboard';
 
 // Modules
 import ScreensPage from '../../modules/screens/ScreensPage';
+import ScreenDetailPage from '../../modules/screens/ScreenDetailPage';
 import AdsPage from '../../modules/ads/AdsPage';
 import CreateAdPage from '../../modules/ads/CreateAdPage';
 import UsersPage from '../../modules/users/UsersPage';
@@ -30,6 +32,8 @@ import SettingsPage from '../../modules/settings/SettingsPage';
 import NotificationsPage from '../../modules/notifications/NotificationsPage';
 import ScreenReportsPage from '../../modules/reports/ScreenReportsPage';
 import MaintenanceReportsPage from '../../modules/reports/MaintenanceReportsPage';
+import OwnerAnalyticsPage from '../../modules/reports/OwnerAnalyticsPage';
+import SupportPage from '../../modules/support/SupportPage';
 
 // Admin Modules
 import PaymentMethodsPage from '../../modules/admin/PaymentMethodsPage';
@@ -74,6 +78,7 @@ const SmartDashboard = () => {
     if (roleName === ROLES.ADVERTISER)  return <AdvertiserDashboard />;
     if (roleName === ROLES.MAINTENANCE) return <MaintenanceDashboard />;
     if (roleName === ROLES.SECRETARY)   return <SecretaryDashboard />;
+    if (roleName === ROLES.SCREEN_OWNER) return <OwnerDashboard />;
     return <Dashboard />;
 };
 
@@ -92,6 +97,7 @@ const AppRoutes = () => {
 
                 {/* Screens Module */}
                 <Route path="screens" element={<ScreensPage />} />
+                <Route path="screens/:id" element={<ScreenDetailPage />} />
 
                 {/* Ads Module */}
                 <Route path="ads" element={<AdsPage />} />
@@ -157,6 +163,9 @@ const AppRoutes = () => {
                     </RoleRoute>
                 } />
 
+                {/* Support & Maintenance (Screen Owner) */}
+                <Route path="support" element={<SupportPage />} />
+
                 {/* Advertiser Financials */}
                 <Route path="my-financials" element={
                     <RoleRoute allowedRoles={[ROLES.ADVERTISER]}>
@@ -178,6 +187,13 @@ const AppRoutes = () => {
                 <Route path="reports/maintenance" element={
                     <RoleRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.MAINTENANCE]}>
                         <MaintenanceReportsPage />
+                    </RoleRoute>
+                } />
+
+                {/* Owner Analytics (Screen Owner only) */}
+                <Route path="analytics/owner" element={
+                    <RoleRoute allowedRoles={[ROLES.SCREEN_OWNER]}>
+                        <OwnerAnalyticsPage />
                     </RoleRoute>
                 } />
             </Route>
