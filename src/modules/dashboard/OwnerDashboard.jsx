@@ -251,10 +251,7 @@ const OwnerDashboard = () => {
         { id: 3, text: "تم تحويل أرباح شهر يونيو بنجاح إلى حسابك.", type: "success", time: "أمس" },
     ];
     
-    const weeklyData = [
-        { day: 'Sun', amount: 120 }, { day: 'Mon', amount: 350 }, { day: 'Tue', amount: 280 },
-        { day: 'Wed', amount: 500 }, { day: 'Thu', amount: 480 }, { day: 'Fri', amount: 750 }, { day: 'Sat', amount: 900 }
-    ];
+        const [weeklyData, setWeeklyData] = useState([]);
 
     useEffect(() => {
         const fetchDashboardData = async () => {
@@ -262,19 +259,33 @@ const OwnerDashboard = () => {
             try {
                 const res = await axiosClient.get(ENDPOINTS.OWNER.DASHBOARD).catch(() => ({ data: {} }));
                 const kpis = res.data?.data || res.data || {};
+                
+                // ...existing setStats...
                 setStats({
-                    total_screens: kpis.total_screens || 0,
-                    online_screens: kpis.active_screens || 0,
-                    offline_screens: (kpis.total_screens || 0) - (kpis.active_screens || 0),
-                    monthly_revenue: kpis.monthly_earnings || 0,
-                    today_revenue: kpis.today_earnings || 0,
+                    total_screens: kpis.kpis?.total_screens ?? kpis.total_screens ?? 0,
+                    online_screens: kpis.kpis?.active_screens ?? kpis.active_screens ?? 0,
+                    offline_screens: (kpis.kpis?.total_screens ?? 0) - (kpis.kpis?.active_screens ?? 0),
+                    monthly_revenue: kpis.kpis?.today_earnings ?? kpis.monthly_earnings ?? 0,
+                    revenue_growth: '+0%', // Can be calculated from history
+                    notifications: kpis.financial_activities ? kpis.financial_activities.length : 0
                 });
-            } catch (e) {
-                console.error(e);
+
+                if (kpis.charts && kpis.charts.weekly_revenue) {
+                    setWeeklyData(kpis.charts.weekly_revenue);
+                } else {
+                    setWeeklyData([
+                        { day: 'Sun', amount: 0 }, { day: 'Mon', amount: 0 }, { day: 'Tue', amount: 0 },
+                        { day: 'Wed', amount: 0 }, { day: 'Thu', amount: 0 }, { day: 'Fri', amount: 0 }, { day: 'Sat', amount: 0 }
+                    ]);
+                }
+
+            } catch (error) {
+                console.error("Failed to fetch dashboard data:", error);
             } finally {
                 setLoading(false);
             }
         };
+
         fetchDashboardData();
     }, []);
 
@@ -374,3 +385,4 @@ const OwnerDashboard = () => {
 };
 
 export default OwnerDashboard;
+
