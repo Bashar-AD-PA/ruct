@@ -519,6 +519,20 @@ const UsersPage = () => {
                     </div>
                 ) : (
                     <form onSubmit={handleSubmit} className="space-y-6 mt-4" dir="rtl">
+                        <div className="bg-surface-container-lowest p-5 rounded-xl border border-outline-variant space-y-4">
+                            <div className="flex items-center gap-2 mb-2 text-primary">
+                                <span className="material-symbols-outlined text-xl">admin_panel_settings</span>
+                                <h4 className="font-label-md text-label-md">هيكل الصلاحيات الوصولية</h4>
+                            </div>
+                            <div>
+                                <label className={labelClass}>تصنيف الصلاحية <span className="text-error">*</span></label>
+                                <select required value={form.role_id} onChange={e => setForm({ ...form, role_id: e.target.value })} className={inputClass}>
+                                    <option value="">-- اضغط لتعيين الدور الإداري --</option>
+                                    {roles.map(r => <option key={r.role_id || r.id} value={r.role_id || r.id}>{r.role_name}</option>)}
+                                </select>
+                            </div>
+                        </div>
+
                         {(modalConfig.type === 'add' || modalConfig.type === 'edit') && (
                             <div className="space-y-4">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -554,20 +568,6 @@ const UsersPage = () => {
                                 </div>
                             </div>
                         )}
-
-                        <div className="bg-surface-container-lowest p-5 rounded-xl border border-outline-variant space-y-4">
-                            <div className="flex items-center gap-2 mb-2 text-primary">
-                                <span className="material-symbols-outlined text-xl">admin_panel_settings</span>
-                                <h4 className="font-label-md text-label-md">هيكل الصلاحيات الوصولية</h4>
-                            </div>
-                            <div>
-                                <label className={labelClass}>تصنيف الصلاحية <span className="text-error">*</span></label>
-                                <select required value={form.role_id} onChange={e => setForm({ ...form, role_id: e.target.value })} className={inputClass}>
-                                    <option value="">-- اضغط لتعيين الدور الإداري --</option>
-                                    {roles.map(r => <option key={r.role_id || r.id} value={r.role_id || r.id}>{r.role_name}</option>)}
-                                </select>
-                            </div>
-                        </div>
 
                         {roles.find(r => (r.role_id || r.id) == form.role_id)?.role_name === 'ScreenOwner' && (
                             <div className="bg-surface-container-lowest p-5 rounded-xl border border-outline-variant space-y-4 mt-2">
