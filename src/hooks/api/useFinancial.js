@@ -8,7 +8,7 @@ export const useLedger = () => {
     queryKey: ['ledger'],
     queryFn: async () => {
       const res = await axiosClient.get(ENDPOINTS.FINANCIAL.LEDGER);
-      return Array.isArray(res.data?.data) ? res.data.data : Array.isArray(res.data) ? res.data : [];
+      return res.data?.data || res.data || {};
     },
   });
 };
