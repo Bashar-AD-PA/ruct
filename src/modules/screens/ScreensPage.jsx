@@ -834,12 +834,12 @@ const ScreensPage = () => {
               {!modalConfig.isEdit && (
                 <div style={{ gridColumn: '1 / -1' }}>
                   <label style={{ fontSize: '12px', fontWeight: 600, color: '#434655', display: 'block', marginBottom: '6px' }}>
-                    MAC Address <span style={{ color: '#ba1a1a' }}>*</span>
+                    معرف الشاشة <span style={{ color: '#ba1a1a' }}>*</span>
                   </label>
                   <input
                     type="text" required value={form.mac_address}
                     onChange={(e) => setForm(p => ({ ...p, mac_address: e.target.value }))}
-                    placeholder="AA:BB:CC:DD:EE:FF"
+                    placeholder="SB-NEG543RR"
                     dir="ltr"
                     style={{
                       width: '100%', border: '1.5px solid #c3c6d7', borderRadius: '10px',
@@ -980,7 +980,7 @@ const ScreensPage = () => {
                 </div>
               </div>
             )}
-            
+
             {/* Map Picker UI */}
             <div style={{ marginTop: '16px', background: '#f9f9ff', padding: '12px', borderRadius: '10px', border: '1px solid #c3c6d7' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
