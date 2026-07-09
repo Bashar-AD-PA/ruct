@@ -47,13 +47,13 @@ const CATEGORIES = [
 
 /* ─── Skeleton Loader ────────────────────────────────────────── */
 const SkeletonCard = () => (
-    <div className="bg-[#121215]/60 backdrop-blur-xl border border-white/5 rounded-2xl p-5 animate-pulse">
+    <div className="bg-white border border-[#c3c6d7] shadow-sm rounded-2xl p-5 animate-pulse">
         <div className="flex justify-between items-start mb-3">
             <div className="h-4 bg-white/10 rounded w-1/3" />
             <div className="h-6 bg-white/10 rounded-full w-20" />
         </div>
-        <div className="h-3 bg-white/5 rounded w-2/3 mb-2" />
-        <div className="h-3 bg-white/5 rounded w-1/2" />
+        <div className="h-3 bg-[#f1f3ff] rounded w-2/3 mb-2" />
+        <div className="h-3 bg-[#f1f3ff] rounded w-1/2" />
     </div>
 );
 
@@ -67,14 +67,14 @@ const TicketCard = ({ ticket, onClick }) => {
         <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            whileHover={{ y: -2, borderColor: 'rgba(255,255,255,0.12)' }}
+            whileHover={{ y: -2, borderColor: '#c3c6d7' }}
             onClick={() => onClick(ticket)}
-            className="bg-[#121215]/60 backdrop-blur-xl border border-white/5 rounded-2xl p-5 cursor-pointer transition-all"
+            className="bg-white border border-[#c3c6d7] shadow-sm rounded-2xl p-5 cursor-pointer transition-all"
         >
             <div className="flex items-start justify-between gap-3 mb-3">
                 <div className="flex-1 min-w-0">
-                    <p className="text-sm font-black text-white truncate">{ticket.subject}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">#{ticket.id} · {ticket.created_at_human || ticket.created_at}</p>
+                    <p className="text-sm font-black text-[#141b2b] truncate">{ticket.subject}</p>
+                    <p className="text-xs text-[#737686] mt-0.5">#{ticket.id} · {ticket.created_at_human || ticket.created_at}</p>
                 </div>
                 {/* Status Badge */}
                 <span
@@ -86,14 +86,14 @@ const TicketCard = ({ ticket, onClick }) => {
                 </span>
             </div>
 
-            <p className="text-xs text-gray-500 line-clamp-2 mb-3">{ticket.description}</p>
+            <p className="text-xs text-[#737686] line-clamp-2 mb-3">{ticket.description}</p>
 
             <div className="flex items-center justify-between">
                 <span className="text-xs font-bold" style={{ color: priority.color }}>
                     ● أولوية {priority.label}
                 </span>
                 {ticket.category && (
-                    <span className="text-xs text-gray-600 bg-white/5 px-2 py-0.5 rounded-full">
+                    <span className="text-xs text-[#434655] bg-[#f1f3ff] px-2 py-0.5 rounded-full">
                         {CATEGORIES.find(c => c.value === ticket.category)?.label || ticket.category}
                     </span>
                 )}
@@ -147,25 +147,25 @@ const NewTicketModal = ({ onClose, onSuccess }) => {
                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                className="w-[95%] sm:w-[500px] shrink-0 bg-[#0f0f12] border border-white/10 rounded-3xl overflow-hidden"
+                className="w-[95%] sm:w-[500px] shrink-0 bg-white border border-[#c3c6d7] rounded-3xl overflow-hidden"
                 dir="rtl"
             >
                 {/* Header */}
-                <div className="flex items-center justify-between px-6 py-5 border-b border-white/5">
+                <div className="flex items-center justify-between px-6 py-5 border-b border-[#c3c6d7]">
                     <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-indigo-500/10 flex items-center justify-center">
-                            <Plus className="w-4 h-4 text-indigo-400" />
+                        <div className="w-9 h-9 rounded-xl bg-[#e9edff] flex items-center justify-center">
+                            <Plus className="w-4 h-4 text-[#004ac6]" />
                         </div>
                         <div>
-                            <h2 className="text-sm font-black text-white">تذكرة دعم جديدة</h2>
-                            <p className="text-xs text-gray-500">أخبرنا بمشكلتك وسنتواصل معك</p>
+                            <h2 className="text-sm font-black text-[#141b2b]">تذكرة دعم جديدة</h2>
+                            <p className="text-xs text-[#737686]">أخبرنا بمشكلتك وسنتواصل معك</p>
                         </div>
                     </div>
                     <button
                         onClick={onClose}
-                        className="w-8 h-8 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors"
+                        className="w-8 h-8 rounded-xl bg-[#f1f3ff] hover:bg-[#e9edff] flex items-center justify-center transition-colors"
                     >
-                        <X className="w-4 h-4 text-gray-400" />
+                        <X className="w-4 h-4 text-[#434655]" />
                     </button>
                 </div>
 
@@ -173,7 +173,7 @@ const NewTicketModal = ({ onClose, onSuccess }) => {
                 <form onSubmit={handleSubmit} className="p-6 space-y-4">
                     {/* Subject */}
                     <div>
-                        <label className="block text-xs font-bold text-gray-400 mb-1.5">
+                        <label className="block text-xs font-bold text-[#434655] mb-1.5">
                             عنوان المشكلة <span className="text-red-400">*</span>
                         </label>
                         <input
@@ -182,51 +182,51 @@ const NewTicketModal = ({ onClose, onSuccess }) => {
                             value={form.subject}
                             onChange={e => handleChange('subject', e.target.value)}
                             maxLength={120}
-                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/50 transition-colors"
+                            className="w-full bg-[#f1f3ff] border border-[#c3c6d7] rounded-xl px-4 py-2.5 text-sm text-[#141b2b] placeholder-gray-600 focus:outline-none focus:border-[#004ac6]/50 transition-colors"
                         />
                     </div>
 
                     {/* Category + Priority */}
                     <div className="grid grid-cols-2 gap-3">
                         <div>
-                            <label className="block text-xs font-bold text-gray-400 mb-1.5">نوع المشكلة</label>
+                            <label className="block text-xs font-bold text-[#434655] mb-1.5">نوع المشكلة</label>
                             <div className="relative">
                                 <select
                                     value={form.category}
                                     onChange={e => handleChange('category', e.target.value)}
-                                    className="w-full appearance-none bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500/50 transition-colors"
+                                    className="w-full appearance-none bg-[#f1f3ff] border border-[#c3c6d7] rounded-xl px-4 py-2.5 text-sm text-[#141b2b] focus:outline-none focus:border-[#004ac6]/50 transition-colors"
                                 >
                                     {CATEGORIES.map(c => (
-                                        <option key={c.value} value={c.value} style={{ background: '#1a1a1e' }}>
+                                        <option key={c.value} value={c.value} style={{ background: '#ffffff' }}>
                                             {c.label}
                                         </option>
                                     ))}
                                 </select>
-                                <ChevronDown className="absolute left-3 top-3 w-4 h-4 text-gray-500 pointer-events-none" />
+                                <ChevronDown className="absolute left-3 top-3 w-4 h-4 text-[#737686] pointer-events-none" />
                             </div>
                         </div>
                         <div>
-                            <label className="block text-xs font-bold text-gray-400 mb-1.5">الأولوية</label>
+                            <label className="block text-xs font-bold text-[#434655] mb-1.5">الأولوية</label>
                             <div className="relative">
                                 <select
                                     value={form.priority}
                                     onChange={e => handleChange('priority', e.target.value)}
-                                    className="w-full appearance-none bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500/50 transition-colors"
+                                    className="w-full appearance-none bg-[#f1f3ff] border border-[#c3c6d7] rounded-xl px-4 py-2.5 text-sm text-[#141b2b] focus:outline-none focus:border-[#004ac6]/50 transition-colors"
                                 >
                                     {Object.entries(PRIORITY_MAP).map(([val, cfg]) => (
-                                        <option key={val} value={val} style={{ background: '#1a1a1e' }}>
+                                        <option key={val} value={val} style={{ background: '#ffffff' }}>
                                             {cfg.label}
                                         </option>
                                     ))}
                                 </select>
-                                <ChevronDown className="absolute left-3 top-3 w-4 h-4 text-gray-500 pointer-events-none" />
+                                <ChevronDown className="absolute left-3 top-3 w-4 h-4 text-[#737686] pointer-events-none" />
                             </div>
                         </div>
                     </div>
 
                     {/* Description */}
                     <div>
-                        <label className="block text-xs font-bold text-gray-400 mb-1.5">
+                        <label className="block text-xs font-bold text-[#434655] mb-1.5">
                             وصف المشكلة <span className="text-red-400">*</span>
                         </label>
                         <textarea
@@ -234,7 +234,7 @@ const NewTicketModal = ({ onClose, onSuccess }) => {
                             value={form.description}
                             onChange={e => handleChange('description', e.target.value)}
                             rows={4}
-                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/50 transition-colors resize-none"
+                            className="w-full bg-[#f1f3ff] border border-[#c3c6d7] rounded-xl px-4 py-2.5 text-sm text-[#141b2b] placeholder-gray-600 focus:outline-none focus:border-[#004ac6]/50 transition-colors resize-none"
                         />
                     </div>
 
@@ -254,7 +254,7 @@ const NewTicketModal = ({ onClose, onSuccess }) => {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl text-sm font-black text-white transition-colors"
+                            className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-[#004ac6] hover:bg-[#2563eb] disabled:opacity-50 disabled:cursor-not-allowed rounded-xl text-sm font-black text-white transition-colors"
                         >
                             {loading ? (
                                 <RefreshCw className="w-4 h-4 animate-spin" />
@@ -266,7 +266,7 @@ const NewTicketModal = ({ onClose, onSuccess }) => {
                         <button
                             type="button"
                             onClick={onClose}
-                            className="px-5 py-2.5 bg-white/5 hover:bg-white/10 rounded-xl text-sm font-bold text-gray-400 transition-colors"
+                            className="px-5 py-2.5 bg-[#f1f3ff] hover:bg-[#e9edff] rounded-xl text-sm font-bold text-[#434655] transition-colors"
                         >
                             إلغاء
                         </button>
@@ -296,20 +296,20 @@ const TicketDetailDrawer = ({ ticket, onClose }) => {
                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                className="w-[95%] sm:w-[500px] shrink-0 bg-[#0f0f12] border border-white/10 rounded-3xl overflow-hidden"
+                className="w-[95%] sm:w-[500px] shrink-0 bg-white border border-[#c3c6d7] rounded-3xl overflow-hidden"
                 dir="rtl"
             >
                 {/* Header */}
-                <div className="flex items-start justify-between px-6 py-5 border-b border-white/5">
+                <div className="flex items-start justify-between px-6 py-5 border-b border-[#c3c6d7]">
                     <div className="flex-1 min-w-0">
-                        <p className="text-xs text-gray-500 mb-1">#{ticket.id}</p>
-                        <h2 className="text-sm font-black text-white">{ticket.subject}</h2>
+                        <p className="text-xs text-[#737686] mb-1">#{ticket.id}</p>
+                        <h2 className="text-sm font-black text-[#141b2b]">{ticket.subject}</h2>
                     </div>
                     <button
                         onClick={onClose}
-                        className="w-8 h-8 ml-3 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors flex-shrink-0"
+                        className="w-8 h-8 ml-3 rounded-xl bg-[#f1f3ff] hover:bg-[#e9edff] flex items-center justify-center transition-colors flex-shrink-0"
                     >
-                        <X className="w-4 h-4 text-gray-400" />
+                        <X className="w-4 h-4 text-[#434655]" />
                     </button>
                 </div>
 
@@ -327,15 +327,15 @@ const TicketDetailDrawer = ({ ticket, onClose }) => {
                             ● أولوية {priority.label}
                         </span>
                         {ticket.category && (
-                            <span className="text-xs text-gray-600 bg-white/5 px-2 py-1 rounded-full">
+                            <span className="text-xs text-[#434655] bg-[#f1f3ff] px-2 py-1 rounded-full">
                                 {CATEGORIES.find(c => c.value === ticket.category)?.label || ticket.category}
                             </span>
                         )}
                     </div>
 
                     {/* Description */}
-                    <div className="bg-white/5 border border-white/5 rounded-2xl p-4">
-                        <p className="text-xs font-bold text-gray-500 mb-2">وصف المشكلة</p>
+                    <div className="bg-[#f1f3ff] border border-[#c3c6d7] rounded-2xl p-4">
+                        <p className="text-xs font-bold text-[#737686] mb-2">وصف المشكلة</p>
                         <p className="text-sm text-gray-300 leading-relaxed">{ticket.description}</p>
                     </div>
 
@@ -343,8 +343,8 @@ const TicketDetailDrawer = ({ ticket, onClose }) => {
                     {ticket.admin_reply && (
                         <div className="bg-indigo-500/5 border border-indigo-500/20 rounded-2xl p-4">
                             <div className="flex items-center gap-2 mb-2">
-                                <MessageSquare className="w-3.5 h-3.5 text-indigo-400" />
-                                <p className="text-xs font-bold text-indigo-400">رد فريق الدعم</p>
+                                <MessageSquare className="w-3.5 h-3.5 text-[#004ac6]" />
+                                <p className="text-xs font-bold text-[#004ac6]">رد فريق الدعم</p>
                             </div>
                             <p className="text-sm text-gray-300 leading-relaxed">{ticket.admin_reply}</p>
                         </div>
@@ -352,26 +352,26 @@ const TicketDetailDrawer = ({ ticket, onClose }) => {
 
                     {/* Timeline */}
                     <div>
-                        <p className="text-xs font-bold text-gray-500 mb-3">المعلومات</p>
+                        <p className="text-xs font-bold text-[#737686] mb-3">المعلومات</p>
                         <div className="space-y-2">
                             <div className="flex justify-between text-xs">
-                                <span className="text-gray-600">تاريخ الإنشاء</span>
-                                <span className="text-gray-400">{ticket.created_at_human || ticket.created_at}</span>
+                                <span className="text-[#434655]">تاريخ الإنشاء</span>
+                                <span className="text-[#434655]">{ticket.created_at_human || ticket.created_at}</span>
                             </div>
                             {ticket.updated_at && ticket.updated_at !== ticket.created_at && (
                                 <div className="flex justify-between text-xs">
-                                    <span className="text-gray-600">آخر تحديث</span>
-                                    <span className="text-gray-400">{ticket.updated_at_human || ticket.updated_at}</span>
+                                    <span className="text-[#434655]">آخر تحديث</span>
+                                    <span className="text-[#434655]">{ticket.updated_at_human || ticket.updated_at}</span>
                                 </div>
                             )}
                         </div>
                     </div>
                 </div>
 
-                <div className="px-6 py-4 border-t border-white/5">
+                <div className="px-6 py-4 border-t border-[#c3c6d7]">
                     <button
                         onClick={onClose}
-                        className="w-full py-2.5 bg-white/5 hover:bg-white/10 rounded-xl text-sm font-bold text-gray-400 transition-colors"
+                        className="w-full py-2.5 bg-[#f1f3ff] hover:bg-[#e9edff] rounded-xl text-sm font-bold text-[#434655] transition-colors"
                     >
                         إغلاق
                     </button>
@@ -387,9 +387,9 @@ const StatCard = ({ label, value, color, delay = 0 }) => (
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay }}
-        className="bg-[#121215]/60 backdrop-blur-xl border border-white/5 rounded-2xl p-5"
+        className="bg-white border border-[#c3c6d7] shadow-sm rounded-2xl p-5"
     >
-        <p className="text-xs font-bold text-gray-500 mb-1">{label}</p>
+        <p className="text-xs font-bold text-[#737686] mb-1">{label}</p>
         <p className="text-2xl font-black" style={{ color }}>{value}</p>
     </motion.div>
 );
@@ -447,11 +447,11 @@ const SupportPage = () => {
             {/* ── Page Header ── */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-black text-white tracking-tight flex items-center gap-3">
-                        <HeadphonesIcon className="w-7 h-7 text-indigo-400" />
+                    <h1 className="text-2xl font-black text-[#141b2b] tracking-tight flex items-center gap-3">
+                        <HeadphonesIcon className="w-7 h-7 text-[#004ac6]" />
                         الدعم والصيانة
                     </h1>
-                    <p className="text-sm text-gray-500 font-bold mt-1">
+                    <p className="text-sm text-[#737686] font-bold mt-1">
                         تتبع تذاكر الدعم الفني لشاشاتك
                     </p>
                 </div>
@@ -459,7 +459,7 @@ const SupportPage = () => {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.97 }}
                     onClick={() => setShowNewModal(true)}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-sm font-black text-white transition-colors shadow-lg shadow-indigo-500/20"
+                    className="flex items-center gap-2 px-5 py-2.5 bg-[#004ac6] hover:bg-[#2563eb] rounded-xl text-sm font-black text-white transition-colors shadow-lg shadow-[#004ac6]/20"
                 >
                     <Plus className="w-4 h-4" />
                     تذكرة جديدة
@@ -482,8 +482,8 @@ const SupportPage = () => {
                         onClick={() => setActiveFilter(f.key)}
                         className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all ${
                             activeFilter === f.key
-                                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20'
-                                : 'bg-white/5 text-gray-500 hover:bg-white/10 hover:text-gray-300'
+                                ? 'bg-[#004ac6] text-white shadow-lg shadow-[#004ac6]/20'
+                                : 'bg-[#f1f3ff] text-[#737686] hover:bg-[#e9edff] hover:text-gray-300'
                         }`}
                     >
                         {f.label}
@@ -507,11 +507,11 @@ const SupportPage = () => {
                     animate={{ opacity: 1, y: 0 }}
                     className="flex flex-col items-center justify-center py-20 text-center"
                 >
-                    <div className="w-16 h-16 rounded-3xl bg-white/5 flex items-center justify-center mb-4">
-                        <HeadphonesIcon className="w-8 h-8 text-gray-600" />
+                    <div className="w-16 h-16 rounded-3xl bg-[#f1f3ff] flex items-center justify-center mb-4">
+                        <HeadphonesIcon className="w-8 h-8 text-[#434655]" />
                     </div>
-                    <p className="text-base font-black text-gray-500">لا توجد تذاكر</p>
-                    <p className="text-xs text-gray-600 mt-1">
+                    <p className="text-base font-black text-[#737686]">لا توجد تذاكر</p>
+                    <p className="text-xs text-[#434655] mt-1">
                         {activeFilter === 'all'
                             ? 'لم تقم بفتح أي تذكرة دعم بعد.'
                             : `لا توجد تذاكر بحالة "${FILTERS.find(f => f.key === activeFilter)?.label}".`}
@@ -519,7 +519,7 @@ const SupportPage = () => {
                     {activeFilter === 'all' && (
                         <button
                             onClick={() => setShowNewModal(true)}
-                            className="mt-4 flex items-center gap-2 px-4 py-2 bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 rounded-xl text-sm font-bold text-indigo-400 transition-colors"
+                            className="mt-4 flex items-center gap-2 px-4 py-2 bg-[#004ac6]/20 hover:bg-[#004ac6]/30 border border-indigo-500/30 rounded-xl text-sm font-bold text-[#004ac6] transition-colors"
                         >
                             <Plus className="w-4 h-4" />
                             افتح أول تذكرة
@@ -560,3 +560,5 @@ const SupportPage = () => {
 };
 
 export default SupportPage;
+
+
