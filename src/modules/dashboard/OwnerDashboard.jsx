@@ -260,13 +260,14 @@ const OwnerDashboard = () => {
         const fetchDashboardData = async () => {
             setLoading(true);
             try {
-                const res = await axiosClient.get(ENDPOINTS.DASHBOARD.OVERVIEW).catch(() => ({ data: {} }));
-                const kpis = res.data?.kpis || {};
+                const res = await axiosClient.get(ENDPOINTS.OWNER.DASHBOARD).catch(() => ({ data: {} }));
+                const kpis = res.data?.data || res.data || {};
                 setStats({
-                    total_screens: kpis.total_screens || 12,
-                    online_screens: kpis.active_screens || 10,
-                    offline_screens: (kpis.total_screens || 12) - (kpis.active_screens || 10),
-                    monthly_revenue: 3450,
+                    total_screens: kpis.total_screens || 0,
+                    online_screens: kpis.active_screens || 0,
+                    offline_screens: (kpis.total_screens || 0) - (kpis.active_screens || 0),
+                    monthly_revenue: kpis.monthly_earnings || 0,
+                    today_revenue: kpis.today_earnings || 0,
                 });
             } catch (e) {
                 console.error(e);
@@ -299,18 +300,11 @@ const OwnerDashboard = () => {
 
             {/* ── KPI Grid ── */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <KpiCard label="أرباح اليوم" sublabel="خلال 24 ساعة الماضية" value={`$${stats.today_revenue || 0}`} note="+5% عن الأمس" noteIcon={TrendingUp} noteColor={S.success} accentColor={S.primary} iconBg={S.primaryFixed} iconColor={S.primary} Icon={DollarSign} borderAccent={S.primary} index={0} />
+                <KpiCard label="إجمالي الأرباح" sublabel="أرباح هذا الشهر" value={`$${stats.monthly_revenue || 0}`} note="+12% عن الشهر الماضي" noteIcon={TrendingUp} noteColor={S.success} accentColor={S.secondary} iconBg={S.secondaryFixed} iconColor={S.secondaryContainer} Icon={Activity} borderAccent={S.secondary} index={1} />
                 <KpiCard
-                    index={0} label="إجمالي الأصول (الشاشات)" sublabel="Total Screens Owned" value={stats.total_screens}
+                    index={2} label="إجمالي الأصول (الشاشات)" sublabel="Total Screens Owned" value={stats.total_screens}
                     Icon={Monitor} iconBg={S.surfaceContainer} iconColor={S.primaryContainer}
-                />
-                <KpiCard
-                    index={1} label="الشاشات النشطة" sublabel="Live & Running" value={stats.online_screens}
-                    Icon={Activity} iconBg={S.successContainer} iconColor={S.success} accentColor={S.success} borderAccent={S.success}
-                />
-                <KpiCard
-                    index={2} label="أرباح الشهر الحالي" sublabel="Estimated Revenue" value={`$${stats.monthly_revenue.toLocaleString()}`}
-                    note="مرتفع مقارنة بالشهر السابق" noteIcon={TrendingUp} noteColor={S.success}
-                    Icon={DollarSign} iconBg="#f0fdf4" iconColor={S.success} accentColor="#166534"
                 />
                 <KpiCard
                     index={3} label="تنبيهات وأعطال" sublabel="Offline / Action Required" value={stats.offline_screens}
