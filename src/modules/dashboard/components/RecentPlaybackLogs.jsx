@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, ChevronRight, ChevronLeft, Download, Filter } from 'lucide-react';
+import { Search, ChevronRight, ChevronLeft, Download, Filter, Trash2 } from 'lucide-react';
 import { usePlaybackLogs } from '../../../hooks/api/useLogs';
 import axiosClient from '../../../core/api/axiosClient';
 import { ENDPOINTS } from '../../../core/api/endpoints';
@@ -31,6 +31,7 @@ const RecentPlaybackLogs = () => {
     const addToast = useToastStore(state => state.addToast);
     const [page, setPage] = useState(1);
     const [isExporting, setIsExporting] = useState(false);
+    const [isCleaning, setIsCleaning] = useState(false);
 
     const params = {
         page,
@@ -64,6 +65,22 @@ const RecentPlaybackLogs = () => {
             addToast('حدث خطأ أثناء التصدير', 'error');
         } finally {
             setIsExporting(false);
+        }
+    };
+
+    const handleCleanup = async () => {
+        if (!window.confirm('هل أنت متأكد من رغبتك في حذف جميع السجلات الأقدم من 30 يوماً؟ لا يمكن التراجع عن هذا الإجراء.')) return;
+        
+        try {
+            setIsCleaning(true);
+            const response = await axiosClient.delete(ENDPOINTS.LOGS.PLAYBACK_CLEANUP, {
+                params: { days: 30 }
+            });
+            addToast(response.data.message || 'تم تنظيف السجلات بنجاح', 'success');
+        } catch (error) {
+            addToast('حدث خطأ أثناء تنظيف السجلات', 'error');
+        } finally {
+            setIsCleaning(false);
         }
     };
 
@@ -102,6 +119,23 @@ const RecentPlaybackLogs = () => {
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', direction: 'ltr', flexWrap: 'wrap' }}>
                     
+                    <button 
+                        onClick={handleCleanup}
+                        disabled={isCleaning}
+                        style={{
+                            display: 'flex', alignItems: 'center', gap: '6px',
+                            background: isCleaning ? S.surfaceContainerLow : '#fee2e2',
+                            color: isCleaning ? S.outline : '#ef4444',
+                            border: 'none', padding: '8px 16px', borderRadius: '8px',
+                            cursor: isCleaning ? 'wait' : 'pointer', fontWeight: 600,
+                            fontFamily: "'IBM Plex Sans Arabic', sans-serif",
+                        }}
+                        title="حذف السجلات الأقدم من 30 يوماً"
+                    >
+                        <Trash2 style={{ fontSize: '18px', width: '18px', height: '18px' }} />
+                        تنظيف
+                    </button>
+
                     <button 
                         onClick={handleExport}
                         disabled={isExporting}

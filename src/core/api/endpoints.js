@@ -102,7 +102,8 @@ export const ENDPOINTS = {
     },
     LOGS: {
         PLAYBACK: '/logs/playback',
-        PLAYBACK_EXPORT: '/logs/playback/export'
+        PLAYBACK_EXPORT: '/logs/playback/export',
+        PLAYBACK_CLEANUP: '/logs/playback/cleanup'
     },
     SUPPORT: {
         ALL:    '/support/tickets',
