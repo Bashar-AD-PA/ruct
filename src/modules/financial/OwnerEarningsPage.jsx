@@ -9,6 +9,9 @@ import useToastStore from '../../store/useToastStore';
 import axiosClient from '../../core/api/axiosClient';
 import { ENDPOINTS } from '../../core/api/endpoints';
 import Modal from '../../shared/components/Modal';
+import { useQueryClient } from '@tanstack/react-query';
+import echo from '../../core/api/echo';
+import useAuthStore from '../../store/useAuthStore';
 import { useOwnerEarnings, useRequestPayout } from '../../hooks/api/useFinancial';
 
 /* ─── Premium Colour Tokens ─── */
@@ -33,8 +36,19 @@ const S = {
 
 const OwnerEarningsPage = () => {
     // ─── 1. DATA FROM BACKEND ───
+    const queryClient = useQueryClient();
+    const user = useAuthStore(s => s.user);
     const { data, isLoading: isFetching } = useOwnerEarnings();
     const { mutateAsync: requestPayout } = useRequestPayout();
+
+    useEffect(() => {
+        if (!user) return;
+        const channel = echo.private(`owner.earnings.${user.user_id}`);
+        channel.listen('LedgerUpdated', () => {
+            queryClient.invalidateQueries({ queryKey: ['ownerEarnings'] });
+        });
+        return () => echo.leave(`owner.earnings.${user.user_id}`);
+    }, [user, queryClient]);
 
     const balance = data?.available_balance || 0;
     const totalEarned = data?.total_earnings || 0;

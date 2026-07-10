@@ -5,9 +5,12 @@ import { ENDPOINTS } from '../../core/api/endpoints';
 import DataTable from '../../shared/components/DataTable';
 import DynamicPageLoader from '../../shared/components/DynamicPageLoader';
 import Modal from '../../shared/components/Modal';
+import { useQueryClient } from '@tanstack/react-query';
+import echo from '../../core/api/echo';
 import { useLedger, useRecordPayment, useApprovePayout, useRejectPayout } from '../../hooks/api/useFinancial';
 
 const FinancialPage = () => {
+    const queryClient = useQueryClient();
     const { data: ledgerData, isLoading: loading } = useLedger();
     const { mutateAsync: recordPayment } = useRecordPayment();
     const { mutateAsync: approvePayout, isPending: isApproving } = useApprovePayout();
@@ -22,6 +25,16 @@ const FinancialPage = () => {
     const [formData, setFormData] = useState({ amount: '', reference_number: '', payment_method: 'bank_transfer' });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isAmountVisible, setIsAmountVisible] = useState(true);
+
+    useEffect(() => {
+        const channel = echo.private('admin.ledger');
+        channel.listen('LedgerUpdated', (e) => {
+            queryClient.invalidateQueries({ queryKey: ['ledger'] });
+        });
+        return () => {
+            echo.leave('admin.ledger');
+        };
+    }, [queryClient]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();

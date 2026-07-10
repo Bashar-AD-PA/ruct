@@ -7,6 +7,8 @@ import useUIStore from '../../store/useUIStore';
 import { getNavItems } from '../../core/routes/navigation';
 import axiosClient from '../../core/api/axiosClient';
 import { ENDPOINTS } from '../../core/api/endpoints';
+import echo from '../../core/api/echo';
+import useToastStore from '../../store/useToastStore';
 
 /* ─── Stitch colour tokens — light ─── */
 const LIGHT = {
@@ -116,6 +118,31 @@ const DashboardLayout = () => {
         document.addEventListener('mousedown', handler);
         return () => document.removeEventListener('mousedown', handler);
     }, []);
+
+    const addToast = useToastStore(s => s.addToast);
+
+    /* WebSockets Real-time Notifications */
+    useEffect(() => {
+        if (!user) return;
+        
+        const channel = echo.private(`user.${user.user_id}`);
+        channel.listen('NotificationSent', (e) => {
+            setUnreadCount(prev => prev + 1);
+            let title = 'إشعار جديد';
+            try {
+                const parsed = JSON.parse(e.notification.title);
+                if (parsed.key === 'notif_title_payout_requested') title = 'طلب سحب جديد';
+                else if (parsed.key === 'notif_title_payout_approved') title = 'تم اعتماد السحب';
+                else if (parsed.key === 'notif_title_payout_rejected') title = 'تم رفض السحب';
+            } catch (err) {}
+            
+            addToast(`🔔 ${title}`, 'info');
+        });
+
+        return () => {
+            echo.leave(`user.${user.user_id}`);
+        };
+    }, [user, addToast]);
 
     /* Fetch unread notifications count */
     useEffect(() => {
