@@ -205,7 +205,7 @@ const ScreensPage = () => {
     try {
       setFormGeoLoading(true);
       const res = await axiosClient.get(ENDPOINTS.LOOKUPS.REGIONS_BY_GOV(govId));
-      setFormRegions(res.data);
+      setFormRegions(Array.isArray(res.data) ? res.data : (Array.isArray(res.data?.data) ? res.data.data : []));
     } catch {
       setFormRegions([]);
     } finally {
@@ -217,7 +217,7 @@ const ScreensPage = () => {
     try {
       setFormGeoLoading(true);
       const res = await axiosClient.get(ENDPOINTS.LOOKUPS.STREETS_BY_REGION(regionId));
-      setFormStreets(res.data);
+      setFormStreets(Array.isArray(res.data) ? res.data : (Array.isArray(res.data?.data) ? res.data.data : []));
     } catch {
       setFormStreets([]);
     } finally {
@@ -268,7 +268,7 @@ const ScreensPage = () => {
       setSlotsLoading(true);
       try {
         const slotsRes = await axiosClient.get(ENDPOINTS.SCREEN_PRICING.ALL);
-        const allSlots = Array.isArray(slotsRes.data?.data) ? slotsRes.data.data : slotsRes.data || [];
+        const allSlots = Array.isArray(slotsRes.data) ? slotsRes.data : (Array.isArray(slotsRes.data?.data) ? slotsRes.data.data : []);
         setPeakSlots(allSlots.filter(s => s.screen_id === screen.screen_id).map(s => ({
           id: s.slot_id || s.id,
           start_time: s.start_time ? s.start_time.substring(0, 5) : '16:00',
@@ -293,15 +293,15 @@ const ScreensPage = () => {
   };
 
   const handleAddSlot = () => {
-    setPeakSlots([...peakSlots, { id: 'new_' + Date.now(), start_time: '16:00', end_time: '22:00', price_multiplier: '1.5', isSaved: false }]);
+    setPeakSlots([...(Array.isArray(peakSlots) ? peakSlots : []), { id: 'new_' + Date.now(), start_time: '16:00', end_time: '22:00', price_multiplier: '1.5', isSaved: false }]);
   };
 
   const handleUpdateSlot = (id, field, value) => {
-    setPeakSlots(peakSlots.map(s => s.id === id ? { ...s, [field]: value } : s));
+    setPeakSlots((Array.isArray(peakSlots) ? peakSlots : []).map(s => s.id === id ? { ...s, [field]: value } : s));
   };
 
   const handleRemoveSlot = (id) => {
-    setPeakSlots(peakSlots.filter(s => s.id !== id));
+    setPeakSlots((Array.isArray(peakSlots) ? peakSlots : []).filter(s => s.id !== id));
   };
 
   const handleSubmit = async (e) => {
@@ -345,18 +345,18 @@ const ScreensPage = () => {
       if (screenIdStr) {
         if (modalConfig.isEdit) {
           const slotsRes = await axiosClient.get(ENDPOINTS.SCREEN_PRICING.ALL);
-          const allSlots = Array.isArray(slotsRes.data?.data) ? slotsRes.data.data : slotsRes.data || [];
+          const allSlots = Array.isArray(slotsRes.data) ? slotsRes.data : (Array.isArray(slotsRes.data?.data) ? slotsRes.data.data : []);
           const oldScreenSlots = allSlots.filter(s => s.screen_id === modalConfig.screen.screen_id);
 
           for (const oldSlot of oldScreenSlots) {
-            const stillExists = peakSlots.find(ps => ps.id === (oldSlot.slot_id || oldSlot.id));
+            const stillExists = (Array.isArray(peakSlots) ? peakSlots : []).find(ps => ps.id === (oldSlot.slot_id || oldSlot.id));
             if (!stillExists) {
               await axiosClient.delete(ENDPOINTS.SCREEN_PRICING.DELETE(oldSlot.slot_id || oldSlot.id)).catch(() => { });
             }
           }
         }
 
-        for (const slot of peakSlots) {
+        for (const slot of (Array.isArray(peakSlots) ? peakSlots : [])) {
           const payload = {
             screen_id: parseInt(screenIdStr),
             start_time: slot.start_time,
@@ -902,22 +902,23 @@ const ScreensPage = () => {
                 {/* المحافظة */}
                 <div>
                   <label style={{ fontSize: '12px', fontWeight: 600, color: '#434655', display: 'block', marginBottom: '6px' }}>المحافظة</label>
-                  <select value={formGovId} onChange={(e) => handleFormGovChange(e.target.value)}
-                    required={!isNewLocation}
+                  <select
+                    value={formGovId} onChange={handleFormGovChange} required={!isNewLocation}
                     style={{
                       width: '100%', border: '1.5px solid #c3c6d7', borderRadius: '10px',
                       padding: '10px 12px', fontSize: '13px', color: '#141b2b',
                       background: '#fff', outline: 'none', boxSizing: 'border-box',
                     }}>
                     <option value="">-- المحافظة --</option>
-                    {governorates.map(g => <option key={g.gov_id} value={g.gov_id}>{g.name}</option>)}
+                    {(Array.isArray(governorates) ? governorates : []).map(g => <option key={g.gov_id} value={g.gov_id}>{g.name}</option>)}
                   </select>
                 </div>
                 {/* المنطقة */}
                 <div>
                   <label style={{ fontSize: '12px', fontWeight: 600, color: '#434655', display: 'block', marginBottom: '6px' }}>المنطقة</label>
-                  <select value={formRegionId} onChange={(e) => handleFormRegionChange(e.target.value)}
-                    disabled={formGeoLoading || (!formGovId && !formRegionId)} required={!isNewLocation}
+                  <select
+                    value={formRegionId} onChange={handleFormRegionChange} required={!isNewLocation}
+                    disabled={!formGovId || formGeoLoading}
                     style={{
                       width: '100%', border: '1.5px solid #c3c6d7', borderRadius: '10px',
                       padding: '10px 12px', fontSize: '13px', color: '#141b2b',
@@ -925,14 +926,15 @@ const ScreensPage = () => {
                       opacity: formGeoLoading || (!formGovId && !formRegionId) ? 0.5 : 1,
                     }}>
                     <option value="">-- المنطقة --</option>
-                    {formRegions.map(r => <option key={r.region_id} value={r.region_id}>{r.name}</option>)}
+                    {(Array.isArray(formRegions) ? formRegions : []).map(r => <option key={r.region_id} value={r.region_id}>{r.name}</option>)}
                   </select>
                 </div>
                 {/* الشارع */}
                 <div>
                   <label style={{ fontSize: '12px', fontWeight: 600, color: '#434655', display: 'block', marginBottom: '6px' }}>الشارع</label>
-                  <select value={form.street_id} onChange={(e) => setForm(p => ({ ...p, street_id: e.target.value }))}
-                    disabled={formGeoLoading || (!formRegionId && !form.street_id)} required={!isNewLocation}
+                  <select
+                    value={form.street_id} onChange={(e) => setForm(p => ({ ...p, street_id: e.target.value }))} required={!isNewLocation}
+                    disabled={!formRegionId || formGeoLoading}
                     style={{
                       width: '100%', border: '1.5px solid #c3c6d7', borderRadius: '10px',
                       padding: '10px 12px', fontSize: '13px', color: '#141b2b',
@@ -940,7 +942,7 @@ const ScreensPage = () => {
                       opacity: formGeoLoading || (!formRegionId && !form.street_id) ? 0.5 : 1,
                     }}>
                     <option value="">-- الشارع --</option>
-                    {formStreets.map(s => <option key={s.street_id} value={s.street_id}>{s.name}</option>)}
+                    {(Array.isArray(formStreets) ? formStreets : []).map(s => <option key={s.street_id} value={s.street_id}>{s.name}</option>)}
                   </select>
                 </div>
               </div>
@@ -994,15 +996,16 @@ const ScreensPage = () => {
               {/* طراز الشاشة */}
               <div>
                 <label style={{ fontSize: '12px', fontWeight: 600, color: '#434655', display: 'block', marginBottom: '6px' }}>طراز الشاشة</label>
-                <select value={form.type_id} onChange={(e) => setForm(p => ({ ...p, type_id: e.target.value }))}
-                  style={{
-                    width: '100%', border: '1.5px solid #c3c6d7', borderRadius: '10px',
-                    padding: '10px 12px', fontSize: '13px', color: '#141b2b',
-                    background: '#fff', outline: 'none', boxSizing: 'border-box',
-                  }}>
-                  <option value="">-- اختر الطراز --</option>
-                  {lookups.types.map(t => <option key={t.type_id} value={t.type_id}>{t.type_name}</option>)}
-                </select>
+                <select
+                    value={form.type_id} onChange={e => setForm(p => ({ ...p, type_id: e.target.value }))} required
+                    style={{
+                      width: '100%', border: '1.5px solid #c3c6d7', borderRadius: '10px',
+                      padding: '10px 12px', fontSize: '13px', color: '#141b2b',
+                      background: '#fff', outline: 'none', boxSizing: 'border-box',
+                    }}>
+                    <option value="">-- اختر الطراز --</option>
+                    {(Array.isArray(lookups.types) ? lookups.types : []).map(t => <option key={t.type_id} value={t.type_id}>{t.type_name}</option>)}
+                  </select>
               </div>
 
               {/* حجم الشاشة */}
