@@ -75,7 +75,7 @@ const FinancialPage = () => {
     };
 
     const handleExportCSV = () => {
-        const transactionsList = data.transactions || [];
+        const transactionsList = Array.isArray(data.transactions) ? data.transactions : Object.values(data.transactions || {});
         const headers = ['التاريخ', 'المعلن', 'طريقة الدفع', 'المرجع', 'المبلغ ($)', 'الحالة'];
         
         let csvContent = "";
@@ -106,7 +106,7 @@ const FinancialPage = () => {
         document.body.removeChild(link);
     };
 
-    const transactions = data.transactions || [];
+    const transactions = Array.isArray(data.transactions) ? data.transactions : Object.values(data.transactions || {});
     const filteredTransactions = transactions.filter(t => activeFilter === 'all' || t.status === activeFilter);
     const totalTransactions = transactions.length;
     const successfulTransactions = transactions.filter(t => t.status === 'completed').length;

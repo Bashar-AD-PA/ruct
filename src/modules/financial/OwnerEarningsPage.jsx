@@ -52,7 +52,7 @@ const OwnerEarningsPage = () => {
 
     const balance = data?.available_balance || 0;
     const totalEarned = data?.total_earnings || 0;
-    const logs = data?.pending_logs || [];
+    const logs = Array.isArray(data?.pending_logs) ? data.pending_logs : Object.values(data?.pending_logs || {});
     
     const formattedTx = logs.map(log => {
         let type = 'earning';
