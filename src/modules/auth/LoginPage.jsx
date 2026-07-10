@@ -141,7 +141,7 @@ const LoginPage = () => {
                 <div className="absolute inset-0 bg-gradient-to-br from-[#f8ece6] to-transparent opacity-60 pointer-events-none"></div>
 
                 {/* BEGIN: Form Section */}
-                <section className="w-full md:w-[45%] lg:w-[42%] bg-[#FFFFFF] flex flex-col justify-center px-8 md:px-14 lg:px-20 py-12 relative z-10 rounded-l-[2rem] md:rounded-l-none md:rounded-r-[2.5rem] m-4 md:m-0 md:my-8 md:-ml-6 shadow-2xl h-auto md:min-h-[calc(85vh-4rem)]">
+                <section className="w-full md:w-[45%] lg:w-[42%] bg-[#FFFFFF] flex flex-col justify-center px-8 md:px-14 lg:px-20 py-12 relative z-0 rounded-l-[2rem] md:rounded-l-none md:rounded-r-[2.5rem] m-4 md:m-0 md:my-8 md:-ml-6 shadow-md h-auto md:min-h-[calc(85vh-4rem)]">
                     
                     {/* Header */}
                     <div className="text-center mb-12 mt-4">
@@ -241,7 +241,7 @@ const LoginPage = () => {
                 {/* END: Form Section */}
 
                 {/* BEGIN: Branding Section */}
-                <section className="hidden md:flex w-[55%] lg:w-[58%] bg-[#14506b] rounded-[2.5rem] flex-col relative overflow-hidden z-0 shadow-inner">
+                <section className="hidden md:flex w-[55%] lg:w-[58%] bg-[#14506b] rounded-[2.5rem] flex-col relative overflow-hidden z-10 shadow-2xl">
                     
                     {/* Top Nav/Badges */}
                     <div className="absolute top-0 left-0 right-0 p-10 flex justify-between items-start z-20">
