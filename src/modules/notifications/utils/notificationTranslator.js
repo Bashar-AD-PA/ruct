@@ -30,6 +30,10 @@ const formatMessage = (key, args) => {
         case 'notif_title_ad_scheduled': return 'تم جدولة الإعلان';
         case 'notif_title_ad_rejected': return 'تم رفض الإعلان';
 
+        case 'notif_title_payout_requested': return 'طلب سحب رصيد جديد';
+        case 'notif_title_payout_approved': return 'تم اعتماد طلب السحب';
+        case 'notif_title_payout_rejected': return 'تم رفض طلب السحب';
+
         // Messages
         case 'notif_msg_payment_confirmed': 
             return `تم تأكيد دفع مبلغ $${args.amount} للإعلان "${args.title}" وتوزيع الأرباح على ملاك الشاشات.`;
@@ -53,6 +57,12 @@ const formatMessage = (key, args) => {
             return `تم جدولة إعلانك "${args.title}" على الشاشة "${args.screen}" ليبدأ العرض بتاريخ ${args.start}.`;
         case 'notif_msg_ad_rejected': 
             return `نأسف، تم رفض إعلانك "${args.title}". السبب: ${args.reason}.`;
+        case 'notif_msg_payout_requested':
+            return `يوجد طلب سحب رصيد جديد في انتظار المراجعة والاعتماد.`;
+        case 'notif_msg_payout_approved':
+            return `تم اعتماد تحويل أرباحك بنجاح، يرجى مراجعة حسابك البنكي.`;
+        case 'notif_msg_payout_rejected':
+            return `تعذر تنفيذ طلب السحب الخاص بك. يرجى مراجعة التفاصيل في سجل الأرباح.`;
 
         default:
             return key;
@@ -80,11 +90,15 @@ export const getNotificationIconInfo = (titleKey) => {
             return { Icon: Clock, colorClass: 'text-yellow-600 bg-yellow-100' };
         case 'notif_title_ad_approved':
         case 'notif_title_ad_approved_for_payment':
+        case 'notif_title_payout_approved':
             return { Icon: CheckCircle2, colorClass: 'text-[#2E7D32] bg-[#2E7D32]/10' };
         case 'notif_title_ad_scheduled':
             return { Icon: Calendar, colorClass: 'text-[var(--color-dark-turquoise)] bg-[var(--color-dark-turquoise)]/10' };
         case 'notif_title_ad_rejected':
+        case 'notif_title_payout_rejected':
             return { Icon: AlertCircle, colorClass: 'text-red-600 bg-red-100' };
+        case 'notif_title_payout_requested':
+            return { Icon: DollarSign, colorClass: 'text-amber-600 bg-amber-100' };
         default:
             return { Icon: Bell, colorClass: 'text-gray-500 bg-gray-100' };
     }
@@ -105,6 +119,9 @@ export const getNotificationLink = (titleKey) => {
         case 'notif_title_payment_confirmed':
         case 'notif_title_ad_paid_online':
         case 'notif_title_new_receipt':
+        case 'notif_title_payout_requested':
+        case 'notif_title_payout_approved':
+        case 'notif_title_payout_rejected':
             if (roleName === 'Advertiser') return '/dashboard/my-financials';
             if (roleName === 'ScreenOwner') return '/dashboard/earnings';
             if (roleName === 'Secretary') return '/dashboard/payment-ops';

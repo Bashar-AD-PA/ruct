@@ -60,7 +60,22 @@ const OwnerEarningsPage = () => {
             type = 'payout';
         }
         
-        let source = log.notes || 'معاملة مالية';
+        let source = 'معاملة مالية';
+        if (log.notes) {
+            try {
+                const parsedNotes = JSON.parse(log.notes);
+                if (parsedNotes.rejection_reason) {
+                    source = `رفض سحب: ${parsedNotes.rejection_reason}`;
+                } else if (parsedNotes.bank_name) {
+                    source = `تحويل بنكي - ${parsedNotes.bank_name}`;
+                } else {
+                    source = log.notes;
+                }
+            } catch (e) {
+                source = log.notes;
+            }
+        }
+        
         if (log.advertisement) {
              source = 'إعلان: ' + log.advertisement.title;
         }
