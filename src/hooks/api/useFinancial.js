@@ -79,3 +79,41 @@ export const useRequestPayout = () => {
     }
   });
 };
+
+export const useApprovePayout = () => {
+  const queryClient = useQueryClient();
+  const addToast = useToastStore(state => state.addToast);
+
+  return useMutation({
+    mutationFn: async ({ id, reference_number }) => {
+      const res = await axiosClient.post(ENDPOINTS.FINANCIAL.APPROVE_PAYOUT(id), { reference_number });
+      return res.data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['ledger'] });
+      addToast(data.message || 'تم اعتماد السحب بنجاح', 'success');
+    },
+    onError: (err) => {
+      addToast(err.response?.data?.message || 'تعذر اعتماد السحب', 'error');
+    }
+  });
+};
+
+export const useRejectPayout = () => {
+  const queryClient = useQueryClient();
+  const addToast = useToastStore(state => state.addToast);
+
+  return useMutation({
+    mutationFn: async ({ id, reason }) => {
+      const res = await axiosClient.post(ENDPOINTS.FINANCIAL.REJECT_PAYOUT(id), { reason });
+      return res.data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['ledger'] });
+      addToast(data.message || 'تم رفض السحب بنجاح', 'success');
+    },
+    onError: (err) => {
+      addToast(err.response?.data?.message || 'تعذر رفض السحب', 'error');
+    }
+  });
+};

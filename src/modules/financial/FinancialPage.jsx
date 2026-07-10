@@ -5,15 +5,19 @@ import { ENDPOINTS } from '../../core/api/endpoints';
 import DataTable from '../../shared/components/DataTable';
 import DynamicPageLoader from '../../shared/components/DynamicPageLoader';
 import Modal from '../../shared/components/Modal';
-import { useLedger, useRecordPayment } from '../../hooks/api/useFinancial';
+import { useLedger, useRecordPayment, useApprovePayout, useRejectPayout } from '../../hooks/api/useFinancial';
 
 const FinancialPage = () => {
     const { data: ledgerData, isLoading: loading } = useLedger();
     const { mutateAsync: recordPayment } = useRecordPayment();
+    const { mutateAsync: approvePayout, isPending: isApproving } = useApprovePayout();
+    const { mutateAsync: rejectPayout, isPending: isRejecting } = useRejectPayout();
 
     const data = ledgerData || { total_payments: 0, transactions: [] };
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+    const [reviewModalData, setReviewModalData] = useState(null);
+    const [reviewForm, setReviewForm] = useState({ reference_number: '', reason: '' });
     const [activeFilter, setActiveFilter] = useState('all'); // 'all', 'completed', 'pending', 'rejected'
     const [formData, setFormData] = useState({ amount: '', reference_number: '', payment_method: 'bank_transfer' });
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -35,6 +39,26 @@ const FinancialPage = () => {
         } finally {
             setIsSubmitting(false);
         }
+    };
+
+    const handleApprovePayout = async (e) => {
+        e.preventDefault();
+        if (!reviewForm.reference_number) return alert('الرجاء إدخال رقم مرجعي للتحويل');
+        try {
+            await approvePayout({ id: reviewModalData.ledger_id, reference_number: reviewForm.reference_number });
+            setReviewModalData(null);
+            setReviewForm({ reference_number: '', reason: '' });
+        } catch (error) {}
+    };
+
+    const handleRejectPayout = async (e) => {
+        e.preventDefault();
+        if (!reviewForm.reason) return alert('الرجاء إدخال سبب الرفض');
+        try {
+            await rejectPayout({ id: reviewModalData.ledger_id, reason: reviewForm.reason });
+            setReviewModalData(null);
+            setReviewForm({ reference_number: '', reason: '' });
+        } catch (error) {}
     };
 
     const handleExportCSV = () => {
@@ -151,6 +175,23 @@ const FinancialPage = () => {
                 );
             }
         },
+        {
+            key: 'actions',
+            header: 'إجراءات',
+            cell: (row) => {
+                if (row.transaction_type === 'payout_requested' && row.status === 'pending') {
+                    return (
+                        <button 
+                            onClick={() => setReviewModalData(row)}
+                            className="bg-primary/10 text-primary hover:bg-primary/20 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors shadow-sm"
+                        >
+                            مراجعة الطلب
+                        </button>
+                    );
+                }
+                return null;
+            }
+        }
     ];
 
     if (loading) return (
@@ -431,6 +472,101 @@ const FinancialPage = () => {
                         </button>
                     </div>
                 </form>
+            </Modal>
+
+            {/* Review Payout Modal */}
+            <Modal isOpen={!!reviewModalData} onClose={() => setReviewModalData(null)} title="مراجعة طلب سحب أرباح">
+                {reviewModalData && (
+                    <div className="space-y-6" dir="rtl">
+                        <div className="bg-surface-container border border-outline-variant rounded-xl p-4 space-y-3">
+                            <h3 className="font-bold text-lg text-on-surface mb-2">بيانات طلب السحب</h3>
+                            <div className="grid grid-cols-2 gap-4 text-sm">
+                                <div>
+                                    <p className="text-on-surface-variant mb-1">اسم المالك المستفيد</p>
+                                    <p className="font-bold text-on-surface">{reviewModalData.user?.full_name || 'غير معروف'}</p>
+                                </div>
+                                <div>
+                                    <p className="text-on-surface-variant mb-1">المبلغ المطلوب</p>
+                                    <p className="font-bold text-primary text-lg">${parseFloat(reviewModalData.amount || 0).toFixed(2)}</p>
+                                </div>
+                                {(() => {
+                                    try {
+                                        const notes = JSON.parse(reviewModalData.notes || '{}');
+                                        return (
+                                            <>
+                                                <div>
+                                                    <p className="text-on-surface-variant mb-1">اسم البنك</p>
+                                                    <p className="font-bold text-on-surface">{notes.bank_name || 'غير محدد'}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-on-surface-variant mb-1">رقم الحساب</p>
+                                                    <p className="font-mono font-bold text-on-surface bg-surface px-2 py-1 rounded inline-block">{notes.account_number || 'غير محدد'}</p>
+                                                </div>
+                                            </>
+                                        );
+                                    } catch(e) { return null; }
+                                })()}
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {/* Approve Section */}
+                            <form onSubmit={handleApprovePayout} className="border border-green-200 bg-green-50/30 p-4 rounded-xl flex flex-col justify-between">
+                                <div>
+                                    <h4 className="font-bold text-green-700 flex items-center gap-2 mb-3">
+                                        <span className="material-symbols-outlined">check_circle</span>
+                                        اعتماد السحب
+                                    </h4>
+                                    <p className="text-xs text-green-800 mb-3 leading-relaxed">
+                                        قم بتحويل المبلغ للحساب المذكور، ثم أدخل رقم الحوالة هنا للتوثيق والاعتماد. سيتم خصم المبلغ من خزينة المنصة.
+                                    </p>
+                                    <input 
+                                        type="text" 
+                                        placeholder="رقم الحوالة المرجعي *"
+                                        required
+                                        value={reviewForm.reference_number}
+                                        onChange={(e) => setReviewForm({...reviewForm, reference_number: e.target.value})}
+                                        className="w-full bg-white border border-green-300 rounded-lg py-2.5 px-3 font-body-sm text-on-surface mb-4 focus:ring-1 focus:ring-green-500 outline-none"
+                                    />
+                                </div>
+                                <button 
+                                    type="submit" 
+                                    disabled={isApproving}
+                                    className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                                >
+                                    {isApproving ? 'جاري الاعتماد...' : 'اعتماد السحب'}
+                                </button>
+                            </form>
+
+                            {/* Reject Section */}
+                            <form onSubmit={handleRejectPayout} className="border border-red-200 bg-red-50/30 p-4 rounded-xl flex flex-col justify-between">
+                                <div>
+                                    <h4 className="font-bold text-red-700 flex items-center gap-2 mb-3">
+                                        <span className="material-symbols-outlined">cancel</span>
+                                        رفض السحب
+                                    </h4>
+                                    <p className="text-xs text-red-800 mb-3 leading-relaxed">
+                                        في حال وجود مشكلة في بيانات الحساب البنكي، أدخل سبب الرفض هنا. سيتم إرجاع المبلغ لمحفظة المالك.
+                                    </p>
+                                    <textarea 
+                                        placeholder="سبب الرفض *"
+                                        required
+                                        value={reviewForm.reason}
+                                        onChange={(e) => setReviewForm({...reviewForm, reason: e.target.value})}
+                                        className="w-full bg-white border border-red-300 rounded-lg py-2.5 px-3 font-body-sm text-on-surface mb-4 focus:ring-1 focus:ring-red-500 outline-none resize-none h-20"
+                                    />
+                                </div>
+                                <button 
+                                    type="submit" 
+                                    disabled={isRejecting}
+                                    className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                                >
+                                    {isRejecting ? 'جاري الرفض...' : 'رفض السحب'}
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                )}
             </Modal>
         </div>
     );
