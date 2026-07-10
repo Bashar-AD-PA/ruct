@@ -16,6 +16,7 @@ const SettingsPage = () => {
     const [activeTab, setActiveTab] = useState('profile');
     const [emailNotif, setEmailNotif] = useState(true);
     const [systemNotif, setSystemNotif] = useState(true);
+    const [isDownloading, setIsDownloading] = useState(false);
 
     const [formData, setFormData] = useState({
         full_name: user?.full_name || 'مدير النظام المتقدم',
@@ -87,6 +88,33 @@ const SettingsPage = () => {
             },
             onError: (err) => addToast(err.response?.data?.message || 'خطأ أثناء حفظ الإعدادات', 'error')
         });
+    };
+
+    const handleDownloadBackup = async () => {
+        try {
+            setIsDownloading(true);
+            const response = await axiosClient.get('/settings/backup/download', {
+                responseType: 'blob',
+            });
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            const contentDisposition = response.headers['content-disposition'];
+            let fileName = 'database_backup.json';
+            if (contentDisposition) {
+                const fileNameMatch = contentDisposition.match(/filename="(.+)"/);
+                if (fileNameMatch && fileNameMatch.length === 2) fileName = fileNameMatch[1];
+            }
+            link.setAttribute('download', fileName);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            addToast('تم تحميل النسخة الاحتياطية بنجاح', 'success');
+        } catch (error) {
+            addToast('حدث خطأ أثناء تحميل النسخة الاحتياطية', 'error');
+        } finally {
+            setIsDownloading(false);
+        }
     };
 
     const tabs = [
@@ -198,8 +226,11 @@ const SettingsPage = () => {
                                     <div><label className="block text-sm font-bold mb-2">جدول النسخ</label><select name="auto_backup_schedule" value={sysSettings.auto_backup_schedule} onChange={handleSysChange} className="w-full bg-surface-container border rounded-xl p-3.5"><option value="none">معطل</option><option value="daily">يومياً</option><option value="weekly">أسبوعياً</option></select></div>
                                 </div>
                                 <div className="flex gap-4 pt-4 border-t border-outline-variant/40">
-                                    <button className="flex-1 bg-primary/10 text-primary px-6 py-3 rounded-xl font-bold flex justify-center gap-2 hover:bg-primary/20"><span className="material-symbols-outlined">download</span>تنزيل SQL الآن</button>
-                                    <button className="flex-1 bg-error/10 text-error px-6 py-3 rounded-xl font-bold flex justify-center gap-2 hover:bg-error/20"><span className="material-symbols-outlined">restore</span>استعادة من ملف</button>
+                                    <button onClick={handleDownloadBackup} disabled={isDownloading} className={`flex-1 bg-primary/10 text-primary px-6 py-3 rounded-xl font-bold flex justify-center items-center gap-2 transition-all ${isDownloading ? 'opacity-70 cursor-wait' : 'hover:bg-primary/20'}`}>
+                                        {isDownloading ? <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" /> : <span className="material-symbols-outlined">download</span>}
+                                        تنزيل البيانات الآن
+                                    </button>
+                                    <button className="flex-1 bg-error/10 text-error px-6 py-3 rounded-xl font-bold flex justify-center items-center gap-2 hover:bg-error/20"><span className="material-symbols-outlined">restore</span>استعادة من ملف</button>
                                 </div>
                             </div>
                             <SystemSaveBar isDirty={isSystemDirty} onRevert={() => setSysSettings({ ...originalSysSettings })} onSave={handleSaveSystemSettings} isPending={isUpdatingSettings} />
