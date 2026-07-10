@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import useAuthStore from '../../store/useAuthStore';
 import useToastStore from '../../store/useToastStore';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -113,7 +113,7 @@ const SettingsPage = () => {
             {(user?.role?.role_name === 'Admin' || user?.role?.role_name === 'SuperAdmin') && (
                 <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
                     {tabs.map(tab => (
-                        <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={lex items-center gap-2 px-5 py-3 rounded-2xl font-bold transition-all whitespace-nowrap }>
+                        <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex items-center gap-2 px-5 py-3 rounded-2xl font-bold transition-all whitespace-nowrap ${activeTab === tab.id ? 'bg-primary text-white shadow-md' : 'text-on-surface-variant hover:bg-surface-container'}`}>
                             <span className="material-symbols-outlined text-[20px]">{tab.icon}</span>{tab.label}
                         </button>
                     ))}
@@ -133,7 +133,7 @@ const SettingsPage = () => {
                                     <div className="md:col-span-2"><label className="block text-sm font-bold text-on-surface mb-2">البريد الإلكتروني</label><input type="email" dir="ltr" name="email" value={formData.email} onChange={handleChange} className="w-full bg-surface-container border border-outline-variant rounded-xl p-3.5 font-mono" /></div>
                                 </div>
                             </div>
-                            <div className="flex justify-end"><button disabled={!isProfileDirty} onClick={handleSaveProfile} className={px-8 py-3 rounded-xl font-bold text-white transition-all }>حفظ الملف الشخصي</button></div>
+                            <div className="flex justify-end"><button disabled={!isProfileDirty} onClick={handleSaveProfile} className={`px-8 py-3 rounded-xl font-bold text-white transition-all ${!isProfileDirty ? 'bg-outline-variant text-on-surface-variant cursor-not-allowed' : 'bg-primary hover:bg-primary/90 shadow-md'}`}>حفظ الملف الشخصي</button></div>
                         </div>
                     )}
 
@@ -149,7 +149,7 @@ const SettingsPage = () => {
                                 <div className="mt-6 pt-6 border-t border-outline-variant/40">
                                     <div className="flex items-center justify-between bg-error-container/20 p-5 rounded-2xl border border-error/20">
                                         <div><h4 className="font-bold text-error mb-1">وضع الصيانة</h4><p className="text-sm text-on-surface-variant">عند تفعيله، سيتم إيقاف النظام وظهور رسالة صيانة للمستخدمين.</p></div>
-                                        <button type="button" onClick={() => setSysSettings(p => ({ ...p, maintenance_mode: !p.maintenance_mode }))} className={elative inline-flex h-7 w-12 rounded-full transition-colors }><span className={inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform } /></button>
+                                        <button type="button" onClick={() => setSysSettings(p => ({ ...p, maintenance_mode: !p.maintenance_mode }))} className={`relative inline-flex h-7 w-12 rounded-full transition-colors ${sysSettings.maintenance_mode ? 'bg-error' : 'bg-outline-variant'}`}><span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform ${sysSettings.maintenance_mode ? '-translate-x-6' : 'translate-x-0'}`} /></button>
                                     </div>
                                 </div>
                             </div>
@@ -214,7 +214,7 @@ const SettingsPage = () => {
 const SystemSaveBar = ({ isDirty, onRevert, onSave, isPending }) => (
     <div className="sticky bottom-6 bg-surface/90 backdrop-blur-xl rounded-2xl border border-outline-variant shadow-lg p-4 flex justify-end gap-3 z-40">
         {isDirty && <button onClick={onRevert} className="px-5 py-3 rounded-xl font-bold text-on-surface-variant hover:bg-outline-variant/60">تراجع</button>}
-        <button disabled={!isDirty || isPending} onClick={onSave} className={px-8 py-3 rounded-xl font-bold flex items-center gap-2 }>
+        <button disabled={!isDirty || isPending} onClick={onSave} className={`px-8 py-3 rounded-xl font-bold flex items-center gap-2 ${!isDirty || isPending ? 'bg-outline-variant text-on-surface-variant cursor-not-allowed' : 'bg-primary text-white hover:bg-primary/90 shadow-md'}`}>
             {isPending ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <span className="material-symbols-outlined">save</span>}
             حفظ التغييرات
         </button>
