@@ -135,9 +135,9 @@ const ScreensPage = () => {
     try {
       setGeoLoading(true);
       const res = await axiosClient.get(ENDPOINTS.LOOKUPS.REGIONS_BY_GOV(govId));
-      setRegions(res.data);
+      setRegions(Array.isArray(res.data) ? res.data : (Array.isArray(res.data?.data) ? res.data.data : []));
     } catch (e) {
-      console.error(e);
+      setRegions([]);
     } finally {
       setGeoLoading(false);
     }
@@ -151,9 +151,9 @@ const ScreensPage = () => {
     try {
       setGeoLoading(true);
       const res = await axiosClient.get(ENDPOINTS.LOOKUPS.STREETS_BY_REGION(regionId));
-      setStreets(res.data);
+      setStreets(Array.isArray(res.data) ? res.data : (Array.isArray(res.data?.data) ? res.data.data : []));
     } catch (e) {
-      console.error(e);
+      setStreets([]);
     } finally {
       setGeoLoading(false);
     }
