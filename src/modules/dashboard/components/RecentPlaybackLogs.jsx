@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, ChevronRight, ChevronLeft, Download, FilterList } from '@mui/icons-material';
+import { Search, ChevronRight, ChevronLeft, Download, Filter } from 'lucide-react';
 import { usePlaybackLogs } from '../../../hooks/api/useLogs';
 import axiosClient from '../../../core/api/axiosClient';
 import { ENDPOINTS } from '../../../core/api/endpoints';
