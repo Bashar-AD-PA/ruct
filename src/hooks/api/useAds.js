@@ -3,13 +3,18 @@ import axiosClient from '../../core/api/axiosClient';
 import { ENDPOINTS } from '../../core/api/endpoints';
 import useToastStore from '../../store/useToastStore';
 
-export const useAds = (page = 1) => {
+export const useAds = (page = 1, status = 'all', search = '') => {
   return useQuery({
-    queryKey: ['ads', page],
+    queryKey: ['ads', page, status, search],
     queryFn: async () => {
-      const res = await axiosClient.get(`${ENDPOINTS.ADS.ALL}?page=${page}`);
+      const params = new URLSearchParams({ page });
+      if (status !== 'all') params.append('status', status);
+      if (search) params.append('search', search);
+
+      const res = await axiosClient.get(`${ENDPOINTS.ADS.ALL}?${params.toString()}`);
       return res.data;
     },
+    refetchInterval: 15000, // Live Polling every 15s
   });
 };
 

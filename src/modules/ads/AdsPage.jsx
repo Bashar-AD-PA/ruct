@@ -15,8 +15,12 @@ import { useQueryClient } from '@tanstack/react-query';
 
 const AdsPage = () => {
     const [currentPage, setCurrentPage] = useState(1);
+    const [statusFilter, setStatusFilter] = useState('all');
+    const [searchTerm, setSearchTerm] = useState('');
     
-    const { data: adsData, isLoading: adsLoading, refetch: refetchAds } = useAds(currentPage);
+    // استخدام الهوك المحدث لجلب الإعلانات مع البحث والفلترة والـ Polling
+    const { data: adsData, isLoading: adsLoading, refetch: refetchAds, isFetching } = useAds(currentPage, statusFilter, searchTerm);
+    
     const { mutateAsync: updateAdStatus } = useUpdateAdStatus();
     const { mutateAsync: deleteAd } = useDeleteAd();
     
@@ -25,7 +29,7 @@ const AdsPage = () => {
     const globalStats = adsData?.stats || { total: 0, active: 0, pending: 0, rejected: 0, paused: 0 };
     const loading = adsLoading;
     const [isRefreshing, setIsRefreshing] = useState(false);
-    const [statusFilter, setStatusFilter] = useState('all');
+    
     const [deleteTarget, setDeleteTarget] = useState(null);
     const [approveModal, setApproveModal] = useState({ open: false, ad: null, action: '' });
     const [detailsModal, setDetailsModal] = useState({ open: false, ad: null });
@@ -43,7 +47,8 @@ const AdsPage = () => {
         setTimeout(() => setIsRefreshing(false), 600);
     };
 
-    const filteredAds = ads.filter(a => statusFilter === 'all' || a.status === statusFilter);
+    // الاعتماد على الفلترة من السيرفر مباشرة
+    const filteredAds = ads;
 
     const handleStatusChange = async () => {
         const { ad, action } = approveModal;
@@ -130,7 +135,16 @@ const AdsPage = () => {
                 <div>
                     <div className="flex items-center gap-3 mb-2">
                         <Megaphone className="text-[#004ac6] w-8 h-8 md:w-[36px] md:h-[36px]" />
-                        <h1 className="text-2xl md:text-3xl font-semibold text-[#141b2b]">المركز الإعلاني المباشر</h1>
+                        <h1 className="text-2xl md:text-3xl font-semibold text-[#141b2b] flex items-center gap-3">
+                            المركز الإعلاني المباشر
+                            <div className="flex items-center gap-1.5 bg-emerald-50 text-emerald-600 px-2.5 py-1 rounded-full text-xs font-medium border border-emerald-100">
+                                <span className="relative flex h-2 w-2">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                </span>
+                                مباشر
+                            </div>
+                        </h1>
                     </div>
                     <p className="text-base text-[#434655]">مراقبة ومراجعة وتوجيه جميع الحملات الإعلانية النشطة والمتوقفة ضمن الشبكة.</p>
                 </div>
@@ -205,13 +219,27 @@ const AdsPage = () => {
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
                 <div className="flex overflow-x-auto gap-2 bg-white p-1 rounded-lg border border-[#E5E7EB] w-full lg:w-auto">
                     {statusTabs.map(tab => (
-                        <button key={tab.key} onClick={() => setStatusFilter(tab.key)}
+                        <button key={tab.key} onClick={() => { setStatusFilter(tab.key); setCurrentPage(1); }}
                             className={`px-4 py-2 rounded text-sm font-medium whitespace-nowrap transition-colors ${statusFilter === tab.key ? 'bg-[#111827] text-white' : 'text-[#434655] hover:bg-[#f1f3ff]'}`}>
                             {tab.label}
                         </button>
                     ))}
                 </div>
 
+                <div className="relative w-full lg:w-80">
+                    <input 
+                        type="text" 
+                        placeholder="ابحث عن إعلان..." 
+                        value={searchTerm}
+                        onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+                        className="w-full pr-10 pl-4 py-2 bg-white border border-[#E5E7EB] rounded-lg text-sm focus:outline-none focus:border-[#004ac6] focus:ring-1 focus:ring-[#004ac6] transition-colors"
+                    />
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                        <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </div>
+                </div>
             </div>
 
             {/* Data Table */}
@@ -475,6 +503,31 @@ const AdsPage = () => {
 
             <ConfirmDialog isOpen={!!deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={handleDelete}
                 title="حذف الحملة الإعلانية" message="هل أنت متأكد من رغبتك في حذف هذا الإعلان من سجلات النظام نهائياً؟" confirmText="نعم، موافق على الإتلاف" />
+
+            {/* Pagination Controls */}
+            {pagination.last_page > 1 && (
+                <div className="mt-6 flex justify-center items-center gap-2" dir="ltr">
+                    <button
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                        className="px-3 py-1.5 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        السابق
+                    </button>
+                    
+                    <span className="text-sm text-gray-600 px-4">
+                        صفحة {currentPage} من {pagination.last_page}
+                    </span>
+
+                    <button
+                        onClick={() => setCurrentPage(p => Math.min(pagination.last_page, p + 1))}
+                        disabled={currentPage === pagination.last_page}
+                        className="px-3 py-1.5 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        التالي
+                    </button>
+                </div>
+            )}
 
             <StripePaymentModal
                 isOpen={stripeModal.open}
