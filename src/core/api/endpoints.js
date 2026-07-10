@@ -100,6 +100,10 @@ export const ENDPOINTS = {
     DASHBOARD: {
         OVERVIEW: '/dashboard/overview'
     },
+    LOGS: {
+        PLAYBACK: '/logs/playback',
+        PLAYBACK_EXPORT: '/logs/playback/export'
+    },
     SUPPORT: {
         ALL:    '/support/tickets',
         CREATE: '/support/tickets',
