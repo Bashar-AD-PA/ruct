@@ -310,8 +310,8 @@ const YemenStatusMap = ({ screenData }) => {
     const [selectedPin, setSelectedPin] = useState(null);
     const markerRefs = useRef({});
 
-    // Build pins from API data or fall back to mock demo data
-    const pins = (screenData && screenData.length > 0 ? screenData : MOCK_SCREENS_GEO).map((scr) => ({
+    // Build pins from API data
+    const pins = (screenData || []).map((scr) => ({
         ...scr,
         id: scr.id || scr.screen_id,
         name: scr.name || scr.screen_name,
@@ -674,24 +674,14 @@ const MaintenanceDashboard = () => {
     const handleExport = () => addToast('جاري تصدير تقرير الصيانة...', 'info');
 
     /* ── Screen table rows ── */
-    const tableScreens = screens.length > 0 ? screens.slice(0, 12) : [
-        { id: 1,  name: 'شاشة صنعاء - التحرير',   location_name: 'صنعاء',   status: 'broken',       is_online: false, last_heartbeat: new Date(Date.now()-8*60000).toISOString() },
-        { id: 2,  name: 'شاشة عدن - المعلا',       location_name: 'عدن',     status: 'maintenance',  is_online: false, last_heartbeat: new Date(Date.now()-2*60000).toISOString() },
-        { id: 3,  name: 'شاشة تعز - جمال',         location_name: 'تعز',     status: 'broken',       is_online: false, last_heartbeat: new Date(Date.now()-6*60000).toISOString() },
-        { id: 4,  name: 'شاشة مأرب - رئيسي',       location_name: 'مأرب',    status: 'online',       is_online: true,  last_heartbeat: new Date(Date.now()-1*60000).toISOString() },
-        { id: 5,  name: 'شاشة حضرموت - المكلا',    location_name: 'حضرموت', status: 'online',       is_online: true,  last_heartbeat: new Date(Date.now()-3*60000).toISOString() },
-        { id: 6,  name: 'شاشة إب - المركز',         location_name: 'إب',      status: 'online',       is_online: true,  last_heartbeat: new Date(Date.now()-2*60000).toISOString() },
-        { id: 7,  name: 'شاشة الحديدة - رئيسي',    location_name: 'الحديدة', status: 'disconnected', is_online: false, last_heartbeat: null },
-        { id: 8,  name: 'شاشة ذمار - الوسط',        location_name: 'ذمار',    status: 'online',       is_online: true,  last_heartbeat: new Date(Date.now()-2*60000).toISOString() },
-    ];
+    const tableScreens = screens.slice(0, 12);
 
-    // Mock counts when no API data
-    const mockOnline       = screens.length > 0 ? onlineCount       : 5;
-    const mockBroken       = screens.length > 0 ? brokenCount       : 2;
-    const mockMaintenance  = screens.length > 0 ? maintenanceCount  : 1;
-    const mockDisconnected = screens.length > 0 ? disconnectedCount : 2;
-    const mockTotal        = screens.length > 0 ? totalScreens      : 10;
-    const mockUptime       = screens.length > 0 ? uptimePct         : 50;
+    const mockOnline       = onlineCount;
+    const mockBroken       = brokenCount;
+    const mockMaintenance  = maintenanceCount;
+    const mockDisconnected = disconnectedCount;
+    const mockTotal        = totalScreens;
+    const mockUptime       = uptimePct;
 
     return (
         <div style={{ direction: 'rtl', paddingBottom: '48px', fontFamily: "'IBM Plex Sans Arabic', sans-serif" }}>
