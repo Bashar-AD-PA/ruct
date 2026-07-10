@@ -244,7 +244,8 @@ const OwnerDashboard = () => {
         total_screens: kpis.kpis?.total_screens ?? kpis.total_screens ?? 0,
         online_screens: kpis.kpis?.active_screens ?? kpis.active_screens ?? 0,
         offline_screens: (kpis.kpis?.total_screens ?? 0) - (kpis.kpis?.active_screens ?? 0),
-        monthly_revenue: kpis.kpis?.today_earnings ?? kpis.monthly_earnings ?? 0,
+        monthly_revenue: kpis.kpis?.monthly_earnings ?? kpis.monthly_earnings ?? 0,
+        today_revenue: kpis.kpis?.today_earnings ?? kpis.today_earnings ?? 0,
         revenue_growth: '+0%', // Can be calculated from history
         notifications: kpis.financial_activities ? kpis.financial_activities.length : 0
     };
@@ -257,12 +258,21 @@ const OwnerDashboard = () => {
         weeklyData = kpis.charts.weekly_revenue;
     }
 
-    // Mock Data
-    const quickAlerts = [
-        { id: 1, text: "توقفت شاشة 'شارع الستين' عن العمل. نرجو تفقد المصدر.", type: "error", time: "قبل 15 دقيقة" },
-        { id: 2, text: "حملة إعلانية جديدة بدأت البث على 3 من شاشاتك.", type: "success", time: "قبل ساعتين" },
-        { id: 3, text: "تم تحويل أرباح شهر يونيو بنجاح إلى حسابك.", type: "success", time: "أمس" },
-    ];
+    const quickAlerts = (kpis.financial_activities || []).map(act => {
+        let text = act.text;
+        try {
+            const parsed = JSON.parse(text);
+            text = parsed.rejection_reason 
+                ? `رفض سحب: ${parsed.rejection_reason}` 
+                : (parsed.bank_name ? `سحب بنكي - ${parsed.bank_name}` : text);
+        } catch(e) {}
+        return {
+            id: act.id,
+            text: text,
+            type: act.type,
+            time: act.time
+        };
+    });
 
     if (loading) {
         return <div className="flex justify-center py-20"><RefreshCw className="w-10 h-10 animate-spin text-blue-600" /></div>;
@@ -334,7 +344,11 @@ const OwnerDashboard = () => {
                 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <AnimatePresence>
-                        {quickAlerts.map(alert => (
+                        {quickAlerts.length === 0 ? (
+                            <div className="col-span-1 md:col-span-3 text-center text-gray-400 py-8 font-medium">
+                                لا توجد نشاطات أو تحديثات حية حالياً.
+                            </div>
+                        ) : quickAlerts.map(alert => (
                             <motion.div key={alert.id} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="group"
                                 style={{
                                     padding: '20px', borderRadius: '16px',
