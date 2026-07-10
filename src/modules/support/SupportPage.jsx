@@ -21,6 +21,9 @@ import axiosClient from '../../core/api/axiosClient';
 import { ENDPOINTS } from '../../core/api/endpoints';
 import { useSupportTickets, useCreateSupportTicket } from '../../hooks/api/useSupportTickets';
 import { useScreens } from '../../hooks/api/useScreens';
+import echo from '../../core/api/echo';
+import useAuthStore from '../../store/useAuthStore';
+import { useQueryClient } from '@tanstack/react-query';
 
 /* ─── Status Configs ─────────────────────────────────────────── */
 const STATUS_MAP = {
@@ -429,6 +432,34 @@ const SupportPage = () => {
     const [showNewModal, setShowNewModal] = useState(false);
     const [selectedTicket, setSelectedTicket] = useState(null);
     const [activeFilter, setActiveFilter] = useState('all');
+    const { user } = useAuthStore();
+    const queryClient = useQueryClient();
+
+    useEffect(() => {
+        if (!user) return;
+
+        // Admins can see all tickets, but users only see their own.
+        // We will listen to user specific channel and admin channel.
+        const userChannel = echo.private(`user.tickets.${user.user_id}`);
+        userChannel.listen('TicketUpdated', (e) => {
+            queryClient.invalidateQueries(['supportTickets']);
+        });
+
+        let adminChannel = null;
+        if (user.role_id === 1 || user.role_id === 2 || user.role_id === 3) {
+            adminChannel = echo.private('admin.tickets');
+            adminChannel.listen('TicketUpdated', (e) => {
+                queryClient.invalidateQueries(['supportTickets']);
+            });
+        }
+
+        return () => {
+            echo.leave(`user.tickets.${user.user_id}`);
+            if (adminChannel) {
+                echo.leave('admin.tickets');
+            }
+        };
+    }, [user, queryClient]);
 
     const handleNewSuccess = () => {
         setShowNewModal(false);

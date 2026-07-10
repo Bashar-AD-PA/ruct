@@ -11,6 +11,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import axiosClient from '../../core/api/axiosClient';
 import { ENDPOINTS } from '../../core/api/endpoints';
+import echo from '../../core/api/echo';
 import useToastStore from '../../store/useToastStore';
 import DrillDownMap from './DrillDownMap';
 
@@ -630,7 +631,19 @@ const MaintenanceDashboard = () => {
 
     useEffect(() => {
         loadScreens();
-    }, [loadScreens]);
+
+        const channel = echo.private('admin.screens');
+        channel.listen('ScreenUpdated', (e) => {
+            loadScreens();
+            if (e.screen) {
+                addToast(`تحديث مباشر: حالة الشاشة (${e.screen.screen_name}) تغيّرت`, 'info');
+            }
+        });
+
+        return () => {
+            echo.leave('admin.screens');
+        };
+    }, [loadScreens, addToast]);
 
     /* Update status to maintenance */
     const handleStartMaintenance = async (screen) => {

@@ -18,6 +18,7 @@ import { useNavigate } from 'react-router-dom';
 import { useScreens, useCreateScreen, useUpdateScreen, useDeleteScreen } from '../../hooks/api/useScreens';
 import { useGovernorates, useScreenTypes, useStreets, useUsersByRole, useRoles } from '../../hooks/api/useLookups';
 import { useQueryClient } from '@tanstack/react-query';
+import echo from '../../core/api/echo';
 
 // Lazy load map mapping component
 const ScreenMapView = lazy(() => import('./components/ScreenMapView'));
@@ -68,9 +69,23 @@ const ScreensPage = () => {
   const [commandTarget, setCommandTarget] = useState(null);
   const [statusFilter, setStatusFilter] = useState('all');
   const { can } = usePermission();
-  const addToast = useToastStore(state => state.addToast);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const addToast = useToastStore(state => state.addToast);
+
+  useEffect(() => {
+    const channel = echo.private('admin.screens');
+    channel.listen('ScreenUpdated', (e) => {
+        queryClient.invalidateQueries(['screens']);
+        if (e.screen) {
+            addToast(`تحديث مباشر: حالة الشاشة (${e.screen.screen_name}) تغيّرت`, 'info');
+        }
+    });
+
+    return () => {
+        echo.leave('admin.screens');
+    };
+  }, [queryClient, addToast]);
 
   // Geographic filter state
   const [regions, setRegions] = useState([]);
