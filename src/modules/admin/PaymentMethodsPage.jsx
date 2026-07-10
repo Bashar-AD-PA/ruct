@@ -80,9 +80,10 @@ const PaymentMethodsPage = () => {
         try {
             const res = await axiosClient.get(ENDPOINTS.PAYMENT.METHODS);
             if (res.data.success) {
-                setMethods(res.data.data || []);
+                const data = res.data.data;
+                setMethods(Array.isArray(data) ? data : Object.values(data || {}));
             } else {
-                setMethods(Array.isArray(res.data) ? res.data : []);
+                setMethods(Array.isArray(res.data) ? res.data : Object.values(res.data || {}));
             }
         } catch (error) {
             addToast('فشل في جلب وسائل الدفع', 'error');
