@@ -31,7 +31,9 @@ const RecentPlaybackLogs = () => {
     const addToast = useToastStore(state => state.addToast);
     const [page, setPage] = useState(1);
     const [isExporting, setIsExporting] = useState(false);
+    const [exportFormat, setExportFormat] = useState('csv');
     const [isCleaning, setIsCleaning] = useState(false);
+    const [cleanupDays, setCleanupDays] = useState(30);
 
     const params = {
         page,
@@ -51,12 +53,16 @@ const RecentPlaybackLogs = () => {
         try {
             setIsExporting(true);
             const response = await axiosClient.get(ENDPOINTS.LOGS.PLAYBACK_EXPORT, {
+                params: {
+                    ...params,
+                    format: exportFormat // 'csv' or 'pdf'
+                },
                 responseType: 'blob',
             });
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
             link.href = url;
-            link.setAttribute('download', `playback_logs_${new Date().getTime()}.csv`);
+            link.setAttribute('download', exportFormat === 'pdf' ? 'playback_logs.pdf' : 'playback_logs.csv');
             document.body.appendChild(link);
             link.click();
             link.remove();
@@ -69,12 +75,13 @@ const RecentPlaybackLogs = () => {
     };
 
     const handleCleanup = async () => {
-        if (!window.confirm('هل أنت متأكد من رغبتك في حذف جميع السجلات الأقدم من 30 يوماً؟ لا يمكن التراجع عن هذا الإجراء.')) return;
+        const daysLabel = cleanupDays == 1 ? 'يوم' : cleanupDays == 7 ? 'أسبوع' : `${cleanupDays} يوماً`;
+        if (!window.confirm(`هل أنت متأكد من رغبتك في حذف جميع السجلات الأقدم من ${daysLabel}؟ لا يمكن التراجع عن هذا الإجراء.`)) return;
         
         try {
             setIsCleaning(true);
             const response = await axiosClient.delete(ENDPOINTS.LOGS.PLAYBACK_CLEANUP, {
-                params: { days: 30 }
+                params: { days: cleanupDays }
             });
             addToast(response.data.message || 'تم تنظيف السجلات بنجاح', 'success');
         } catch (error) {
@@ -119,38 +126,72 @@ const RecentPlaybackLogs = () => {
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', direction: 'ltr', flexWrap: 'wrap' }}>
                     
-                    <button 
-                        onClick={handleCleanup}
-                        disabled={isCleaning}
-                        style={{
-                            display: 'flex', alignItems: 'center', gap: '6px',
-                            background: isCleaning ? S.surfaceContainerLow : '#fee2e2',
-                            color: isCleaning ? S.outline : '#ef4444',
-                            border: 'none', padding: '8px 16px', borderRadius: '8px',
-                            cursor: isCleaning ? 'wait' : 'pointer', fontWeight: 600,
-                            fontFamily: "'IBM Plex Sans Arabic', sans-serif",
-                        }}
-                        title="حذف السجلات الأقدم من 30 يوماً"
-                    >
-                        <Trash2 style={{ fontSize: '18px', width: '18px', height: '18px' }} />
-                        تنظيف
-                    </button>
+                    {/* Cleanup Section */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: S.surfaceContainerLow, borderRadius: '8px', padding: '4px' }}>
+                        <select
+                            value={cleanupDays}
+                            onChange={(e) => setCleanupDays(e.target.value)}
+                            style={{
+                                background: 'transparent', border: 'none', outline: 'none',
+                                color: S.onSurface, padding: '4px 8px',
+                                fontFamily: "'IBM Plex Sans Arabic', sans-serif", fontSize: '13px',
+                                direction: 'rtl', cursor: 'pointer'
+                            }}
+                        >
+                            <option value="30">أقدم من شهر</option>
+                            <option value="15">أقدم من 15 يوم</option>
+                            <option value="7">أقدم من أسبوع</option>
+                            <option value="1">أقدم من يوم</option>
+                        </select>
+                        <button 
+                            onClick={handleCleanup}
+                            disabled={isCleaning}
+                            style={{
+                                display: 'flex', alignItems: 'center', gap: '4px',
+                                background: isCleaning ? S.surfaceContainerLowest : '#fee2e2',
+                                color: isCleaning ? S.outline : '#ef4444',
+                                border: 'none', padding: '6px 12px', borderRadius: '6px',
+                                cursor: isCleaning ? 'wait' : 'pointer', fontWeight: 600,
+                                fontFamily: "'IBM Plex Sans Arabic', sans-serif", fontSize: '13px'
+                            }}
+                            title="حذف السجلات"
+                        >
+                            <Trash2 style={{ fontSize: '16px', width: '16px', height: '16px' }} />
+                            مسح
+                        </button>
+                    </div>
 
-                    <button 
-                        onClick={handleExport}
-                        disabled={isExporting}
-                        style={{
-                            display: 'flex', alignItems: 'center', gap: '6px',
-                            background: isExporting ? S.surfaceContainerLow : '#e8efae',
-                            color: isExporting ? S.outline : '#4d5118',
-                            border: 'none', padding: '8px 16px', borderRadius: '8px',
-                            cursor: isExporting ? 'wait' : 'pointer', fontWeight: 600,
-                            fontFamily: "'IBM Plex Sans Arabic', sans-serif",
-                        }}
-                    >
-                        <Download style={{ fontSize: '18px' }} />
-                        تصدير CSV
-                    </button>
+                    {/* Export Section */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: S.surfaceContainerLow, borderRadius: '8px', padding: '4px' }}>
+                        <select
+                            value={exportFormat}
+                            onChange={(e) => setExportFormat(e.target.value)}
+                            style={{
+                                background: 'transparent', border: 'none', outline: 'none',
+                                color: S.onSurface, padding: '4px 8px',
+                                fontFamily: "'IBM Plex Sans Arabic', sans-serif", fontSize: '13px',
+                                direction: 'rtl', cursor: 'pointer'
+                            }}
+                        >
+                            <option value="csv">Excel (CSV)</option>
+                            <option value="pdf">PDF</option>
+                        </select>
+                        <button 
+                            onClick={handleExport}
+                            disabled={isExporting}
+                            style={{
+                                display: 'flex', alignItems: 'center', gap: '4px',
+                                background: isExporting ? S.surfaceContainerLowest : '#e8efae',
+                                color: isExporting ? S.outline : '#4d5118',
+                                border: 'none', padding: '6px 12px', borderRadius: '6px',
+                                cursor: isExporting ? 'wait' : 'pointer', fontWeight: 600,
+                                fontFamily: "'IBM Plex Sans Arabic', sans-serif", fontSize: '13px'
+                            }}
+                        >
+                            <Download style={{ fontSize: '16px', width: '16px', height: '16px' }} />
+                            تصدير
+                        </button>
+                    </div>
 
                     {/* pagination */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
