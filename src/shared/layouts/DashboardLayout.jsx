@@ -224,7 +224,7 @@ const DashboardLayout = () => {
        SidebarInner
     ───────────────────────────────────────────── */
     const SidebarInner = ({ mini = false }) => (
-        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100svh', overflow: 'hidden' }}>
 
             {/* ── Header: toggle + logo + brand ── */}
             <div style={{
@@ -458,7 +458,7 @@ const DashboardLayout = () => {
                     position: 'sticky',
                     top: 0,
                     height: '100svh',
-                    overflowY: 'auto',
+                    overflowY: 'hidden',
                     overflowX: 'hidden',
                     boxShadow: '-2px 0 20px rgba(0,0,0,0.20)',
                     zIndex: 50,
