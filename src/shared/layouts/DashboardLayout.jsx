@@ -9,6 +9,8 @@ import axiosClient from '../../core/api/axiosClient';
 import { ENDPOINTS } from '../../core/api/endpoints';
 import echo from '../../core/api/echo';
 import useToastStore from '../../store/useToastStore';
+import { useQueryClient } from '@tanstack/react-query';
+import { SETTINGS_QUERY_KEY } from '../../hooks/api/useSettings';
 
 /* ─── Stitch colour tokens — light ─── */
 const LIGHT = {
@@ -74,6 +76,8 @@ const T = {
 /* ──────────────────────────────────────────── */
 const DashboardLayout = () => {
     const { user, logout, impersonatedRole, setImpersonatedRole } = useAuthStore();
+    const addToast = useToastStore(s => s.addToast);
+    const queryClient = useQueryClient();
     const { roleName } = usePermission();
     const { theme, toggleTheme, language, setLanguage } = useUIStore();
     const navigate = useNavigate();
@@ -119,14 +123,13 @@ const DashboardLayout = () => {
         return () => document.removeEventListener('mousedown', handler);
     }, []);
 
-    const addToast = useToastStore(s => s.addToast);
-
-    /* WebSockets Real-time Notifications */
+    /* WebSockets Real-time Notifications & Settings */
     useEffect(() => {
         if (!user) return;
         
-        const channel = echo.private(`user.${user.user_id}`);
-        channel.listen('NotificationSent', (e) => {
+        // Notification Channel
+        const userChannel = echo.private(`user.${user.user_id}`);
+        userChannel.listen('NotificationSent', (e) => {
             setUnreadCount(prev => prev + 1);
             let title = 'إشعار جديد';
             try {
@@ -139,10 +142,22 @@ const DashboardLayout = () => {
             addToast(`🔔 ${title}`, 'info');
         });
 
+        // Global System Channel
+        const systemChannel = echo.channel('system.settings');
+        systemChannel.listen('SettingsUpdated', (e) => {
+            // Update the React Query cache immediately with the new settings
+            if (e.settings) {
+                queryClient.setQueryData(SETTINGS_QUERY_KEY, e.settings);
+            } else {
+                queryClient.invalidateQueries(SETTINGS_QUERY_KEY);
+            }
+        });
+
         return () => {
             echo.leave(`user.${user.user_id}`);
+            echo.leave('system.settings');
         };
-    }, [user, addToast]);
+    }, [user, addToast, queryClient]);
 
     /* Fetch unread notifications count */
     useEffect(() => {

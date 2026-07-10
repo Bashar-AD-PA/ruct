@@ -1,263 +1,224 @@
-import React, { useState } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import useAuthStore from '../../store/useAuthStore';
 import useToastStore from '../../store/useToastStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import axiosClient from '../../core/api/axiosClient';
 import { ENDPOINTS } from '../../core/api/endpoints';
+import { useSettings, useUpdateSettings } from '../../hooks/api/useSettings';
 
 const SettingsPage = () => {
     const { user } = useAuthStore();
     const addToast = useToastStore(state => state.addToast);
+    
+    const { data: systemSettings, isLoading: isLoadingSettings } = useSettings();
+    const { mutate: updateSettings, isPending: isUpdatingSettings } = useUpdateSettings();
 
+    const [activeTab, setActiveTab] = useState('profile');
     const [emailNotif, setEmailNotif] = useState(true);
     const [systemNotif, setSystemNotif] = useState(true);
 
-    // Profile States
     const [formData, setFormData] = useState({
         full_name: user?.full_name || 'مدير النظام المتقدم',
         email: user?.email || 'admin@digitalsignage.com',
         phone: user?.phone || '+967 777 123 456',
     });
 
+    const [sysSettings, setSysSettings] = useState({
+        platform_name: 'Sabapost',
+        support_email: 'support@sabapost.com',
+        support_phone: '+967 000 000',
+        maintenance_mode: false,
+        currency_rate: 1,
+        platform_commission: 20,
+        min_withdrawal: 50,
+        heartbeat_interval: 30,
+        smtp_host: 'smtp.mailtrap.io',
+        smtp_port: 2525,
+        smtp_user: '',
+        smtp_pass: '',
+        backup_disk: 'local',
+        auto_backup_schedule: 'daily',
+    });
+
     const [originalData, setOriginalData] = useState({ ...formData });
+    const [originalSysSettings, setOriginalSysSettings] = useState({ ...sysSettings });
 
-    const isEmailChanged = formData.email !== originalData.email;
-    const isPhoneChanged = formData.phone !== originalData.phone;
-    const isNameChanged = formData.full_name !== originalData.full_name;
-    const isDirty = isEmailChanged || isPhoneChanged || isNameChanged;
+    useEffect(() => {
+        if (systemSettings) {
+            const parsedSettings = {
+                ...sysSettings,
+                ...systemSettings,
+                maintenance_mode: systemSettings.maintenance_mode === 'true' || systemSettings.maintenance_mode === true,
+            };
+            setSysSettings(parsedSettings);
+            setOriginalSysSettings(parsedSettings);
+        }
+    }, [systemSettings]);
 
-    const handleChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
+    const isProfileDirty = formData.email !== originalData.email || formData.phone !== originalData.phone || formData.full_name !== originalData.full_name;
+    const isSystemDirty = JSON.stringify(sysSettings) !== JSON.stringify(originalSysSettings);
+
+    const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+    const handleSysChange = (e) => {
+        const { name, value, type, checked } = e.target;
+        setSysSettings(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
     };
 
     const handleSaveProfile = async () => {
-        if (!isDirty) return;
-
+        if (!isProfileDirty) return;
         try {
             const res = await axiosClient.put(ENDPOINTS.AUTH.UPDATE_PROFILE, {
-                full_name: formData.full_name,
-                email: formData.email,
-                phone: formData.phone
+                full_name: formData.full_name, email: formData.email, phone: formData.phone
             });
-            // Update global state and original state
             useAuthStore.getState().setUser(res.data.user);
             setOriginalData({ ...formData });
-            addToast('تم حفظ الملف الشخصي وتحديث بياناتك بنجاح!', 'success');
+            addToast('تم حفظ الملف الشخصي بنجاح!', 'success');
         } catch (error) {
-            addToast(error.response?.data?.message || 'حدث خطأ أثناء تعديل الحساب، يرجى المحاولة لاحقاً', 'error');
-            if (error.response?.data?.errors) {
-                Object.values(error.response.data.errors).forEach(errArray => {
-                    addToast(errArray[0], 'error');
-                });
-            }
+            addToast(error.response?.data?.message || 'حدث خطأ أثناء التعديل', 'error');
         }
     };
 
-    const notifRows = [
-        {
-            id: 'email_notif',
-            icon: 'mail',
-            iconBg: 'bg-secondary/10',
-            iconColor: 'text-secondary',
-            label: 'إشعارات البريد الإلكتروني',
-            description: 'تلقي تقارير أمنية وإحصائيات أسبوعية حول نشاط النظام مباشرة لبريدك.',
-            value: emailNotif,
-            onChange: () => setEmailNotif(!emailNotif),
-        },
-        {
-            id: 'system_notif',
-            icon: 'notifications',
-            iconBg: 'bg-primary/10',
-            iconColor: 'text-primary',
-            label: 'إشعارات النظام التفاعلية',
-            description: 'تنبيهات فورية تظهر داخل النظام عند حدوث أي حظر أمني أو عمليات مالية.',
-            value: systemNotif,
-            onChange: () => setSystemNotif(!systemNotif),
-        },
+    const handleSaveSystemSettings = () => {
+        if (!isSystemDirty) return;
+        updateSettings(sysSettings, {
+            onSuccess: () => {
+                setOriginalSysSettings({ ...sysSettings });
+                addToast('تم حفظ إعدادات النظام بنجاح وتحديثها لدى الجميع!', 'success');
+            },
+            onError: (err) => addToast(err.response?.data?.message || 'خطأ أثناء حفظ الإعدادات', 'error')
+        });
+    };
+
+    const tabs = [
+        { id: 'profile', label: 'الملف الشخصي', icon: 'person' },
+        { id: 'general', label: 'عام', icon: 'settings' },
+        { id: 'financial', label: 'مالي', icon: 'payments' },
+        { id: 'technical', label: 'تقني', icon: 'memory' },
+        { id: 'backup', label: 'النسخ الاحتياطي', icon: 'cloud_sync' },
     ];
+
+    if (isLoadingSettings && user?.role?.role_name !== 'ScreenOwner' && user?.role?.role_name !== 'Advertiser') {
+        return <div className="flex justify-center items-center h-64"><div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div></div>;
+    }
 
     return (
         <div className="space-y-6 pb-8 font-sans w-full max-w-5xl mx-auto" dir="rtl">
-
-            {/* ══════════════════════════════════════
-                Page Header
-            ══════════════════════════════════════ */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-2">
-                <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-white shadow-lg shadow-primary/20">
-                        <span className="material-symbols-outlined text-[26px]">manage_accounts</span>
-                    </div>
-                    <div>
-                        <h1 className="text-2xl font-black text-on-surface mb-0.5 tracking-tight">
-                            الإعدادات الشخصية
-                        </h1>
-                    </div>
+            <div className="flex items-center gap-4 mb-2">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-white shadow-lg">
+                    <span className="material-symbols-outlined text-[26px]">manage_accounts</span>
                 </div>
+                <h1 className="text-2xl font-black text-on-surface">الإعدادات {user?.role?.role_name === 'Admin' || user?.role?.role_name === 'SuperAdmin' ? 'وإدارة النظام' : 'الشخصية'}</h1>
             </div>
 
-            {/* ══════════════════════════════════════
-                Section 1: Profile Editing (Global Standard)
-            ══════════════════════════════════════ */}
-            <div className="bg-surface-container-lowest rounded-3xl border border-outline-variant shadow-sm overflow-hidden mt-6 relative">
-                {/* Decorative Background Glow */}
-                <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-primary/5 rounded-full blur-[100px] -z-10 pointer-events-none" />
-
-                <div className="p-6 border-b border-outline-variant/60 flex items-center justify-between bg-surface-container-lowest">
-                    <div className="flex items-center gap-3">
-                        <span className="material-symbols-outlined text-2xl text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>person</span>
-                        <h3 className="text-lg font-extrabold text-on-surface tracking-tight">الهوية والمصادقة الأمنية</h3>
-                    </div>
-                    {isDirty && (
-                        <span className="text-xs font-bold text-orange-600 bg-orange-100 flex items-center gap-1.5 px-3 py-1.5 rounded-full animate-pulse border border-orange-200">
-                            <span className="w-1.5 h-1.5 rounded-full bg-orange-500" />
-                            يوجد تغييرات غير محفوظة!
-                        </span>
-                    )}
-                </div>
-
-                <div className="p-6 md:p-8 space-y-8 relative z-10">
-                    
-                    {/* Full Name */}
-                    <div className="flex flex-col md:flex-row md:items-start gap-4 border-b border-outline-variant/40 pb-8">
-                        <div className="md:w-1/3">
-                            <label className="text-[15px] font-bold text-on-surface flex items-center gap-2">
-                                <span className="material-symbols-outlined text-xl text-on-surface-variant">badge</span>
-                                الإسم الكامل
-                            </label>
-                        </div>
-                        <div className="md:w-2/3">
-                            <input
-                                type="text"
-                                name="full_name"
-                                value={formData.full_name}
-                                onChange={handleChange}
-                                className="w-full bg-surface-container border border-outline-variant rounded-xl p-3.5 text-[15px] font-bold text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all shadow-inner"
-                            />
-                        </div>
-                    </div>
-
-                    {/* Phone Number */}
-                    <div className="flex flex-col md:flex-row md:items-start gap-4 border-b border-outline-variant/40 pb-8">
-                        <div className="md:w-1/3">
-                            <label className="text-[15px] font-bold text-on-surface flex items-center gap-2">
-                                <span className="material-symbols-outlined text-xl text-on-surface-variant">phone_iphone</span>
-                                رقم الهاتف
-                            </label>
-                        </div>
-                        <div className="md:w-2/3">
-                            <div className="relative">
-                                <input
-                                    type="text"
-                                    name="phone"
-                                    dir="ltr"
-                                    value={formData.phone}
-                                    onChange={handleChange}
-                                    className="w-full bg-surface-container border border-outline-variant rounded-xl p-3.5 text-[15px] font-mono font-bold text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all shadow-inner"
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Email */}
-                    <div className="flex flex-col md:flex-row md:items-start gap-4">
-                        <div className="md:w-1/3">
-                            <label className="text-[15px] font-bold text-on-surface flex items-center gap-2">
-                                <span className="material-symbols-outlined text-xl text-on-surface-variant">mail</span>
-                                البريد الإلكتروني
-                            </label>
-                        </div>
-                        <div className="md:w-2/3">
-                            <div className="relative">
-                                <input
-                                    type="email"
-                                    name="email"
-                                    dir="ltr"
-                                    value={formData.email}
-                                    onChange={handleChange}
-                                    className="w-full bg-surface-container border border-outline-variant rounded-xl p-3.5 text-[15px] font-mono leading-none font-bold text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all shadow-inner"
-                                />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* ══════════════════════════════════════
-                Section 2: Notification Preferences
-            ══════════════════════════════════════ */}
-            <div className="bg-surface-container-lowest rounded-3xl border border-outline-variant shadow-sm overflow-hidden">
-                <div className="p-6 border-b border-outline-variant/60 flex items-center gap-3 bg-surface-container-lowest">
-                    <span className="material-symbols-outlined text-2xl text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>notifications_active</span>
-                    <h3 className="text-lg font-extrabold text-on-surface tracking-tight">تخصيص الإشعارات</h3>
-                </div>
-
-                <div className="divide-y divide-outline-variant/40">
-                    {notifRows.map((row) => (
-                        <div key={row.id} className="p-6 flex flex-col sm:flex-row items-center justify-between hover:bg-surface-container-lowest/50 transition-colors gap-4">
-                            <div className="flex items-center gap-4 w-full sm:w-auto flex-1">
-                                <div className={`w-12 h-12 rounded-xl ${row.iconBg} ${row.iconColor} flex items-center justify-center flex-shrink-0 shadow-sm border border-outline-variant/30`}>
-                                    <span className="material-symbols-outlined text-[22px]">{row.icon}</span>
-                                </div>
-                                <div className="flex-1">
-                                    <h4 className="font-bold text-[15px] text-on-surface mb-1">{row.label}</h4>
-                                    <p className="text-xs text-on-surface-variant font-medium leading-relaxed">{row.description}</p>
-                                </div>
-                            </div>
-
-                            <button
-                                type="button"
-                                onClick={row.onChange}
-                                className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors duration-300 focus:outline-none shadow-inner shrink-0 ${
-                                    row.value ? 'bg-primary' : 'bg-surface-container-highest border border-outline-variant border-transparent'
-                                }`}
-                            >
-                                <span
-                                    className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform duration-300 ${
-                                        row.value ? 'translate-x-1' : 'translate-x-6'
-                                    }`}
-                                />
-                            </button>
-                        </div>
+            {(user?.role?.role_name === 'Admin' || user?.role?.role_name === 'SuperAdmin') && (
+                <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                    {tabs.map(tab => (
+                        <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={lex items-center gap-2 px-5 py-3 rounded-2xl font-bold transition-all whitespace-nowrap }>
+                            <span className="material-symbols-outlined text-[20px]">{tab.icon}</span>{tab.label}
+                        </button>
                     ))}
                 </div>
-            </div>
+            )}
 
-            {/* ══════════════════════════════════════
-                Action / Save Bar
-            ══════════════════════════════════════ */}
-            <div className="sticky bottom-6 bg-surface/80 backdrop-blur-xl rounded-2xl border border-outline-variant shadow-lg shadow-black/5 p-4 flex flex-col sm:flex-row items-center justify-between gap-4 z-40">
-                <div className="flex items-center gap-3 text-sm text-on-surface-variant px-2">
-                    <span className="material-symbols-outlined text-emerald-500 animate-pulse">verified_user</span>
-                    <span className="font-medium">بياناتك مشفرة ومؤمنة بالكامل على خوادم النظام.</span>
-                </div>
-                
-                <div className="flex gap-3 w-full sm:w-auto">
-                    {isDirty && (
-                        <button
-                            type="button"
-                            onClick={() => setFormData({ ...originalData })}
-                            className="flex-[1] sm:w-auto px-5 py-3 rounded-xl font-bold text-sm bg-surface-container hover:bg-outline-variant/60 text-on-surface-variant transition-colors"
-                        >
-                            تراجع
-                        </button>
+            <AnimatePresence mode="wait">
+                <motion.div key={activeTab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }}>
+                    
+                    {activeTab === 'profile' && (
+                        <div className="space-y-6">
+                            <div className="bg-surface-container-lowest rounded-3xl border border-outline-variant p-6 md:p-8 space-y-6 shadow-sm">
+                                <h3 className="text-lg font-extrabold text-on-surface flex items-center gap-3 border-b border-outline-variant/60 pb-4 mb-6"><span className="material-symbols-outlined text-primary">person</span>الهوية والمصادقة الأمنية</h3>
+                                <div className="grid md:grid-cols-2 gap-6">
+                                    <div><label className="block text-sm font-bold text-on-surface mb-2">الإسم الكامل</label><input type="text" name="full_name" value={formData.full_name} onChange={handleChange} className="w-full bg-surface-container border border-outline-variant rounded-xl p-3.5" /></div>
+                                    <div><label className="block text-sm font-bold text-on-surface mb-2">رقم الهاتف</label><input type="text" dir="ltr" name="phone" value={formData.phone} onChange={handleChange} className="w-full bg-surface-container border border-outline-variant rounded-xl p-3.5 font-mono" /></div>
+                                    <div className="md:col-span-2"><label className="block text-sm font-bold text-on-surface mb-2">البريد الإلكتروني</label><input type="email" dir="ltr" name="email" value={formData.email} onChange={handleChange} className="w-full bg-surface-container border border-outline-variant rounded-xl p-3.5 font-mono" /></div>
+                                </div>
+                            </div>
+                            <div className="flex justify-end"><button disabled={!isProfileDirty} onClick={handleSaveProfile} className={px-8 py-3 rounded-xl font-bold text-white transition-all }>حفظ الملف الشخصي</button></div>
+                        </div>
                     )}
-                    <button
-                        type="button"
-                        disabled={!isDirty}
-                        onClick={handleSaveProfile}
-                        className={`flex-[2] sm:w-auto inline-flex items-center justify-center gap-2 text-[15px] font-bold py-3 px-8 rounded-xl shadow-lg transition-all active:scale-95 ${
-                            isDirty 
-                                ? 'bg-gradient-to-l from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-white shadow-primary/20' 
-                                : 'bg-surface-container text-on-surface-variant opacity-60 cursor-not-allowed'
-                        }`}
-                    >
-                        <span className="material-symbols-outlined text-[20px]">save</span>
-                        {isDirty ? 'تحديث الإعدادات' : 'لم يتم تعديل شيء'}
-                    </button>
-                </div>
-            </div>
+
+                    {activeTab === 'general' && (
+                        <div className="space-y-6">
+                            <div className="bg-surface-container-lowest rounded-3xl border border-outline-variant p-6 shadow-sm">
+                                <h3 className="text-lg font-extrabold text-on-surface flex items-center gap-3 border-b border-outline-variant/60 pb-4 mb-6"><span className="material-symbols-outlined text-primary">domain</span>إعدادات المنصة</h3>
+                                <div className="grid md:grid-cols-2 gap-6">
+                                    <div className="md:col-span-2"><label className="block text-sm font-bold mb-2">اسم المنصة</label><input type="text" name="platform_name" value={sysSettings.platform_name} onChange={handleSysChange} className="w-full bg-surface-container border border-outline-variant rounded-xl p-3.5" /></div>
+                                    <div><label className="block text-sm font-bold mb-2">البريد الإلكتروني للدعم</label><input type="email" dir="ltr" name="support_email" value={sysSettings.support_email} onChange={handleSysChange} className="w-full bg-surface-container border border-outline-variant rounded-xl p-3.5 font-mono" /></div>
+                                    <div><label className="block text-sm font-bold mb-2">رقم الهاتف للدعم</label><input type="text" dir="ltr" name="support_phone" value={sysSettings.support_phone} onChange={handleSysChange} className="w-full bg-surface-container border border-outline-variant rounded-xl p-3.5 font-mono" /></div>
+                                </div>
+                                <div className="mt-6 pt-6 border-t border-outline-variant/40">
+                                    <div className="flex items-center justify-between bg-error-container/20 p-5 rounded-2xl border border-error/20">
+                                        <div><h4 className="font-bold text-error mb-1">وضع الصيانة</h4><p className="text-sm text-on-surface-variant">عند تفعيله، سيتم إيقاف النظام وظهور رسالة صيانة للمستخدمين.</p></div>
+                                        <button type="button" onClick={() => setSysSettings(p => ({ ...p, maintenance_mode: !p.maintenance_mode }))} className={elative inline-flex h-7 w-12 rounded-full transition-colors }><span className={inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform } /></button>
+                                    </div>
+                                </div>
+                            </div>
+                            <SystemSaveBar isDirty={isSystemDirty} onRevert={() => setSysSettings({ ...originalSysSettings })} onSave={handleSaveSystemSettings} isPending={isUpdatingSettings} />
+                        </div>
+                    )}
+
+                    {activeTab === 'financial' && (
+                        <div className="space-y-6">
+                            <div className="bg-surface-container-lowest rounded-3xl border border-outline-variant p-6 shadow-sm">
+                                <h3 className="text-lg font-extrabold text-on-surface flex items-center gap-3 border-b border-outline-variant/60 pb-4 mb-6"><span className="material-symbols-outlined text-emerald-500">payments</span>الضوابط المالية</h3>
+                                <div className="grid md:grid-cols-2 gap-6">
+                                    <div><label className="block text-sm font-bold mb-2">نسبة عمولة المنصة (%)</label><input type="number" name="platform_commission" value={sysSettings.platform_commission} onChange={handleSysChange} className="w-full bg-surface-container border border-outline-variant rounded-xl p-3.5" /></div>
+                                    <div><label className="block text-sm font-bold mb-2">سعر الصرف للدولار</label><input type="number" step="0.01" name="currency_rate" value={sysSettings.currency_rate} onChange={handleSysChange} className="w-full bg-surface-container border border-outline-variant rounded-xl p-3.5" /></div>
+                                    <div><label className="block text-sm font-bold mb-2">الحد الأدنى للسحب</label><input type="number" name="min_withdrawal" value={sysSettings.min_withdrawal} onChange={handleSysChange} className="w-full bg-surface-container border border-outline-variant rounded-xl p-3.5" /></div>
+                                </div>
+                            </div>
+                            <SystemSaveBar isDirty={isSystemDirty} onRevert={() => setSysSettings({ ...originalSysSettings })} onSave={handleSaveSystemSettings} isPending={isUpdatingSettings} />
+                        </div>
+                    )}
+
+                    {activeTab === 'technical' && (
+                        <div className="space-y-6">
+                            <div className="bg-surface-container-lowest rounded-3xl border border-outline-variant p-6 shadow-sm">
+                                <h3 className="text-lg font-extrabold text-on-surface flex items-center gap-3 border-b border-outline-variant/60 pb-4 mb-6"><span className="material-symbols-outlined text-blue-500">memory</span>إعدادات الخوادم</h3>
+                                <div className="mb-6"><label className="block text-sm font-bold mb-2">فترة تحديث الشاشات (Heartbeat Interval بالثواني)</label><input type="number" name="heartbeat_interval" value={sysSettings.heartbeat_interval} onChange={handleSysChange} className="w-full md:w-1/2 bg-surface-container border border-outline-variant rounded-xl p-3.5" /></div>
+                                <div className="pt-6 border-t border-outline-variant/40"><h4 className="font-bold mb-4">إعدادات SMTP</h4>
+                                    <div className="grid md:grid-cols-2 gap-4">
+                                        <div><label className="block text-sm font-bold mb-1">المضيف (Host)</label><input type="text" dir="ltr" name="smtp_host" value={sysSettings.smtp_host} onChange={handleSysChange} className="w-full bg-surface-container border rounded-xl p-3 font-mono" /></div>
+                                        <div><label className="block text-sm font-bold mb-1">المنفذ (Port)</label><input type="number" dir="ltr" name="smtp_port" value={sysSettings.smtp_port} onChange={handleSysChange} className="w-full bg-surface-container border rounded-xl p-3 font-mono" /></div>
+                                        <div><label className="block text-sm font-bold mb-1">اسم المستخدم</label><input type="text" dir="ltr" name="smtp_user" value={sysSettings.smtp_user} onChange={handleSysChange} className="w-full bg-surface-container border rounded-xl p-3 font-mono" /></div>
+                                        <div><label className="block text-sm font-bold mb-1">كلمة المرور</label><input type="password" dir="ltr" name="smtp_pass" value={sysSettings.smtp_pass} onChange={handleSysChange} className="w-full bg-surface-container border rounded-xl p-3 font-mono" /></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <SystemSaveBar isDirty={isSystemDirty} onRevert={() => setSysSettings({ ...originalSysSettings })} onSave={handleSaveSystemSettings} isPending={isUpdatingSettings} />
+                        </div>
+                    )}
+
+                    {activeTab === 'backup' && (
+                        <div className="space-y-6">
+                            <div className="bg-surface-container-lowest rounded-3xl border border-outline-variant p-6 shadow-sm">
+                                <h3 className="text-lg font-extrabold text-on-surface flex items-center gap-3 border-b border-outline-variant/60 pb-4 mb-6"><span className="material-symbols-outlined text-primary">cloud_sync</span>النسخ الاحتياطي</h3>
+                                <div className="grid md:grid-cols-2 gap-6 mb-6">
+                                    <div><label className="block text-sm font-bold mb-2">مكان الحفظ</label><select name="backup_disk" value={sysSettings.backup_disk} onChange={handleSysChange} className="w-full bg-surface-container border rounded-xl p-3.5"><option value="local">محلي (Local)</option><option value="s3">سحابي (S3)</option></select></div>
+                                    <div><label className="block text-sm font-bold mb-2">جدول النسخ</label><select name="auto_backup_schedule" value={sysSettings.auto_backup_schedule} onChange={handleSysChange} className="w-full bg-surface-container border rounded-xl p-3.5"><option value="none">معطل</option><option value="daily">يومياً</option><option value="weekly">أسبوعياً</option></select></div>
+                                </div>
+                                <div className="flex gap-4 pt-4 border-t border-outline-variant/40">
+                                    <button className="flex-1 bg-primary/10 text-primary px-6 py-3 rounded-xl font-bold flex justify-center gap-2 hover:bg-primary/20"><span className="material-symbols-outlined">download</span>تنزيل SQL الآن</button>
+                                    <button className="flex-1 bg-error/10 text-error px-6 py-3 rounded-xl font-bold flex justify-center gap-2 hover:bg-error/20"><span className="material-symbols-outlined">restore</span>استعادة من ملف</button>
+                                </div>
+                            </div>
+                            <SystemSaveBar isDirty={isSystemDirty} onRevert={() => setSysSettings({ ...originalSysSettings })} onSave={handleSaveSystemSettings} isPending={isUpdatingSettings} />
+                        </div>
+                    )}
+                </motion.div>
+            </AnimatePresence>
         </div>
     );
 };
+
+const SystemSaveBar = ({ isDirty, onRevert, onSave, isPending }) => (
+    <div className="sticky bottom-6 bg-surface/90 backdrop-blur-xl rounded-2xl border border-outline-variant shadow-lg p-4 flex justify-end gap-3 z-40">
+        {isDirty && <button onClick={onRevert} className="px-5 py-3 rounded-xl font-bold text-on-surface-variant hover:bg-outline-variant/60">تراجع</button>}
+        <button disabled={!isDirty || isPending} onClick={onSave} className={px-8 py-3 rounded-xl font-bold flex items-center gap-2 }>
+            {isPending ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <span className="material-symbols-outlined">save</span>}
+            حفظ التغييرات
+        </button>
+    </div>
+);
 
 export default SettingsPage;

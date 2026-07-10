@@ -107,5 +107,9 @@ export const ENDPOINTS = {
     },
     OWNER: {
         DASHBOARD: '/owner/dashboard'
+    },
+    SETTINGS: {
+        ALL: '/settings',
+        UPDATE: '/settings'
     }
 };
