@@ -51,7 +51,6 @@ const ScreensPage = () => {
   const { data: governorates = [], isLoading: govLoading } = useGovernorates();
   const [geoLoading, setGeoLoading] = useState(false);
   const { data: types = [] } = useScreenTypes();
-  const { data: streetsData = [] } = useStreets();
   const { data: ownersData = [] } = useUsersByRole('ScreenOwner');
   const { data: roles = [] } = useRoles();
 
@@ -59,7 +58,7 @@ const ScreensPage = () => {
   const { mutateAsync: updateScreen } = useUpdateScreen();
   const { mutateAsync: deleteScreenAPI } = useDeleteScreen();
 
-  const lookups = { types, streets: streetsData, owners: ownersData };
+  const lookups = { types, owners: ownersData };
 
   const loading = screensLoading;
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -268,9 +267,9 @@ const ScreensPage = () => {
 
       setSlotsLoading(true);
       try {
-        const slotsRes = await axiosClient.get(ENDPOINTS.SCREEN_PRICING.ALL);
+        const slotsRes = await axiosClient.get(`${ENDPOINTS.SCREEN_PRICING.ALL}?screen_id=${screen.screen_id}`);
         const allSlots = Array.isArray(slotsRes.data) ? slotsRes.data : (Array.isArray(slotsRes.data?.data) ? slotsRes.data.data : []);
-        setPeakSlots(allSlots.filter(s => s.screen_id === screen.screen_id).map(s => ({
+        setPeakSlots(allSlots.map(s => ({
           id: s.slot_id || s.id,
           start_time: s.start_time ? s.start_time.substring(0, 5) : '16:00',
           end_time: s.end_time ? s.end_time.substring(0, 5) : '22:00',
