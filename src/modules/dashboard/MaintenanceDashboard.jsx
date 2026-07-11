@@ -696,13 +696,13 @@ const MaintenanceDashboard = () => {
     };
 
     const handlePing = (mac_address) => {
-        if (!mac_address) return addToast('لا يوجد عنوان MAC للشاشة', 'error');
+        if (!mac_address) return addToast('لا يوجد معرف للشاشة', 'error');
         addToast('جاري فحص الاتصال بالشاشة...', 'info');
         sendScreenCommand(mac_address, 'PING');
     };
 
     const handleRebootSingle = (mac_address) => {
-        if (!mac_address) return addToast('لا يوجد عنوان MAC للشاشة', 'error');
+        if (!mac_address) return addToast('لا يوجد معرف للشاشة', 'error');
         addToast('جاري إعادة تشغيل الشاشة...', 'warning');
         sendScreenCommand(mac_address, 'RESTART_APP');
     };

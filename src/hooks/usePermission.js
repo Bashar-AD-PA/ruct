@@ -50,7 +50,7 @@ const usePermission = () => {
             case 'view_earnings':
                 return isScreenOwner;
             case 'manage_screens':
-                return isAdmin;
+                return isAdmin || isMaintenance;
             case 'manage_settings':
                 return isAdmin;
             default:

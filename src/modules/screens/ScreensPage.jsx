@@ -671,7 +671,7 @@ const ScreensPage = () => {
             <thead className="bg-[#F8FAFC] text-[#141b2b] text-[14px] font-medium border-b border-[#E5E7EB]">
               <tr>
                 <th className="p-[8px] whitespace-nowrap">اسم الشاشة</th>
-                <th className="p-[8px] whitespace-nowrap">MAC Address</th>
+                <th className="p-[8px] whitespace-nowrap">معرف الشاشة</th>
                 <th className="p-[8px] whitespace-nowrap">كود الربط</th>
                 <th className="p-[8px] whitespace-nowrap text-center">الحالة</th>
                 <th className="p-[8px] whitespace-nowrap text-center">صورة</th>
@@ -795,7 +795,7 @@ const ScreensPage = () => {
                 />
               </div>
 
-              {/* MAC Address — إضافة فقط */}
+              {/* معرف الشاشة — إضافة فقط */}
               {!modalConfig.isEdit && (
                 <div style={{ gridColumn: '1 / -1' }}>
                   <label style={{ fontSize: '12px', fontWeight: 600, color: '#434655', display: 'block', marginBottom: '6px' }}>

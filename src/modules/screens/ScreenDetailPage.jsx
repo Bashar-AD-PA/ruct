@@ -65,7 +65,7 @@ const ScreenDetailPage = () => {
                 </div>
                 <div className="flex items-center gap-2 bg-blue-50 px-4 py-2 rounded-xl border border-blue-100 text-blue-700 font-bold text-sm">
                     <Monitor className="w-4 h-4" />
-                    MAC: <span className="font-mono">{screen.mac_address}</span>
+                    معرف الشاشة: <span className="font-mono">{screen.mac_address}</span>
                 </div>
             </div>
 
