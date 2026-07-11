@@ -888,6 +888,31 @@ const CreateAdPage = () => {
 
                                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
                                                 <div className="space-y-6 z-10">
+                                                    
+                                                    {!calculatedCost && (
+                                                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-primary-container/20 border border-primary/20 p-5 rounded-2xl shadow-sm">
+                                                            <h4 className="font-label-md text-label-md font-bold text-primary mb-2 flex items-center gap-2">
+                                                                <span className="material-symbols-outlined text-[20px]">lightbulb</span>
+                                                                آلية التسعير الذكي (Smart Pricing)
+                                                            </h4>
+                                                            <p className="font-caption text-caption text-on-surface-variant leading-relaxed mb-3">
+                                                                يبدأ <strong>السعر الحقيقي الأساسي</strong> للشاشة من <strong>$10 يومياً</strong>. يتم حساب إجمالي التكلفة النهائية بشفافية تامة بناءً على المعايير التالية:
+                                                            </p>
+                                                            <ul className="space-y-1.5 font-caption text-caption text-on-surface-variant mb-4">
+                                                                <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-primary/60"></span> <strong>حجم الشاشة:</strong> (مثال: الشاشات 98 بوصة تكسب مضاعف x1.5).</li>
+                                                                <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-primary/60"></span> <strong>وقت العرض:</strong> فترات الذروة تختلف عن الفترات العادية.</li>
+                                                                <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-primary/60"></span> <strong>التشارك (Crowd Discount):</strong> خصم يصل إلى 50% في حال وجود معلنين آخرين معك على نفس الشاشة.</li>
+                                                                <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-primary/60"></span> <strong>باقة التكرار:</strong> معدل ظهور إعلانك (مثال: كل 10 دقائق).</li>
+                                                            </ul>
+                                                            <div className="bg-surface border border-primary/10 rounded-xl p-3 flex items-start gap-3">
+                                                                <span className="material-symbols-outlined text-primary text-[18px] mt-0.5">info</span>
+                                                                <p className="font-caption text-caption text-outline">
+                                                                    اضغط على حساب التكلفة أدناه ليقوم محرك الذكاء الاصطناعي باستخراج التسعيرة الحقيقية والدقيقة لحملتك.
+                                                                </p>
+                                                            </div>
+                                                        </motion.div>
+                                                    )}
+
                                                     <button type="button" onClick={handleCalculateCost} disabled={costLoading}
                                                         className="w-full bg-surface hover:bg-surface-container-low border border-border-color text-on-background font-label-lg py-4 rounded-xl transition-all shadow-sm flex items-center justify-center gap-2 group outline-none">
                                                         <span className="material-symbols-outlined text-primary">calculate</span>
