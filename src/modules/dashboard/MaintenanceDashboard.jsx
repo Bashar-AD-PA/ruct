@@ -402,8 +402,8 @@ const YemenStatusMap = ({ screenData }) => {
                         attributionControl={false}
                     >
                         <TileLayer
-                            url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-                            attribution='&copy; <a href="https://carto.com">CARTO</a>'
+                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                         />
                         <MapFitter pins={pins} />
 
@@ -584,6 +584,7 @@ const MaintenanceDashboard = () => {
         const status = deriveScreenStatus(s);
         return {
             id: s.id || idx,
+            mac_address: s.mac_address,
             type: status === 'broken' ? 'offline' : (status === 'maintenance' ? 'warning' : 'offline'),
             screen: s.name || s.screen_name,
             location: s.street?.region?.governorate?.name || 'غير محدد',
@@ -683,7 +684,42 @@ const MaintenanceDashboard = () => {
         : realIncidents.filter(i => i.status === incidentFilter);
 
     /* Quick actions */
-    const handleReboot = () => addToast('تم إرسال أمر إعادة التشغيل للشاشات المتعطلة', 'success');
+    const sendScreenCommand = async (mac_address, command) => {
+        try {
+            await axiosClient.post(ENDPOINTS.SCREENS.COMMAND, {
+                target_screen: mac_address,
+                command: command
+            });
+        } catch (error) {
+            addToast('فشل في إرسال الأمر للشاشة', 'error');
+        }
+    };
+
+    const handlePing = (mac_address) => {
+        if (!mac_address) return addToast('لا يوجد عنوان MAC للشاشة', 'error');
+        addToast('جاري فحص الاتصال بالشاشة...', 'info');
+        sendScreenCommand(mac_address, 'PING');
+    };
+
+    const handleRebootSingle = (mac_address) => {
+        if (!mac_address) return addToast('لا يوجد عنوان MAC للشاشة', 'error');
+        addToast('جاري إعادة تشغيل الشاشة...', 'warning');
+        sendScreenCommand(mac_address, 'RESTART_APP');
+    };
+
+    const handleReboot = () => {
+        const brokenScreens = filteredIncidents.filter(i => i.type === 'offline');
+        if (brokenScreens.length === 0) {
+            addToast('لا توجد شاشات متعطلة لإعادة تشغيلها', 'info');
+            return;
+        }
+        addToast(`جاري إرسال أمر إعادة التشغيل لـ ${brokenScreens.length} شاشة...`, 'warning');
+        brokenScreens.forEach(inc => {
+            if (inc.mac_address) {
+                sendScreenCommand(inc.mac_address, 'RESTART_APP');
+            }
+        });
+    };
     const handleExport = () => addToast('جاري تصدير تقرير الصيانة...', 'info');
 
     /* ── Screen table rows ── */
@@ -961,13 +997,29 @@ const MaintenanceDashboard = () => {
                                         <span style={{ fontSize: '10px', fontWeight: 700, padding: '3px 8px', borderRadius: 99, background: sb.bg, color: sb.color }}>{sb.label}</span>
                                     </div>
 
-                                    <button
-                                        onClick={() => navigate('/dashboard/screens')}
-                                        style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: S.primaryContainer, padding: '4px' }}
-                                        title="عرض الشاشة"
-                                    >
-                                        <Eye style={{ width: 15, height: 15 }} />
-                                    </button>
+                                    <div style={{ display: 'flex', gap: '4px' }}>
+                                        <button
+                                            onClick={() => handlePing(incident.mac_address)}
+                                            style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: S.info, padding: '4px' }}
+                                            title="فحص الاتصال (Ping)"
+                                        >
+                                            <Radio style={{ width: 15, height: 15 }} />
+                                        </button>
+                                        <button
+                                            onClick={() => handleRebootSingle(incident.mac_address)}
+                                            style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: S.warning, padding: '4px' }}
+                                            title="إعادة التشغيل"
+                                        >
+                                            <RotateCcw style={{ width: 15, height: 15 }} />
+                                        </button>
+                                        <button
+                                            onClick={() => navigate(`/dashboard/screens/${incident.id}`)}
+                                            style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: S.primaryContainer, padding: '4px' }}
+                                            title="عرض الشاشة"
+                                        >
+                                            <Eye style={{ width: 15, height: 15 }} />
+                                        </button>
+                                    </div>
                                 </motion.div>
                             );
                         })}

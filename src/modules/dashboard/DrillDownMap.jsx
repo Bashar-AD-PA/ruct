@@ -288,7 +288,7 @@ const DrillDownMap = ({ allScreens = [], onStartMaintenance }) => {
                 const enriched = data.map(g => {
                     return { ...g, lat: g.latitude ?? g.lat ?? null, lng: g.longitude ?? g.lng ?? null };
                 });
-                setGovs(enriched.filter(g => g.lat && g.lng));
+                setGovs(enriched);
             } catch {
                 setGovs([]);
             } finally {
@@ -541,7 +541,10 @@ const DrillDownMap = ({ allScreens = [], onStartMaintenance }) => {
                         scrollWheelZoom={true}
                         attributionControl={false}
                     >
-                        <TileLayer url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png" />
+                        <TileLayer 
+                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" 
+                            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                        />
                         <MapController target={mapTarget} />
 
                         {/* ─ ROUTE PATH Overlay ─ */}
