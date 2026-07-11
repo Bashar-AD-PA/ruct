@@ -889,29 +889,62 @@ const CreateAdPage = () => {
                                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
                                                 <div className="space-y-6 z-10">
                                                     
-                                                    {!calculatedCost && (
-                                                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-primary-container/20 border border-primary/20 p-5 rounded-2xl shadow-sm">
-                                                            <h4 className="font-label-md text-label-md font-bold text-primary mb-2 flex items-center gap-2">
-                                                                <span className="material-symbols-outlined text-[20px]">lightbulb</span>
-                                                                آلية التسعير الذكي (Smart Pricing)
-                                                            </h4>
-                                                            <p className="font-caption text-caption text-on-surface-variant leading-relaxed mb-3">
-                                                                يبدأ <strong>السعر الحقيقي الأساسي</strong> للشاشة من <strong>$10 يومياً</strong>. يتم حساب إجمالي التكلفة النهائية بشفافية تامة بناءً على المعايير التالية:
-                                                            </p>
-                                                            <ul className="space-y-1.5 font-caption text-caption text-on-surface-variant mb-4">
-                                                                <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-primary/60"></span> <strong>حجم الشاشة:</strong> (مثال: الشاشات 98 بوصة تكسب مضاعف x1.5).</li>
-                                                                <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-primary/60"></span> <strong>وقت العرض:</strong> فترات الذروة تختلف عن الفترات العادية.</li>
-                                                                <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-primary/60"></span> <strong>التشارك (Crowd Discount):</strong> خصم يصل إلى 50% في حال وجود معلنين آخرين معك على نفس الشاشة.</li>
-                                                                <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-primary/60"></span> <strong>باقة التكرار:</strong> معدل ظهور إعلانك (مثال: كل 10 دقائق).</li>
-                                                            </ul>
-                                                            <div className="bg-surface border border-primary/10 rounded-xl p-3 flex items-start gap-3">
-                                                                <span className="material-symbols-outlined text-primary text-[18px] mt-0.5">info</span>
-                                                                <p className="font-caption text-caption text-outline">
-                                                                    اضغط على حساب التكلفة أدناه ليقوم محرك الذكاء الاصطناعي باستخراج التسعيرة الحقيقية والدقيقة لحملتك.
+                                                    {!calculatedCost && (() => {
+                                                        const sd = form.start_date ? new Date(form.start_date) : null;
+                                                        const ed = form.end_date ? new Date(form.end_date) : null;
+                                                        const days = sd && ed && !isNaN(sd) && !isNaN(ed) ? Math.max(1, Math.ceil((ed - sd) / (1000 * 60 * 60 * 24)) + 1) : 0;
+                                                        
+                                                        let basePriceSum = 0;
+                                                        const selectedScreensData = screens.filter(s => selectedScreens.includes(s.screen_id));
+                                                        
+                                                        selectedScreensData.forEach(s => {
+                                                            const base = Number(s.base_price) || 10;
+                                                            const sizeInch = Number(s.screen_size_inch) || 55;
+                                                            let sizeMultiplier = 1.0;
+                                                            if (sizeInch >= 98) sizeMultiplier = 1.5;
+                                                            else if (sizeInch >= 86) sizeMultiplier = 1.35;
+                                                            else if (sizeInch >= 75) sizeMultiplier = 1.2;
+                                                            else if (sizeInch >= 65) sizeMultiplier = 1.1;
+                                                            basePriceSum += (base * sizeMultiplier);
+                                                        });
+                                                        
+                                                        const estimatedBaseCost = (basePriceSum * days).toFixed(2);
+
+                                                        return (
+                                                            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-primary-container/20 border border-primary/20 p-5 rounded-2xl shadow-sm">
+                                                                <h4 className="font-label-md text-label-md font-bold text-primary mb-3 flex items-center gap-2">
+                                                                    <span className="material-symbols-outlined text-[20px]">analytics</span>
+                                                                    المؤشرات المبدئية لحملتك
+                                                                </h4>
+                                                                
+                                                                <div className="grid grid-cols-3 gap-3 mb-4">
+                                                                    <div className="bg-surface rounded-xl p-3 text-center border border-primary/10">
+                                                                        <span className="block font-caption text-caption text-outline mb-1">المدة</span>
+                                                                        <span className="font-headline-sm text-headline-sm text-primary font-bold">{days > 0 ? `${days} يوم` : '-'}</span>
+                                                                    </div>
+                                                                    <div className="bg-surface rounded-xl p-3 text-center border border-primary/10">
+                                                                        <span className="block font-caption text-caption text-outline mb-1">الشاشات</span>
+                                                                        <span className="font-headline-sm text-headline-sm text-primary font-bold">{selectedScreens.length > 0 ? selectedScreens.length : '-'}</span>
+                                                                    </div>
+                                                                    <div className="bg-surface rounded-xl p-3 text-center border border-primary/10">
+                                                                        <span className="block font-caption text-caption text-outline mb-1">توقع التكلفة</span>
+                                                                        <span className="font-headline-sm text-headline-sm text-primary font-bold" dir="ltr">{days > 0 && selectedScreens.length > 0 ? `$${estimatedBaseCost}` : '-'}</span>
+                                                                    </div>
+                                                                </div>
+
+                                                                <p className="font-caption text-caption text-on-surface-variant leading-relaxed mb-3">
+                                                                    يُظهر التوقع أعلاه التكلفة القياسية (للفترة العادية). عند الحساب النهائي أدناه، قد تنخفض التكلفة بفضل <strong>خصم التشارك (حتى 50%)</strong>، أو تتغير حسب فترات الذروة.
                                                                 </p>
-                                                            </div>
-                                                        </motion.div>
-                                                    )}
+
+                                                                <div className="bg-surface border border-primary/10 rounded-xl p-3 flex items-start gap-3">
+                                                                    <span className="material-symbols-outlined text-primary text-[18px] mt-0.5">info</span>
+                                                                    <p className="font-caption text-caption text-outline">
+                                                                        اضغط على حساب التكلفة أدناه ليقوم محرك الذكاء الاصطناعي باستخراج التسعيرة الحقيقية والدقيقة لحملتك.
+                                                                    </p>
+                                                                </div>
+                                                            </motion.div>
+                                                        );
+                                                    })()}
 
                                                     <button type="button" onClick={handleCalculateCost} disabled={costLoading}
                                                         className="w-full bg-surface hover:bg-surface-container-low border border-border-color text-on-background font-label-lg py-4 rounded-xl transition-all shadow-sm flex items-center justify-center gap-2 group outline-none">
