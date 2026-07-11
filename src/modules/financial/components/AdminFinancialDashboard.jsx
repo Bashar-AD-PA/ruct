@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAdminDashboardStats } from '../../../hooks/api/useFinancial';
 import DynamicPageLoader from '../../../shared/components/DynamicPageLoader';
-import { Wallet, Monitor, Plus, ReceiptText, ArrowUpRight, ArrowDownRight, Percentage } from 'lucide-react';
+import { Wallet, Monitor, Plus, ReceiptText, ArrowUpRight, ArrowDownRight, Percent } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const AdminFinancialDashboard = () => {
@@ -195,7 +195,7 @@ const AdminFinancialDashboard = () => {
                 <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl shadow-sm overflow-hidden">
                     <div className="p-4 border-b border-outline-variant bg-surface-container/30">
                         <h4 className="font-bold text-on-surface flex items-center gap-2">
-                            <Percentage className="w-5 h-5 text-error" /> هيكل الخصم / الخدمة
+                            <Percent className="w-5 h-5 text-error" /> هيكل الخصم / الخدمة
                         </h4>
                     </div>
                     <div className="p-5 text-center">
