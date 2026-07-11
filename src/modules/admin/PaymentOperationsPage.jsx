@@ -19,7 +19,7 @@ const PaymentOperationsPage = () => {
         try {
             const res = await axiosClient.get(ENDPOINTS.FINANCIAL.LEDGER);
             if (res.data.success) {
-                const ledger = res.data.data || [];
+                const ledger = res.data.data?.transactions || (Array.isArray(res.data.data) ? res.data.data : []);
                 setPendingPayments(
                     ledger.filter(item => item.transaction_type === 'payment_pending' && item.status === 'pending')
                 );

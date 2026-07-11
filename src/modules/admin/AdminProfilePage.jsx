@@ -156,22 +156,7 @@ const AdminProfilePage = () => {
                 </div>
             </div>
 
-            {/* ══════════════════════════════════════
-                Warning Banner
-            ══════════════════════════════════════ */}
-            <div className="bg-error-container border border-error/20 rounded-xl p-4 flex gap-3 items-start">
-                <div className="w-8 h-8 rounded-full bg-error/10 flex items-center justify-center text-error flex-shrink-0 mt-0.5">
-                    <span className="material-symbols-outlined text-base">lock</span>
-                </div>
-                <div>
-                    <h4 className="text-sm font-bold text-on-error-container mb-0.5">
-                        تعديل الملف الشخصي مقفل حالياً
-                    </h4>
-                    <p className="text-xs text-on-error-container/75 leading-relaxed">
-                        لأسباب أمنية تم تقييد تعديل المعلومات الأساسية مؤقتاً. يرجى التواصل مع الدعم الفني عبر منصة التواصل إذا كنت بحاجة لإجراء تغييرات ضرورية.
-                    </p>
-                </div>
-            </div>
+
 
             {/* ══════════════════════════════════════
                 Account Settings — Stitch Table

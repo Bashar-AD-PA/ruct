@@ -24,6 +24,12 @@ const SettingsPage = () => {
         phone: user?.phone || '+967 777 123 456',
     });
 
+    const [passwordData, setPasswordData] = useState({
+        current_password: '',
+        new_password: '',
+    });
+    const [isSavingPassword, setIsSavingPassword] = useState(false);
+
     const [sysSettings, setSysSettings] = useState({
         platform_name: 'Sabapost',
         support_email: 'support@sabapost.com',
@@ -76,6 +82,20 @@ const SettingsPage = () => {
             addToast('تم حفظ الملف الشخصي بنجاح!', 'success');
         } catch (error) {
             addToast(error.response?.data?.message || 'حدث خطأ أثناء التعديل', 'error');
+        }
+    };
+
+    const handleSavePassword = async () => {
+        if (!passwordData.current_password || !passwordData.new_password) return;
+        setIsSavingPassword(true);
+        try {
+            const res = await axiosClient.put(ENDPOINTS.AUTH.CHANGE_PASSWORD, passwordData);
+            addToast(res.data.message || 'تم تغيير كلمة المرور بنجاح!', 'success');
+            setPasswordData({ current_password: '', new_password: '' });
+        } catch (error) {
+            addToast(error.response?.data?.message || 'فشل تغيير كلمة المرور', 'error');
+        } finally {
+            setIsSavingPassword(false);
         }
     };
 
@@ -160,8 +180,17 @@ const SettingsPage = () => {
                                     <div><label className="block text-sm font-bold text-on-surface mb-2">رقم الهاتف</label><input type="text" dir="ltr" name="phone" value={formData.phone} onChange={handleChange} className="w-full bg-surface-container border border-outline-variant rounded-xl p-3.5 font-mono" /></div>
                                     <div className="md:col-span-2"><label className="block text-sm font-bold text-on-surface mb-2">البريد الإلكتروني</label><input type="email" dir="ltr" name="email" value={formData.email} onChange={handleChange} className="w-full bg-surface-container border border-outline-variant rounded-xl p-3.5 font-mono" /></div>
                                 </div>
+                                <div className="flex justify-end mt-4"><button disabled={!isProfileDirty} onClick={handleSaveProfile} className={`px-8 py-3 rounded-xl font-bold text-white transition-all ${!isProfileDirty ? 'bg-outline-variant text-on-surface-variant cursor-not-allowed' : 'bg-primary hover:bg-primary/90 shadow-md'}`}>حفظ الملف الشخصي</button></div>
                             </div>
-                            <div className="flex justify-end"><button disabled={!isProfileDirty} onClick={handleSaveProfile} className={`px-8 py-3 rounded-xl font-bold text-white transition-all ${!isProfileDirty ? 'bg-outline-variant text-on-surface-variant cursor-not-allowed' : 'bg-primary hover:bg-primary/90 shadow-md'}`}>حفظ الملف الشخصي</button></div>
+                            
+                            <div className="bg-surface-container-lowest rounded-3xl border border-outline-variant p-6 md:p-8 space-y-6 shadow-sm">
+                                <h3 className="text-lg font-extrabold text-on-surface flex items-center gap-3 border-b border-outline-variant/60 pb-4 mb-6"><span className="material-symbols-outlined text-secondary">lock</span>تغيير كلمة المرور</h3>
+                                <div className="grid md:grid-cols-2 gap-6">
+                                    <div><label className="block text-sm font-bold text-on-surface mb-2">كلمة المرور الحالية</label><input type="password" name="current_password" value={passwordData.current_password} onChange={(e) => setPasswordData({...passwordData, current_password: e.target.value})} className="w-full bg-surface-container border border-outline-variant rounded-xl p-3.5 font-mono" /></div>
+                                    <div><label className="block text-sm font-bold text-on-surface mb-2">كلمة المرور الجديدة</label><input type="password" name="new_password" value={passwordData.new_password} onChange={(e) => setPasswordData({...passwordData, new_password: e.target.value})} className="w-full bg-surface-container border border-outline-variant rounded-xl p-3.5 font-mono" /></div>
+                                </div>
+                                <div className="flex justify-end mt-4"><button disabled={!passwordData.current_password || !passwordData.new_password || isSavingPassword} onClick={handleSavePassword} className={`px-8 py-3 rounded-xl font-bold text-white transition-all ${(!passwordData.current_password || !passwordData.new_password || isSavingPassword) ? 'bg-outline-variant text-on-surface-variant cursor-not-allowed' : 'bg-secondary hover:bg-secondary/90 shadow-md flex gap-2 items-center'}`}>{isSavingPassword && <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>}تحديث كلمة المرور</button></div>
+                            </div>
                         </div>
                     )}
 
