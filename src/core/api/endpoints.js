@@ -56,6 +56,7 @@ export const ENDPOINTS = {
         DELETE: (id) => `/screen-pricing-slots/${id}`
     },
     FINANCIAL: {
+        ADMIN_DASHBOARD: '/financial/admin-dashboard',
         LEDGER: '/financial/ledger',
         MY_EARNINGS: '/financial/my-earnings',
         REQUEST_PAYOUT: '/financial/request-payout',
