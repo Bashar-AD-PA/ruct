@@ -8,7 +8,6 @@ import Modal from '../../shared/components/Modal';
 import { useQueryClient } from '@tanstack/react-query';
 import echo from '../../core/api/echo';
 import { useLedger, useRecordPayment, useApprovePayout, useRejectPayout } from '../../hooks/api/useFinancial';
-import AdminFinancialDashboard from './components/AdminFinancialDashboard';
 
 const FinancialPage = () => {
     const queryClient = useQueryClient();
@@ -23,7 +22,6 @@ const FinancialPage = () => {
     const [reviewModalData, setReviewModalData] = useState(null);
     const [reviewForm, setReviewForm] = useState({ reference_number: '', reason: '' });
     const [activeFilter, setActiveFilter] = useState('all'); // 'all', 'completed', 'pending', 'rejected'
-    const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard', 'ledger'
     const [formData, setFormData] = useState({ amount: '', reference_number: '', payment_method: 'bank_transfer' });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isAmountVisible, setIsAmountVisible] = useState(true);
@@ -231,38 +229,19 @@ const FinancialPage = () => {
                         <div className="w-10 h-10 rounded-lg bg-surface-container-high flex items-center justify-center">
                             <span className="material-symbols-outlined text-primary text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>account_balance_wallet</span>
                         </div>
-                        <h1 className="font-headline-lg text-headline-lg md:text-display-lg text-on-surface">النظام المالي</h1>
+                        <h1 className="font-headline-lg text-headline-lg md:text-display-lg text-on-surface">دفتر الأستاذ المالي</h1>
                     </div>
-                    <p className="font-body-md text-body-md text-on-surface-variant">إدارة الإحصاءات والتدفقات النقدية وعمليات المحاسبة الشاملة.</p>
+                    <p className="font-body-md text-body-md text-on-surface-variant">نظرة تنفيذية آنية للتدفقات النقدية والعمليات المالية مع سجلات المحاسبة الدقيقة.</p>
                 </div>
-                <div className="flex gap-2">
+                <div>
                     <button 
-                        onClick={() => setActiveTab('dashboard')}
-                        className={`px-6 py-2.5 rounded-lg font-bold transition-colors ${activeTab === 'dashboard' ? 'bg-primary text-white shadow-sm' : 'bg-surface-container-high text-on-surface hover:bg-surface-container-highest'}`}
-                    >
-                        لوحة التحكم المالية
-                    </button>
-                    <button 
-                        onClick={() => setActiveTab('ledger')}
-                        className={`px-6 py-2.5 rounded-lg font-bold transition-colors ${activeTab === 'ledger' ? 'bg-primary text-white shadow-sm' : 'bg-surface-container-high text-on-surface hover:bg-surface-container-highest'}`}
-                    >
-                        دفتر الأستاذ (العمليات)
+                        onClick={() => setIsAddModalOpen(true)}
+                        className="bg-primary text-on-primary px-6 py-2.5 rounded-lg font-label-md text-label-md hover:bg-primary-fixed-variant transition-colors shadow-sm flex items-center gap-2">
+                        <span className="material-symbols-outlined text-[20px]">add</span>
+                        إضافة معاملة
                     </button>
                 </div>
             </div>
-
-            {activeTab === 'dashboard' ? (
-                <AdminFinancialDashboard />
-            ) : (
-                <>
-                    <div className="flex justify-end mb-4">
-                        <button 
-                            onClick={() => setIsAddModalOpen(true)}
-                            className="bg-primary text-on-primary px-6 py-2.5 rounded-lg font-label-md text-label-md hover:bg-primary-fixed-variant transition-colors shadow-sm flex items-center gap-2">
-                            <span className="material-symbols-outlined text-[20px]">add</span>
-                            إضافة معاملة يدوية
-                        </button>
-                    </div>
 
             {/* Dashboard Bento Grid */}
             <div className="grid grid-cols-1 md:grid-cols-12 gap-lg mb-lg">
@@ -373,13 +352,11 @@ const FinancialPage = () => {
                         <DataTable 
                             columns={columns} 
                             data={filteredTransactions} 
-                            onExport={handleExportCSV}
+                            loading={false} 
                         />
                     </div>
                 )}
             </div>
-                </>
-            )}
 
             {/* Filter Modal */}
             <Modal isOpen={isFilterModalOpen} onClose={() => setIsFilterModalOpen(false)} title="تصفية السجل المالي">

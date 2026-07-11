@@ -13,16 +13,6 @@ export const useLedger = () => {
   });
 };
 
-export const useAdminDashboardStats = () => {
-  return useQuery({
-    queryKey: ['adminFinancialDashboard'],
-    queryFn: async () => {
-      const res = await axiosClient.get(ENDPOINTS.FINANCIAL.ADMIN_DASHBOARD);
-      return res.data?.data || {};
-    },
-  });
-};
-
 export const useApprovePayment = () => {
   const queryClient = useQueryClient();
   const addToast = useToastStore(state => state.addToast);
