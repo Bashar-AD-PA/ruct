@@ -216,7 +216,8 @@ const CreateAdPage = () => {
                 end_date: ed,
                 target_end_time: form.target_end_time,
                 // interval_minutes يُحسب تلقائياً في الـ Backend من مدة الفيديو
-                video_duration_sec: form.video_duration_sec || 30
+                video_duration_sec: form.video_duration_sec || 30,
+                interval_minutes: 10 // Fallback for old backends
             };
 
             const res = await axiosClient.post(ENDPOINTS.ADS.CALCULATE_COST, payload);
