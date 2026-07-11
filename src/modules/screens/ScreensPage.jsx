@@ -48,7 +48,8 @@ const CascadingSelect = ({ label, value, onChange, options, placeholder, disable
 
 const ScreensPage = () => {
   const { data: screens = [], isLoading: screensLoading, refetch: refetchScreens } = useScreens();
-  const { data: governorates = [], isLoading: geoLoading } = useGovernorates();
+  const { data: governorates = [], isLoading: govLoading } = useGovernorates();
+  const [geoLoading, setGeoLoading] = useState(false);
   const { data: types = [] } = useScreenTypes();
   const { data: streetsData = [] } = useStreets();
   const { data: ownersData = [] } = useUsersByRole('ScreenOwner');
@@ -903,7 +904,7 @@ const ScreensPage = () => {
                 <div>
                   <label style={{ fontSize: '12px', fontWeight: 600, color: '#434655', display: 'block', marginBottom: '6px' }}>المحافظة</label>
                   <select
-                    value={formGovId} onChange={handleFormGovChange} required={!isNewLocation}
+                    value={formGovId} onChange={(e) => handleFormGovChange(e.target.value)} required={!isNewLocation}
                     style={{
                       width: '100%', border: '1.5px solid #c3c6d7', borderRadius: '10px',
                       padding: '10px 12px', fontSize: '13px', color: '#141b2b',
@@ -917,7 +918,7 @@ const ScreensPage = () => {
                 <div>
                   <label style={{ fontSize: '12px', fontWeight: 600, color: '#434655', display: 'block', marginBottom: '6px' }}>المنطقة</label>
                   <select
-                    value={formRegionId} onChange={handleFormRegionChange} required={!isNewLocation}
+                    value={formRegionId} onChange={(e) => handleFormRegionChange(e.target.value)} required={!isNewLocation}
                     disabled={!formGovId || formGeoLoading}
                     style={{
                       width: '100%', border: '1.5px solid #c3c6d7', borderRadius: '10px',
