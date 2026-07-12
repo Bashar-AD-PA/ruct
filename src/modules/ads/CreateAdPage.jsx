@@ -26,7 +26,7 @@ const CreateAdPage = () => {
 
     const [form, setForm] = useState({
         title: '', start_date: '', end_date: '', target_start_time: '00:00', target_end_time: '23:59', daily_shift: '24h',
-        total_cost: '', file: null, receipt: null,
+        total_cost: '', file: null,
         advertiser_id: '', video_duration_sec: 0
     });
     const [calculatedCost, setCalculatedCost] = useState(null);
@@ -1006,32 +1006,7 @@ const CreateAdPage = () => {
                                                                         </div>
                                                                     )}
 
-                                                                    <div className="mt-6 pt-6 border-t border-border-color">
-                                                                        <label className="font-label-md text-label-md font-bold text-on-background mb-2 flex items-center gap-1.5">
-                                                                            <span className="material-symbols-outlined text-[18px] text-primary">receipt_long</span> إيصال الحوالة البنكية <span className="text-on-surface-variant font-normal ml-2">(اختياري)</span>
-                                                                        </label>
-                                                                        <p className="font-caption text-caption text-on-surface-variant mb-4 leading-relaxed">
-                                                                            الآن بعد تحديد التكلفة بـ <strong className="text-primary font-bold">${(calculatedCost ? Number(calculatedCost).toFixed(2) : "0.00")}</strong>، يمكنك تحويل المبلغ وإرفاق صورة الإيصال هنا لاعتماد حملتك فوراً،
-                                                                            أو إتمام الإطلاق الآن والدفع لاحقاً (Stripe/حوالة) من إدارة الإعلانات.
-                                                                        </p>
-                                                                        <div className="relative group">
-                                                                            <input type="file" accept="image/*,.pdf" onChange={(e) => setForm(p => ({ ...p, receipt: e.target.files[0] }))}
-                                                                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
-                                                                            <div className={`p-4 rounded-xl border border-dashed flex items-center gap-4 transition-all bg-surface-container-lowest shadow-sm
-                                                                        ${form.receipt ? 'border-primary ring-1 ring-primary bg-primary-container/10' : 'border-outline group-hover:border-primary group-hover:bg-surface-container'}`}>
-                                                                                <div className={`w-10 h-10 shrink-0 rounded-lg flex items-center justify-center transition-colors shadow-sm
-                                                                            ${form.receipt ? 'bg-primary text-white' : 'bg-surface-container text-on-surface-variant'}`}>
-                                                                                    <span className="material-symbols-outlined text-[20px]">account_balance</span>
-                                                                                </div>
-                                                                                <div className="flex-1 min-w-0">
-                                                                                    <p className="font-label-md text-label-md font-bold text-on-background truncate">
-                                                                                        {form.receipt ? form.receipt.name : 'انقر لإرفاق مستند التحويل البنكي'}
-                                                                                    </p>
-                                                                                    {!form.receipt && <p className="font-caption text-caption text-outline mt-0.5">JPG, PNG, PDF (وفقًا للمبلغ أعلاه)</p>}
-                                                                                </div>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
+
                                                                 </div>
                                                             </motion.div>
                                                         )}
@@ -1077,7 +1052,7 @@ const CreateAdPage = () => {
                                                                 <span>جاري المعالجة {uploadProgress > 0 ? `(${uploadProgress}%)` : ''}</span>
                                                             </>
                                                         ) : (
-                                                            <>اعتماد النظام ورفع المعاملة <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: '"FILL" 1' }}>done_all</span></>
+                                                            <>إرسال الإعلان للمراجعة <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: '"FILL" 1' }}>send</span></>
                                                         )}
                                                     </button>
                                                 </div>
