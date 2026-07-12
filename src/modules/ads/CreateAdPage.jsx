@@ -263,6 +263,7 @@ const CreateAdPage = () => {
 
         formData.append('start_date', sd);
         formData.append('end_date', ed);
+        formData.append('interval_minutes', 10); // Fallback explicitly appended
         formData.append('target_start_time', form.target_start_time);
         formData.append('target_end_time', form.target_end_time);
 
