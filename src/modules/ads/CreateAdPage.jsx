@@ -182,11 +182,12 @@ const CreateAdPage = () => {
     };
 
     const addDays = (days) => {
-        if (!form.start_date) {
-            addToast('الرجاء تحديد تاريخ الانطلاق أولاً', 'warning');
-            return;
+        let startStr = form.start_date;
+        if (!startStr) {
+            startStr = new Date().toISOString().split('T')[0];
         }
-        const start = new Date(form.start_date);
+        
+        const start = new Date(startStr);
         start.setDate(start.getDate() + days - 1);
 
         const y = start.getFullYear();
@@ -194,7 +195,7 @@ const CreateAdPage = () => {
         const d = String(start.getDate()).padStart(2, '0');
         const formattedDate = `${y}-${m}-${d}`;
 
-        setForm(p => ({ ...p, end_date: formattedDate }));
+        setForm(p => ({ ...p, start_date: startStr, end_date: formattedDate }));
         if (calculatedCost) setCalculatedCost(null);
     };
 
@@ -488,6 +489,7 @@ const CreateAdPage = () => {
                                                             onChange={(e) => { setForm(p => ({ ...p, start_date: e.target.value })); if (calculatedCost) setCalculatedCost(null); }}
                                                             className="w-full border border-border-color bg-white rounded-xl px-5 py-4 font-title-sm text-[16px] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all pr-14 text-left shadow-sm"
                                                             dir="ltr"
+                                                            min={new Date().toISOString().split('T')[0]}
                                                         />
                                                         <span className="material-symbols-outlined text-[26px] absolute right-4 top-1/2 -translate-y-1/2 text-primary pointer-events-none">calendar_month</span>
                                                     </div>
@@ -507,6 +509,7 @@ const CreateAdPage = () => {
                                                             onChange={(e) => { setForm(p => ({ ...p, end_date: e.target.value })); if (calculatedCost) setCalculatedCost(null); }}
                                                             className="w-full border border-border-color bg-white rounded-xl px-5 py-4 font-title-sm text-[16px] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all pr-14 text-left shadow-sm"
                                                             dir="ltr"
+                                                            min={form.start_date || new Date().toISOString().split('T')[0]}
                                                         />
                                                         <span className="material-symbols-outlined text-[26px] absolute right-4 top-1/2 -translate-y-1/2 text-error pointer-events-none">event_busy</span>
                                                     </div>
