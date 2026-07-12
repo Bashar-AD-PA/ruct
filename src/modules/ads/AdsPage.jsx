@@ -533,7 +533,7 @@ const AdsPage = () => {
                 isOpen={stripeModal.open}
                 onClose={() => setStripeModal({ open: false, ad: null })}
                 advertisement={stripeModal.ad}
-                onSuccess={() => fetchAds()}
+                onSuccess={() => refetchAds()}
             />
 
             <ReviewAdModal 
