@@ -87,7 +87,10 @@ const OwnerEarningsPage = () => {
             amount: Math.abs(log.amount),
             source: source,
             date: new Date(log.created_at).toLocaleString('ar-EG'),
-            status: log.status
+            rawDate: new Date(log.created_at),
+            status: log.status,
+            screenId: log.screen?.screen_id || null,
+            screenName: log.screen ? `${log.screen.screen_id} - ${log.screen.screen_name}` : 'غير محدد'
         };
     });
     
@@ -96,10 +99,42 @@ const OwnerEarningsPage = () => {
 
     // ─── 2. STATE & UI CONTROLS ───
     const [activeTab, setActiveTab] = useState('all'); // 'all', 'earnings', 'payouts'
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
+    const [selectedScreen, setSelectedScreen] = useState('all');
     const [isPayoutModalOpen, setPayoutModalOpen] = useState(false);
     const [payoutForm, setPayoutForm] = useState({ amount: '', bank: '', account_number: '' });
     const [loading, setLoading] = useState(false);
     const addToast = useToastStore(s => s.addToast);
+
+    // استخراج قائمة الشاشات الفريدة للمالك
+    const uniqueScreens = Array.from(new Set(formattedTx.filter(t => t.screenId !== null).map(t => t.screenId)))
+        .map(id => {
+            const tx = formattedTx.find(t => t.screenId === id);
+            return { id, name: tx.screenName };
+        });
+
+    const filteredTransactions = transactions.filter(t => {
+        // فلترة النوع
+        if (activeTab === 'earnings' && t.type !== 'earning') return false;
+        if (activeTab === 'payouts' && t.type !== 'payout') return false;
+
+        // فلترة الشاشة
+        if (selectedScreen !== 'all' && t.screenId?.toString() !== selectedScreen) return false;
+
+        // فلترة التاريخ
+        if (startDate && t.rawDate < new Date(startDate)) return false;
+        if (endDate) {
+            const end = new Date(endDate);
+            end.setHours(23, 59, 59, 999);
+            if (t.rawDate > end) return false;
+        }
+
+        return true;
+    });
+
+    const reportTotalEarned = filteredTransactions.filter(t => t.type === 'earning').reduce((sum, t) => sum + t.amount, 0);
+    const reportTotalPayouts = filteredTransactions.filter(t => t.type === 'payout').reduce((sum, t) => sum + t.amount, 0);
 
     // ─── 3. HANDLERS ───
     const handleRequestPayout = async (e) => {
@@ -124,21 +159,15 @@ const OwnerEarningsPage = () => {
         }
     };
 
-    const filteredTransactions = transactions.filter(t => {
-        if (activeTab === 'earnings') return t.type === 'earning';
-        if (activeTab === 'payouts') return t.type === 'payout';
-        return true;
-    });
-
     const handleExportStatement = () => {
-        if (transactions.length === 0) {
+        if (filteredTransactions.length === 0) {
             alert("سجل المعاملات فارغ حالياً!");
             return;
         }
 
         const headers = ['التاريخ', 'المعاملة', 'المصدر', 'المبلغ ($)', 'الحالة'];
         
-        const csvRows = transactions.map(t => {
+        const csvRows = filteredTransactions.map(t => {
             const date = t.date;
             const type = t.type === 'earning' ? 'أرباح' : 'سحب';
             const source = t.source.replace(/"/g, '""'); // Escape quotes
@@ -268,42 +297,73 @@ const OwnerEarningsPage = () => {
                     </div>
                 </motion.div>
             </div>
-
-            {/* ── 2. TRANSACTION HISTORY ── */}
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
-                className="bg-white rounded-3xl border shadow-sm overflow-hidden"
-                style={{ borderColor: S.outlineVariant }}
-            >
-                {/* Header & Filters */}
-                <div className="p-6 md:p-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-[#f9f9ff] border-b border-gray-200">
+            {/* ── 2. Filters & Table ── */}
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-white rounded-3xl p-6 md:p-8 border border-gray-100 shadow-sm relative overflow-hidden hide-on-print">
+                
+                {/* Filters Row */}
+                <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-6 border-b border-gray-100 pb-8">
                     <div>
-                        <h2 className="text-xl font-bold text-[#141b2b] m-0 mb-1">سجل المعاملات والأرباح</h2>
-                        <p className="text-xs font-medium text-gray-500 m-0">يظهر هنا تفاصيل الأرباح لكل شاشة بالإضافة لسجلات الدفع والسحب.</p>
+                        <h2 className="text-2xl font-black text-[#141b2b] mb-1 flex items-center gap-2">
+                            <ListFilter className="w-6 h-6 text-blue-600" />
+                            سجل المعاملات والأرباح
+                        </h2>
+                        <p className="text-gray-500 text-sm font-medium">يظهر هنا تفاصيل الأرباح لكل شاشة بالإضافة لسجلات الدفع والسحب.</p>
                     </div>
-                    
-                    <div className="flex bg-gray-100 p-1.5 rounded-xl border border-gray-200">
-                        {[
-                            { id: 'all', label: 'الكل' },
-                            { id: 'earnings', label: 'الأرباح فقط' },
-                            { id: 'payouts', label: 'المسحوبات فقط' }
-                        ].map(tab => (
-                            <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === tab.id ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
-                            >
-                                {tab.label}
-                            </button>
-                        ))}
+
+                    <div className="flex flex-wrap items-center gap-3">
+                        <div className="flex items-center bg-gray-50 rounded-xl p-1 border border-gray-200">
+                            {['all', 'earnings', 'payouts'].map(tab => (
+                                <button key={tab} onClick={() => setActiveTab(tab)}
+                                    className={`px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === tab ? 'bg-white shadow-sm text-blue-600 border border-gray-200/60' : 'text-gray-500 hover:text-gray-700'}`}
+                                >
+                                    {tab === 'all' ? 'الكل' : tab === 'earnings' ? 'الأرباح فقط' : 'المسحوبات فقط'}
+                                </button>
+                            ))}
+                        </div>
                     </div>
-                    
+                </div>
+
+                {/* Advanced Filters: Date & Screen */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                    <div>
+                        <label className="block text-xs font-bold text-gray-500 mb-2">من تاريخ</label>
+                        <input type="date" 
+                            value={startDate} onChange={e => setStartDate(e.target.value)}
+                            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm font-bold focus:border-blue-500 outline-none"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-gray-500 mb-2">إلى تاريخ</label>
+                        <input type="date" 
+                            value={endDate} onChange={e => setEndDate(e.target.value)}
+                            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm font-bold focus:border-blue-500 outline-none"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-gray-500 mb-2">الشاشة</label>
+                        <select 
+                            value={selectedScreen} onChange={e => setSelectedScreen(e.target.value)}
+                            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm font-bold focus:border-blue-500 outline-none"
+                        >
+                            <option value="all">جميع الشاشات</option>
+                            {uniqueScreens.map(s => (
+                                <option key={s.id} value={s.id.toString()}>{s.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+
+                {/* Export Buttons */}
+                <div className="flex flex-wrap justify-end gap-3 mb-6">
                     <button onClick={handleExportStatement}
-                        className="flex items-center gap-2 px-4 py-2 mt-4 md:mt-0 bg-blue-50 text-blue-600 rounded-xl font-bold hover:bg-blue-100 transition-colors border border-blue-200 shadow-sm"
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-xl font-bold hover:bg-blue-100 transition-colors border border-blue-100 shadow-sm"
                     >
                         <Download className="w-4 h-4" />
                         تصدير كشف الحساب
                     </button>
                     
                     <button onClick={handlePrintReport}
-                        className="flex items-center gap-2 px-4 py-2 mt-4 md:mt-0 bg-gray-800 text-white rounded-xl font-bold hover:bg-gray-700 transition-colors shadow-sm"
+                        className="flex items-center gap-2 px-4 py-2 bg-gray-800 text-white rounded-xl font-bold hover:bg-gray-700 transition-colors shadow-sm"
                     >
                         <Printer className="w-4 h-4" />
                         طباعة كتقرير PDF
@@ -479,11 +539,14 @@ const OwnerEarningsPage = () => {
                     
                     <div className="flex-1 flex justify-end" dir="rtl">
                         <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-3 text-right">
+                            <span className="font-bold text-gray-900">الشاشة:</span>
+                            <span className="text-gray-700">{selectedScreen === 'all' ? 'جميع الشاشات' : uniqueScreens.find(s => s.id.toString() === selectedScreen)?.name}</span>
+
+                            <span className="font-bold text-gray-900">الفترة:</span>
+                            <span className="text-gray-700" dir="ltr">{startDate || '-'} / {endDate || '-'}</span>
+
                             <span className="font-bold text-gray-900">تاريخ الإصدار:</span>
                             <span className="text-gray-700">{new Date().toLocaleDateString('ar-SA')}</span>
-
-                            <span className="font-bold text-gray-900">الوقت:</span>
-                            <span className="text-gray-700" dir="ltr">{new Date().toLocaleTimeString('ar-SA')}</span>
                         </div>
                     </div>
                 </div>
@@ -528,15 +591,15 @@ const OwnerEarningsPage = () => {
                     <div className="flex justify-end mt-6">
                         <div className="w-1/3">
                             <div className="flex justify-between py-2 px-4 border-b border-gray-200">
-                                <span className="font-bold text-gray-800">إجمالي الأرباح المتراكمة</span>
-                                <span className="font-bold text-gray-900">${totalEarned.toLocaleString()}</span>
+                                <span className="font-bold text-gray-800">إجمالي الأرباح المفلترة</span>
+                                <span className="font-bold text-green-600">${reportTotalEarned.toLocaleString()}</span>
                             </div>
                             <div className="flex justify-between py-2 px-4 border-b border-gray-200">
-                                <span className="font-bold text-gray-800">إجمالي المسحوبات المعلقة</span>
-                                <span className="font-bold text-gray-900">${pendingPayouts.toLocaleString()}</span>
+                                <span className="font-bold text-gray-800">إجمالي المسحوبات المفلترة</span>
+                                <span className="font-bold text-gray-900">${reportTotalPayouts.toLocaleString()}</span>
                             </div>
                             <div className="flex justify-between py-3 px-4 bg-[#1c5b8e] text-white rounded-b-lg mt-1">
-                                <span className="font-bold text-lg">الرصيد المتاح للسحب</span>
+                                <span className="font-bold text-lg">الرصيد المتاح الكلي</span>
                                 <span className="font-bold text-lg">${balance.toLocaleString()}</span>
                             </div>
                         </div>
