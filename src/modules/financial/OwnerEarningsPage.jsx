@@ -129,6 +129,34 @@ const OwnerEarningsPage = () => {
         return true;
     });
 
+    const handleExportStatement = () => {
+        if (transactions.length === 0) {
+            alert("سجل المعاملات فارغ حالياً!");
+            return;
+        }
+
+        const headers = ['التاريخ', 'المعاملة', 'المصدر', 'المبلغ ($)', 'الحالة'];
+        
+        const csvRows = transactions.map(t => {
+            const date = t.date;
+            const type = t.type === 'earning' ? 'أرباح' : 'سحب';
+            const source = t.source.replace(/"/g, '""'); // Escape quotes
+            const amount = t.amount.toFixed(2);
+            let statusStr = t.status === 'completed' ? 'مكتملة' : t.status === 'rejected' ? 'مرفوضة' : 'قيد المراجعة';
+            if (t.type === 'earning' && t.status === 'pending') statusStr = 'متاحة للسحب';
+            return `"${date}","${type}","${source}","${amount}","${statusStr}"`;
+        });
+        
+        const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + [headers.join(','), ...csvRows].join('\n');
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `account_statement_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     return (
         <div className="p-6 md:p-8 space-y-6 max-w-[1400px] mx-auto w-full" style={{ direction: 'rtl', fontFamily: "'IBM Plex Sans Arabic', sans-serif" }}>
             
@@ -234,6 +262,13 @@ const OwnerEarningsPage = () => {
                             </button>
                         ))}
                     </div>
+                    
+                    <button onClick={handleExportStatement}
+                        className="flex items-center gap-2 px-4 py-2 mt-4 md:mt-0 bg-blue-50 text-blue-600 rounded-xl font-bold hover:bg-blue-100 transition-colors border border-blue-200 shadow-sm"
+                    >
+                        <Download className="w-4 h-4" />
+                        تصدير كشف الحساب
+                    </button>
                 </div>
 
                 {/* Table */}

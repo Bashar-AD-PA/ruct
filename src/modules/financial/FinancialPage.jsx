@@ -108,10 +108,12 @@ const FinancialPage = () => {
 
     const transactions = Array.isArray(data.transactions) ? data.transactions : Object.values(data.transactions || {});
     const filteredTransactions = transactions.filter(t => activeFilter === 'all' || t.status === activeFilter);
-    const totalTransactions = transactions.length;
-    const successfulTransactions = transactions.filter(t => t.status === 'completed').length;
+    
+    // Financial Metrics
+    const platformProfit = data.platform_profit || 0;
+    const ownersLiabilities = data.owners_liabilities || 0;
+    const totalCashFlow = data.total_payments || 0;
     const pendingTransactions = transactions.filter(t => t.status === 'pending').length;
-    const totalRevenue = data.total_payments || 0;
 
     const columns = [
         { 
@@ -251,13 +253,13 @@ const FinancialPage = () => {
                     <div className="relative z-10 flex justify-between items-start">
                         <h3 className="font-title-lg text-title-lg text-inverse-primary opacity-90 flex items-center gap-2">
                             <span className="material-symbols-outlined font-normal">account_balance</span>
-                            إجمالي الإيرادات المؤكدة
+                            أرباح المنصة الصافية
                         </h3>
                         <span className="material-symbols-outlined text-3xl opacity-50 font-normal">trending_up</span>
                     </div>
                     <div className="relative z-10 mt-6">
                         <div className="font-display-lg text-display-lg font-bold tracking-tight mb-4">
-                            {isAmountVisible ? `$${parseFloat(totalRevenue).toFixed(2)}` : '****'}
+                            {isAmountVisible ? `$${parseFloat(platformProfit).toFixed(2)}` : '****'}
                         </div>
                         <button 
                             onClick={() => setIsAmountVisible(!isAmountVisible)}
@@ -273,25 +275,25 @@ const FinancialPage = () => {
 
                 {/* Secondary Metrics Group */}
                 <div className="md:col-span-6 lg:col-span-6 grid grid-cols-1 sm:grid-cols-3 gap-md">
-                    {/* Total Transactions */}
+                    {/* Total Cash Flow */}
                     <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-lg flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow">
                         <div className="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center mb-4">
-                            <span className="material-symbols-outlined text-on-surface-variant font-normal">receipt_long</span>
+                            <span className="material-symbols-outlined text-primary font-normal">payments</span>
                         </div>
                         <div>
-                            <p className="font-label-md text-label-md text-on-surface-variant mb-1">العمليات الكلية</p>
-                            <p className="font-headline-lg text-headline-lg text-on-surface">{totalTransactions}</p>
+                            <p className="font-label-md text-label-md text-on-surface-variant mb-1">إجمالي التدفق النقدي</p>
+                            <p className="font-headline-lg text-headline-lg text-on-surface">${parseFloat(totalCashFlow).toFixed(2)}</p>
                         </div>
                     </div>
 
-                    {/* Successful Transactions */}
+                    {/* Owners Liabilities */}
                     <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-lg flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow">
-                        <div className="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center mb-4">
-                            <span className="material-symbols-outlined text-secondary font-normal">check_circle</span>
+                        <div className="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center mb-4 text-warning">
+                            <span className="material-symbols-outlined font-normal">group</span>
                         </div>
                         <div>
-                            <p className="font-label-md text-label-md text-on-surface-variant mb-1">عملية ناجحة</p>
-                            <p className="font-headline-lg text-headline-lg text-on-surface">{successfulTransactions}</p>
+                            <p className="font-label-md text-label-md text-on-surface-variant mb-1">مستحقات الملاك</p>
+                            <p className="font-headline-lg text-headline-lg text-on-surface">${parseFloat(ownersLiabilities).toFixed(2)}</p>
                         </div>
                     </div>
 
@@ -301,7 +303,7 @@ const FinancialPage = () => {
                             <span className="material-symbols-outlined text-error font-normal">schedule</span>
                         </div>
                         <div>
-                            <p className="font-label-md text-label-md text-on-surface-variant mb-1">قيد المراجعة</p>
+                            <p className="font-label-md text-label-md text-on-surface-variant mb-1">طلبات قيد المراجعة</p>
                             <p className="font-headline-lg text-headline-lg text-on-surface">{pendingTransactions}</p>
                         </div>
                         <div className="absolute bottom-0 left-0 w-full h-1 bg-error opacity-20"></div>
