@@ -6,6 +6,7 @@ import useToastStore from '../../store/useToastStore';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../../store/useAuthStore';
 import { parseNotificationContent, getNotificationIconInfo, getNotificationLink } from './utils/notificationTranslator';
+import Modal from '../../shared/components/Modal';
 
 const NotificationsPage = () => {
     const [notifications, setNotifications] = useState([]);
@@ -13,6 +14,11 @@ const NotificationsPage = () => {
     const [loading, setLoading] = useState(true);
     const [loadingMessageIdx, setLoadingMessageIdx] = useState(0);
     const [filterTab, setFilterTab] = useState('all');
+    
+    // Archive UI state
+    const [isArchiveModalOpen, setIsArchiveModalOpen] = useState(false);
+    const [archiveMonths, setArchiveMonths] = useState('6');
+    const [isArchiving, setIsArchiving] = useState(false);
     
     const addToast = useToastStore(state => state.addToast);
     const { user } = useAuthStore();
@@ -97,6 +103,31 @@ const NotificationsPage = () => {
         }
     };
 
+    const deleteReadNotifications = async () => {
+        if (!window.confirm('هل أنت متأكد من مسح جميع الإشعارات المقروءة نهائياً؟')) return;
+        try {
+            const res = await axiosClient.delete(ENDPOINTS.NOTIFICATIONS.DELETE_READ);
+            setNotifications(prev => prev.filter(n => n.read_at === null || n.is_read === false || n.is_read === 'false'));
+            addToast(res.data?.message || 'تم مسح الإشعارات المقروءة', 'success');
+        } catch (error) {
+            addToast('تعذر مسح الإشعارات', 'error');
+        }
+    };
+
+    const handleArchive = async () => {
+        setIsArchiving(true);
+        try {
+            const res = await axiosClient.delete(ENDPOINTS.NOTIFICATIONS.ARCHIVE, { data: { months: parseInt(archiveMonths) } });
+            fetchNotifications(); // Refresh list to reflect changes
+            setIsArchiveModalOpen(false);
+            addToast(res.data?.message || 'تم أرشفة ومسح الإشعارات القديمة', 'success');
+        } catch (error) {
+            addToast(error.response?.data?.message || 'تعذر مسح الإشعارات القديمة', 'error');
+        } finally {
+            setIsArchiving(false);
+        }
+    };
+
     const deleteNotification = async (id) => {
         try {
             await axiosClient.delete(ENDPOINTS.NOTIFICATIONS.DELETE(id));
@@ -168,15 +199,38 @@ const NotificationsPage = () => {
             <div className="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm overflow-hidden min-h-[400px]">
                 <div className="px-lg py-md border-b border-outline-variant bg-surface-bright flex justify-between items-center">
                     <h3 className="text-xl font-bold text-on-surface">أحدث الإشعارات</h3>
-                    {unreadCount > 0 && (
-                        <button 
-                            onClick={markAllAsRead} 
-                            className="text-primary hover:bg-primary-container/20 px-3 py-2 rounded-lg font-semibold text-sm md:text-base transition-colors flex items-center gap-xs"
-                        >
-                            <span className="material-symbols-outlined text-xl" data-icon="done_all">done_all</span>
-                            تحديد الكل كمقروء
-                        </button>
-                    )}
+                    <div className="flex flex-wrap items-center gap-2">
+                        {unreadCount > 0 && (
+                            <button 
+                                onClick={markAllAsRead} 
+                                className="text-primary hover:bg-primary-container/20 px-3 py-2 rounded-lg font-semibold text-sm md:text-base transition-colors flex items-center gap-xs"
+                                title="تحديد الكل كمقروء"
+                            >
+                                <span className="material-symbols-outlined text-xl" data-icon="done_all">done_all</span>
+                                <span className="hidden sm:inline">تحديد الكل مقروء</span>
+                            </button>
+                        )}
+                        {readNotifications > 0 && (
+                            <button 
+                                onClick={deleteReadNotifications} 
+                                className="text-error hover:bg-error-container/20 px-3 py-2 rounded-lg font-semibold text-sm md:text-base transition-colors flex items-center gap-xs"
+                                title="مسح الإشعارات المقروءة"
+                            >
+                                <span className="material-symbols-outlined text-xl" data-icon="delete_sweep">delete_sweep</span>
+                                <span className="hidden sm:inline">مسح المقروء</span>
+                            </button>
+                        )}
+                        {notifications.length > 0 && (
+                            <button 
+                                onClick={() => setIsArchiveModalOpen(true)} 
+                                className="text-on-surface-variant hover:bg-surface-container-high px-3 py-2 rounded-lg font-semibold text-sm md:text-base transition-colors flex items-center gap-xs"
+                                title="تنظيف حسب التاريخ"
+                            >
+                                <span className="material-symbols-outlined text-xl" data-icon="auto_delete">auto_delete</span>
+                                <span className="hidden sm:inline">تنظيف الأرشيف</span>
+                            </button>
+                        )}
+                    </div>
                 </div>
 
                 {/* Filter Tabs for Screen Owner */}
@@ -318,6 +372,55 @@ const NotificationsPage = () => {
                     </ul>
                 )}
             </div>
+
+            {/* Archive Modal */}
+            <Modal isOpen={isArchiveModalOpen} onClose={() => setIsArchiveModalOpen(false)} title="تنظيف وأرشفة الإشعارات">
+                <div className="space-y-4" dir="rtl">
+                    <div className="bg-warning-container text-on-warning-container p-4 rounded-xl flex items-start gap-3">
+                        <span className="material-symbols-outlined shrink-0">warning</span>
+                        <div className="text-sm">
+                            <p className="font-bold mb-1">تنبيه!</p>
+                            <p>سيتم مسح الإشعارات القديمة نهائياً ولا يمكن التراجع عن هذه العملية.</p>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-on-surface mb-2">اختر مدة الإشعارات المراد مسحها</label>
+                        <select 
+                            value={archiveMonths}
+                            onChange={(e) => setArchiveMonths(e.target.value)}
+                            className="w-full bg-surface-container-highest border border-outline-variant rounded-xl p-3 outline-none"
+                        >
+                            <option value="1">الإشعارات الأقدم من شهر واحد</option>
+                            <option value="3">الإشعارات الأقدم من 3 أشهر</option>
+                            <option value="6">الإشعارات الأقدم من 6 أشهر</option>
+                            <option value="12">الإشعارات الأقدم من سنة كاملة</option>
+                            <option value="24">الإشعارات الأقدم من سنتين</option>
+                        </select>
+                    </div>
+
+                    <div className="flex gap-3 pt-4 border-t border-outline-variant">
+                        <button 
+                            onClick={handleArchive}
+                            disabled={isArchiving}
+                            className="flex-1 bg-error text-white py-2.5 rounded-xl font-bold hover:bg-error/90 transition-colors flex justify-center items-center gap-2 disabled:opacity-70"
+                        >
+                            {isArchiving ? (
+                                <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                            ) : (
+                                <span className="material-symbols-outlined text-[20px]">auto_delete</span>
+                            )}
+                            تنظيف الأرشيف الآن
+                        </button>
+                        <button 
+                            onClick={() => setIsArchiveModalOpen(false)}
+                            className="flex-1 bg-surface-container-high text-on-surface py-2.5 rounded-xl font-bold hover:bg-surface-container-highest transition-colors"
+                        >
+                            إلغاء
+                        </button>
+                    </div>
+                </div>
+            </Modal>
         </div>
     );
 };

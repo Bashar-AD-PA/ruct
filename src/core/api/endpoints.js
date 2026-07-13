@@ -10,6 +10,8 @@ export const ENDPOINTS = {
         ALL: '/notifications',
         MARK_READ: (id) => `/notifications/${id}/read`,
         MARK_ALL_READ: '/notifications/read-all',
+        DELETE_READ: '/notifications/delete-read',
+        ARCHIVE: '/notifications/archive',
         DELETE: (id) => `/notifications/${id}`,
     },
     SESSIONS: {
