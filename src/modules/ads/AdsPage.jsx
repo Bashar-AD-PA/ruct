@@ -59,6 +59,18 @@ const AdsPage = () => {
         return `${diffDays} أيام`;
     };
 
+    const formatTime = (timeStr) => {
+        if (!timeStr) return '';
+        const parts = timeStr.split(':');
+        if (parts.length >= 2) {
+            const h = parseInt(parts[0]);
+            const ampm = h >= 12 ? 'م' : 'ص';
+            const h12 = h % 12 || 12;
+            return `${h12}:${parts[1]} ${ampm}`;
+        }
+        return timeStr;
+    };
+
     const handleStatusChange = async () => {
         const { ad, action } = approveModal;
         try {
@@ -314,8 +326,18 @@ const AdsPage = () => {
                                         <td className="py-2 px-3 text-center font-caption text-caption text-on-surface-variant whitespace-nowrap">
                                             {row.file_size ? `${row.file_size} MB` : '—'}
                                         </td>
-                                        <td className="py-2 px-3 font-caption text-caption text-on-surface-variant whitespace-nowrap" dir="ltr">{row.start_date || '—'}</td>
-                                        <td className="py-2 px-3 font-caption text-caption text-on-surface-variant whitespace-nowrap" dir="ltr">{row.end_date || '—'}</td>
+                                        <td className="py-2 px-3 text-center" dir="ltr">
+                                            <div className="flex flex-col items-center">
+                                                <span className="font-caption text-caption text-on-surface-variant whitespace-nowrap">{row.start_date || '—'}</span>
+                                                <span className="text-[10px] text-outline mt-0.5">{formatTime(row.starts_at)}</span>
+                                            </div>
+                                        </td>
+                                        <td className="py-2 px-3 text-center" dir="ltr">
+                                            <div className="flex flex-col items-center">
+                                                <span className="font-caption text-caption text-on-surface-variant whitespace-nowrap">{row.end_date || '—'}</span>
+                                                <span className="text-[10px] text-outline mt-0.5">{formatTime(row.expires_at)}</span>
+                                            </div>
+                                        </td>
                                         <td className="py-2 px-3">
                                             <div className="flex items-center justify-center gap-1.5 flex-nowrap w-max mx-auto">
                                                 {/* عرض التفاصيل (Eye) */}
