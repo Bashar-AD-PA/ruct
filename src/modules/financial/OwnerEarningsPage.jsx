@@ -163,25 +163,27 @@ const OwnerEarningsPage = () => {
     };
 
     return (
-        <div className="p-6 md:p-8 space-y-6 max-w-[1400px] mx-auto w-full relative" style={{ direction: 'rtl', fontFamily: "'IBM Plex Sans Arabic', sans-serif" }}>
+        <div className="p-6 md:p-8 space-y-6 max-w-[1400px] mx-auto w-full" style={{ direction: 'rtl', fontFamily: "'IBM Plex Sans Arabic', sans-serif" }}>
             
             {/* Print Styles */}
             <style>
                 {`
+                @media screen {
+                    .print-area { display: none !important; }
+                }
                 @media print {
-                    @page { size: A4; margin: 0; } /* Edge to edge printing */
+                    @page { size: A4; margin: 0; }
                     body * { visibility: hidden; }
-                    .print-area, .print-area * { visibility: visible; }
+                    .print-area, .print-area * { visibility: visible !important; }
                     .print-area {
                         position: absolute;
                         left: 0;
                         top: 0;
                         width: 100%;
+                        display: flex !important;
                         background-color: white !important;
-                    }
-                    * {
-                        -webkit-print-color-adjust: exact !important;
-                        print-color-adjust: exact !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
                     }
                     .hide-on-print {
                         display: none !important;
@@ -447,14 +449,7 @@ const OwnerEarningsPage = () => {
             </Modal>
 
             {/* ── 4. PRINTABLE REPORT TEMPLATE ── */}
-            <div className="print-area hidden bg-white relative overflow-hidden font-sans" dir="rtl" style={{ minHeight: '100vh', display: 'none', flexDirection: 'column' }}>
-                <style>
-                    {`
-                    @media print {
-                        .print-area { display: flex !important; }
-                    }
-                    `}
-                </style>
+            <div className="print-area bg-white overflow-hidden font-sans" dir="rtl" style={{ minHeight: '100vh', flexDirection: 'column' }}>
                 {/* Top Header Polygon */}
                 <div className="w-full bg-[#1c5b8e] text-white flex justify-between items-stretch" style={{ height: '140px' }}>
                     <div className="flex-1 flex items-center justify-start px-12 bg-[#1c5b8e]">
