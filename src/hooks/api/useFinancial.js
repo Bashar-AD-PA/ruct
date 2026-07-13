@@ -3,11 +3,16 @@ import axiosClient from '../../core/api/axiosClient';
 import { ENDPOINTS } from '../../core/api/endpoints';
 import useToastStore from '../../store/useToastStore';
 
-export const useLedger = () => {
+export const useLedger = (filters = {}) => {
   return useQuery({
-    queryKey: ['ledger'],
+    queryKey: ['ledger', filters],
     queryFn: async () => {
-      const res = await axiosClient.get(ENDPOINTS.FINANCIAL.LEDGER);
+      const params = new URLSearchParams();
+      if (filters.start_date) params.append('start_date', filters.start_date);
+      if (filters.end_date) params.append('end_date', filters.end_date);
+      const queryString = params.toString() ? `?${params.toString()}` : '';
+      
+      const res = await axiosClient.get(`${ENDPOINTS.FINANCIAL.LEDGER}${queryString}`);
       return res.data?.data || res.data || {};
     },
   });

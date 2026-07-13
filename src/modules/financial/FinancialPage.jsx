@@ -11,7 +11,8 @@ import { useLedger, useRecordPayment, useApprovePayout, useRejectPayout } from '
 
 const FinancialPage = () => {
     const queryClient = useQueryClient();
-    const { data: ledgerData, isLoading: loading } = useLedger();
+    const [dateFilters, setDateFilters] = useState({ start_date: '', end_date: '' });
+    const { data: ledgerData, isLoading: loading } = useLedger(dateFilters);
     const { mutateAsync: recordPayment } = useRecordPayment();
     const { mutateAsync: approvePayout, isPending: isApproving } = useApprovePayout();
     const { mutateAsync: rejectPayout, isPending: isRejecting } = useRejectPayout();
@@ -352,13 +353,42 @@ const FinancialPage = () => {
 
             {/* Main Financial Log Card */}
             <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl shadow-sm overflow-hidden flex flex-col flex-1 min-h-[400px]">
-                {/* Card Header */}
-                <div className="px-lg py-md border-b border-outline-variant flex justify-between items-center bg-surface">
-                    <h2 className="font-title-lg text-title-lg text-on-surface flex items-center gap-2">
+                {/* Card Header & Filters */}
+                <div className="px-lg py-md border-b border-outline-variant flex flex-col md:flex-row justify-between items-start md:items-center bg-surface gap-4">
+                    <h2 className="font-title-lg text-title-lg text-on-surface flex items-center gap-2 shrink-0">
                         <span className="material-symbols-outlined text-primary font-normal">monitoring</span>
                         السجل المالي {activeFilter !== 'all' && <span className="bg-primary/10 text-primary text-xs px-2 py-0.5 rounded-md mx-2">{activeFilter === 'completed' ? 'الناجحة' : activeFilter === 'pending' ? 'المعلقة' : 'المرفوضة'}</span>}
                     </h2>
-                    <div className="flex gap-2">
+                    
+                    <div className="flex flex-wrap items-center gap-3 w-full md:w-auto hide-on-print">
+                        <div className="flex items-center gap-2 bg-surface-container-low rounded-lg p-1 border border-outline-variant">
+                            <input 
+                                type="date" 
+                                value={dateFilters.start_date}
+                                onChange={e => setDateFilters(prev => ({ ...prev, start_date: e.target.value }))}
+                                className="bg-transparent border-none text-sm font-bold text-on-surface outline-none px-2 py-1"
+                                title="من تاريخ"
+                            />
+                            <span className="text-on-surface-variant">-</span>
+                            <input 
+                                type="date" 
+                                value={dateFilters.end_date}
+                                onChange={e => setDateFilters(prev => ({ ...prev, end_date: e.target.value }))}
+                                className="bg-transparent border-none text-sm font-bold text-on-surface outline-none px-2 py-1"
+                                title="إلى تاريخ"
+                            />
+                            {(dateFilters.start_date || dateFilters.end_date) && (
+                                <button 
+                                    onClick={() => setDateFilters({ start_date: '', end_date: '' })}
+                                    className="p-1 text-error hover:bg-error-container rounded transition-colors"
+                                    title="مسح التاريخ"
+                                >
+                                    <span className="material-symbols-outlined text-[16px]">close</span>
+                                </button>
+                            )}
+                        </div>
+                        
+                        <div className="flex gap-2 shrink-0">
                         <button 
                             onClick={() => setIsFilterModalOpen(true)}
                             className="p-2 text-on-surface-variant hover:bg-surface-container rounded-lg transition-colors border border-outline-variant flex items-center justify-center" title="فلترة المعاملات">
@@ -374,6 +404,7 @@ const FinancialPage = () => {
                             className="p-2 text-white bg-[#1c5b8e] hover:bg-[#14355d] rounded-lg transition-colors border border-[#1c5b8e] flex items-center justify-center shadow-sm" title="طباعة تقرير أرباح المنصة">
                             <span className="material-symbols-outlined text-[20px]">print</span>
                         </button>
+                    </div>
                     </div>
                 </div>
 
@@ -657,11 +688,11 @@ const FinancialPage = () => {
                     
                     <div className="flex-1 flex justify-end" dir="rtl">
                         <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-3 text-right">
+                            <span className="font-bold text-gray-900">الفترة الزمنية:</span>
+                            <span className="text-gray-700" dir="ltr">{dateFilters.start_date || '-'} / {dateFilters.end_date || '-'}</span>
+
                             <span className="font-bold text-gray-900">تاريخ الإصدار:</span>
                             <span className="text-gray-700">{new Date().toLocaleDateString('ar-SA')}</span>
-
-                            <span className="font-bold text-gray-900">الوقت:</span>
-                            <span className="text-gray-700" dir="ltr">{new Date().toLocaleTimeString('ar-SA')}</span>
                         </div>
                     </div>
                 </div>
