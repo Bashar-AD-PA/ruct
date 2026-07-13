@@ -5,6 +5,7 @@ import {
     ChevronDown, Download, Landmark, FileText, Filter, ListFilter, Banknote, CreditCard, Building
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Printer } from 'lucide-react';
 import useToastStore from '../../store/useToastStore';
 import axiosClient from '../../core/api/axiosClient';
 import { ENDPOINTS } from '../../core/api/endpoints';
@@ -157,8 +158,37 @@ const OwnerEarningsPage = () => {
         document.body.removeChild(link);
     };
 
+    const handlePrintReport = () => {
+        window.print();
+    };
+
     return (
-        <div className="p-6 md:p-8 space-y-6 max-w-[1400px] mx-auto w-full" style={{ direction: 'rtl', fontFamily: "'IBM Plex Sans Arabic', sans-serif" }}>
+        <div className="p-6 md:p-8 space-y-6 max-w-[1400px] mx-auto w-full relative" style={{ direction: 'rtl', fontFamily: "'IBM Plex Sans Arabic', sans-serif" }}>
+            
+            {/* Print Styles */}
+            <style>
+                {`
+                @media print {
+                    @page { size: A4; margin: 0; } /* Edge to edge printing */
+                    body * { visibility: hidden; }
+                    .print-area, .print-area * { visibility: visible; }
+                    .print-area {
+                        position: absolute;
+                        left: 0;
+                        top: 0;
+                        width: 100%;
+                        background-color: white !important;
+                    }
+                    * {
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
+                    }
+                    .hide-on-print {
+                        display: none !important;
+                    }
+                }
+                `}
+            </style>
             
             {/* ── Page Header ── */}
             <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -268,6 +298,13 @@ const OwnerEarningsPage = () => {
                     >
                         <Download className="w-4 h-4" />
                         تصدير كشف الحساب
+                    </button>
+                    
+                    <button onClick={handlePrintReport}
+                        className="flex items-center gap-2 px-4 py-2 mt-4 md:mt-0 bg-gray-800 text-white rounded-xl font-bold hover:bg-gray-700 transition-colors shadow-sm"
+                    >
+                        <Printer className="w-4 h-4" />
+                        طباعة كتقرير PDF
                     </button>
                 </div>
 
@@ -408,6 +445,135 @@ const OwnerEarningsPage = () => {
                     </form>
                 </div>
             </Modal>
+
+            {/* ── 4. PRINTABLE REPORT TEMPLATE ── */}
+            <div className="print-area hidden bg-white relative overflow-hidden font-sans" dir="rtl" style={{ minHeight: '100vh', display: 'none', flexDirection: 'column' }}>
+                <style>
+                    {`
+                    @media print {
+                        .print-area { display: flex !important; }
+                    }
+                    `}
+                </style>
+                {/* Top Header Polygon */}
+                <div className="w-full bg-[#1c5b8e] text-white flex justify-between items-stretch" style={{ height: '140px' }}>
+                    <div className="flex-1 flex items-center justify-start px-12 bg-[#1c5b8e]">
+                        <div className="text-center">
+                            <img src="/Main_app_logo.png" alt="SabaPost Logo" className="h-16 object-contain mb-2 brightness-0 invert mx-auto" />
+                            <p className="font-bold text-lg">سبأ بوست - SabaPost</p>
+                            <p className="text-sm opacity-80">نظام إدارة الإعلانات الرقمية</p>
+                        </div>
+                    </div>
+                    
+                    {/* Center decorative element */}
+                    <div className="w-48 bg-[#102a43]" style={{ clipPath: 'polygon(0 0, 100% 0, 75% 100%, 25% 100%)' }}></div>
+
+                    <div className="flex-1 flex items-center justify-end px-12 bg-[#1c5b8e]">
+                        <h1 className="text-5xl font-black tracking-tight" style={{ color: '#ffffff' }}>كشف الحساب</h1>
+                    </div>
+                </div>
+
+                {/* Metadata Section */}
+                <div className="flex justify-between items-start px-16 py-10">
+                    <div className="flex-1 text-right space-y-2">
+                        <p className="text-xl font-bold text-gray-800">تقرير صادر إلى:</p>
+                        <h2 className="text-3xl font-black text-gray-900">{user?.full_name || 'صاحب الشاشة'}</h2>
+                        <p className="text-gray-600 font-medium">مُصدر تقارير معتمد</p>
+                        <p className="text-gray-500 text-sm mt-4 tracking-widest font-mono" dir="ltr">{user?.phone || 'رقم الهاتف غير مدرج'}</p>
+                    </div>
+                    
+                    <div className="flex-1 flex justify-end" dir="rtl">
+                        <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-3 text-right">
+                            <span className="font-bold text-gray-900">تاريخ الإصدار:</span>
+                            <span className="text-gray-700">{new Date().toLocaleDateString('ar-SA')}</span>
+
+                            <span className="font-bold text-gray-900">الوقت:</span>
+                            <span className="text-gray-700" dir="ltr">{new Date().toLocaleTimeString('ar-SA')}</span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Table */}
+                <div className="px-16 flex-1 mb-10">
+                    <table className="w-full text-right text-sm border-collapse">
+                        <thead className="bg-[#1c5b8e] text-white font-bold text-lg">
+                            <tr>
+                                <th className="py-4 px-4 text-center w-16">رقم</th>
+                                <th className="py-4 px-4">التاريخ</th>
+                                <th className="py-4 px-4">المعاملة</th>
+                                <th className="py-4 px-4">المصدر / البيان</th>
+                                <th className="py-4 px-4 text-center">الحالة</th>
+                                <th className="py-4 px-4 text-left">المبلغ</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200 border-b-2 border-[#1c5b8e]">
+                            {filteredTransactions.map((trx, idx) => (
+                                <tr key={trx.id} className={idx % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
+                                    <td className="py-4 px-4 text-center font-bold text-gray-700">{String(idx + 1).padStart(2, '0')}</td>
+                                    <td className="py-4 px-4 text-gray-700">{trx.date}</td>
+                                    <td className="py-4 px-4 font-bold text-gray-900">{trx.type === 'earning' ? 'أرباح شاشة' : 'سحب أموال'}</td>
+                                    <td className="py-4 px-4 text-gray-600">{trx.source}</td>
+                                    <td className="py-4 px-4 text-center text-gray-700">
+                                        {trx.status === 'completed' ? 'مكتمل' : 'قيد المراجعة'}
+                                    </td>
+                                    <td className={`py-4 px-4 text-left font-bold ${trx.type === 'earning' ? 'text-green-600' : 'text-[#141b2b]'}`} dir="ltr">
+                                        {trx.type === 'earning' ? '+' : '-'}${trx.amount.toLocaleString()}
+                                    </td>
+                                </tr>
+                            ))}
+                            {filteredTransactions.length === 0 && (
+                                <tr>
+                                    <td colSpan="6" className="py-8 text-center text-gray-500 font-medium">لا توجد حركات مالية</td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+
+                    {/* Totals Section */}
+                    <div className="flex justify-end mt-6">
+                        <div className="w-1/3">
+                            <div className="flex justify-between py-2 px-4 border-b border-gray-200">
+                                <span className="font-bold text-gray-800">إجمالي الأرباح المتراكمة</span>
+                                <span className="font-bold text-gray-900">${totalEarned.toLocaleString()}</span>
+                            </div>
+                            <div className="flex justify-between py-2 px-4 border-b border-gray-200">
+                                <span className="font-bold text-gray-800">إجمالي المسحوبات المعلقة</span>
+                                <span className="font-bold text-gray-900">${pendingPayouts.toLocaleString()}</span>
+                            </div>
+                            <div className="flex justify-between py-3 px-4 bg-[#1c5b8e] text-white rounded-b-lg mt-1">
+                                <span className="font-bold text-lg">الرصيد المتاح للسحب</span>
+                                <span className="font-bold text-lg">${balance.toLocaleString()}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {/* Conditions and Info */}
+                    <div className="mt-16 grid grid-cols-2 gap-8 items-end w-full">
+                        <div className="text-right">
+                            <h4 className="font-bold text-gray-900 text-lg mb-2">معلومات إضافية:</h4>
+                            <p className="text-gray-600 text-sm leading-relaxed">
+                                هذا التقرير صادر آلياً من نظام (SabaPost) لإدارة الشاشات الإعلانية الرقمية، وهو يُعتبر كشف حساب مالي معتمد ولا يتطلب ختماً أو توقيعاً يدوياً للمصادقة على صحة الأرقام.
+                            </p>
+                        </div>
+                        <div className="flex flex-col items-center justify-end px-12">
+                            <h4 className="font-bold text-gray-900 text-lg mb-10 border-b border-gray-300 pb-2 min-w-[250px] text-center">{user?.full_name || 'مالك الشاشة'}</h4>
+                            <p className="text-gray-500 text-sm w-full text-center">توقيع المالك</p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Footer Bar */}
+                <div className="w-full bg-[#14355d] text-white py-4 px-16 flex justify-between items-center mt-auto">
+                    <div className="flex items-center gap-2">
+                        <span>🌐</span>
+                        <span dir="ltr">www.sabapost.com.sa</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span dir="ltr">{user?.phone || ''}</span>
+                        <span>📞</span>
+                    </div>
+                </div>
+            </div>
         </div>
     );
 };
