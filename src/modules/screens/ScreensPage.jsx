@@ -672,7 +672,7 @@ const ScreensPage = () => {
               <tr>
                 <th className="p-[8px] whitespace-nowrap">اسم الشاشة</th>
                 <th className="p-[8px] whitespace-nowrap">معرف الشاشة</th>
-                <th className="p-[8px] whitespace-nowrap">كود الربط</th>
+                <th className="p-[8px] whitespace-nowrap">مقاس الشاشة</th>
                 <th className="p-[8px] whitespace-nowrap text-center">الحالة</th>
                 <th className="p-[8px] whitespace-nowrap text-center">صورة</th>
                 <th className="p-[8px] whitespace-nowrap text-center">النوع</th>
@@ -698,7 +698,7 @@ const ScreensPage = () => {
                     <td className="p-[8px] whitespace-nowrap">
                       <span className="text-[#434655] font-mono text-sm border border-[#c3c6d7] rounded px-2 m-1 inline-block">{row.mac_address}</span>
                     </td>
-                    <td className="p-[8px] text-[#434655] font-mono text-[14px]">{row.pairing_code || '—'}</td>
+                    <td className="p-[8px] text-[#434655] font-mono text-[14px]">{row.screen_size_inch ? `${row.screen_size_inch} بوصة` : '—'}</td>
                     <td className="p-[8px] text-center">
                       <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-[#f1f3ff] text-[#434655] text-[12px] font-medium border border-[#c3c6d7]">
                         {row.status ? STATUS_CFG[row.status]?.label || row.status : 'بإنتظار التفعيل'}
