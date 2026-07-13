@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowRight, Monitor, Activity, Clock, PlayCircle, BarChart2, Star, RefreshCw } from 'lucide-react';
+import { ArrowRight, Monitor, Activity, Clock, PlayCircle, BarChart2, Star, RefreshCw, Camera, Moon, Sun, RotateCcw } from 'lucide-react';
 import { motion } from 'framer-motion';
 import axiosClient from '../../core/api/axiosClient';
 import { ENDPOINTS } from '../../core/api/endpoints';
@@ -30,6 +30,18 @@ const ScreenDetailPage = () => {
             navigate('/dashboard/screens');
         }
     }, [loading, screen, navigate, addToast]);
+
+    const handleCommand = async (command) => {
+        try {
+            await axiosClient.post(`/screens/${screen.screen_id}/command`, {
+                target_screen: screen.mac_address,
+                command: command
+            });
+            addToast(`تم إرسال أمر: ${command} بنجاح`, 'success');
+        } catch (error) {
+            addToast('حدث خطأ أثناء إرسال الأمر', 'error');
+        }
+    };
 
     if (loading) {
         return (
@@ -85,6 +97,40 @@ const ScreenDetailPage = () => {
                         </div>
                         <h3 className="font-bold text-gray-800 text-lg m-0">{screen.screen_name}</h3>
                         <p className="text-sm text-gray-500">{screen.street?.name || 'موقع غير محدد'} {screen.street?.region?.name ? `- ${screen.street.region.name}` : ''}</p>
+                    </motion.div>
+
+                    {/* Remote Management */}
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm space-y-4">
+                        <h4 className="font-bold text-gray-800 text-sm m-0 border-b pb-3">التحكم عن بعد (Live Remote)</h4>
+                        
+                        {screen.last_screenshot_url && (
+                            <div className="mb-4">
+                                <p className="text-xs text-gray-500 mb-2">آخر لقطة شاشة:</p>
+                                <div className="aspect-[16/9] bg-black rounded-lg overflow-hidden border border-gray-200 relative group">
+                                    <img src={screen.last_screenshot_url} alt="Screenshot" className="w-full h-full object-contain" />
+                                </div>
+                                <p className="text-[10px] text-gray-400 mt-1 text-left" dir="ltr">{new Date(screen.last_screenshot_at).toLocaleString()}</p>
+                            </div>
+                        )}
+
+                        <div className="grid grid-cols-2 gap-2">
+                            <button onClick={() => handleCommand('TAKE_SCREENSHOT')} className="flex flex-col items-center justify-center gap-2 p-3 rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors border border-blue-100">
+                                <Camera className="w-5 h-5" />
+                                <span className="text-xs font-bold">لقطة شاشة</span>
+                            </button>
+                            <button onClick={() => handleCommand('SLEEP_SCREEN')} className="flex flex-col items-center justify-center gap-2 p-3 rounded-xl bg-gray-50 text-gray-700 hover:bg-gray-100 transition-colors border border-gray-200">
+                                <Moon className="w-5 h-5" />
+                                <span className="text-xs font-bold">إطفاء الشاشة</span>
+                            </button>
+                            <button onClick={() => handleCommand('WAKE_SCREEN')} className="flex flex-col items-center justify-center gap-2 p-3 rounded-xl bg-yellow-50 text-yellow-700 hover:bg-yellow-100 transition-colors border border-yellow-100">
+                                <Sun className="w-5 h-5" />
+                                <span className="text-xs font-bold">إيقاظ الشاشة</span>
+                            </button>
+                            <button onClick={() => handleCommand('RESTART_APP')} className="flex flex-col items-center justify-center gap-2 p-3 rounded-xl bg-red-50 text-red-700 hover:bg-red-100 transition-colors border border-red-100">
+                                <RotateCcw className="w-5 h-5" />
+                                <span className="text-xs font-bold">إعادة التشغيل</span>
+                            </button>
+                        </div>
                     </motion.div>
 
                     {/* Quick Stats (Mocked for specific screen) */}
