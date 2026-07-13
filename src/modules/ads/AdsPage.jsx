@@ -520,7 +520,9 @@ const AdsPage = () => {
                                         </div>
                                         تاريخ الانطلاق
                                     </span>
-                                    <span className="font-body-lg text-body-lg text-on-background font-bold block pl-8" dir="ltr">{detailsModal.ad.start_date || '—'}</span>
+                                    <span className="font-body-lg text-body-lg text-on-background font-bold block pl-8" dir="ltr">
+                                        {detailsModal.ad.start_date || '—'} <span className="text-sm font-normal text-outline ml-1">{formatTime(detailsModal.ad.starts_at)}</span>
+                                    </span>
                                 </div>
                                 <div className="space-y-2 border-r border-outline-variant pr-4">
                                     <span className="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-1.5">
@@ -529,7 +531,9 @@ const AdsPage = () => {
                                         </div>
                                         تاريخ التوقف
                                     </span>
-                                    <span className="font-body-lg text-body-lg text-on-background font-bold block pl-8" dir="ltr">{detailsModal.ad.end_date || '—'}</span>
+                                    <span className="font-body-lg text-body-lg text-on-background font-bold block pl-8" dir="ltr">
+                                        {detailsModal.ad.end_date || '—'} <span className="text-sm font-normal text-outline ml-1">{formatTime(detailsModal.ad.expires_at)}</span>
+                                    </span>
                                 </div>
                             </div>
                         </div>
