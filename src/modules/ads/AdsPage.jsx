@@ -50,6 +50,15 @@ const AdsPage = () => {
     // الاعتماد على الفلترة من السيرفر مباشرة
     const filteredAds = ads;
 
+    const getDurationInDays = (start, end) => {
+        if (!start || !end) return '—';
+        const startDate = new Date(start);
+        const endDate = new Date(end);
+        const diffTime = Math.abs(endDate - startDate);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+        return `${diffDays} أيام`;
+    };
+
     const handleStatusChange = async () => {
         const { ad, action } = approveModal;
         try {
@@ -252,8 +261,8 @@ const AdsPage = () => {
                                 <th className="py-3 px-3 font-label-md text-label-md text-on-surface font-bold whitespace-nowrap">المعلن</th>
                                 <th className="py-3 px-3 font-label-md text-label-md text-on-surface font-bold whitespace-nowrap text-center">الحالة</th>
                                 <th className="py-3 px-3 font-label-md text-label-md text-on-surface font-bold whitespace-nowrap">التكلفة</th>
-                                <th className="py-3 px-3 font-label-md text-label-md text-on-surface font-bold whitespace-nowrap text-center">التكرار (د)</th>
-                                <th className="py-3 px-3 font-label-md text-label-md text-on-surface font-bold whitespace-nowrap text-center">المدة (ث)</th>
+                                <th className="py-3 px-3 font-label-md text-label-md text-on-surface font-bold whitespace-nowrap text-center">الشاشة المستهدفة</th>
+                                <th className="py-3 px-3 font-label-md text-label-md text-on-surface font-bold whitespace-nowrap text-center">المدة</th>
                                 <th className="py-3 px-3 font-label-md text-label-md text-on-surface font-bold whitespace-nowrap text-center">الحجم</th>
                                 <th className="py-3 px-3 font-label-md text-label-md text-on-surface font-bold whitespace-nowrap">من</th>
                                 <th className="py-3 px-3 font-label-md text-label-md text-on-surface font-bold whitespace-nowrap">إلى</th>
@@ -287,11 +296,21 @@ const AdsPage = () => {
                                         </td>
                                         <td className="py-2 px-3 font-label-lg text-label-lg text-primary font-bold">${row.total_cost || 0}</td>
                                         <td className="py-2 px-3 text-center">
-                                            <span className="inline-flex px-2 py-1 bg-surface border border-outline-variant rounded-md text-on-surface-variant font-body-sm text-body-sm whitespace-nowrap shadow-sm">
-                                                كل {row.daily_frequency || '—'} د
-                                            </span>
+                                            <div className="flex flex-wrap gap-1 justify-center max-w-[150px] mx-auto">
+                                                {row.screens && row.screens.length > 0 ? (
+                                                    row.screens.map(s => (
+                                                        <span key={s.screen_id} className="inline-flex px-2 py-1 bg-surface border border-outline-variant rounded-md text-on-surface-variant font-body-sm text-[11px] whitespace-nowrap shadow-sm" title={s.screen_name}>
+                                                            {s.screen_name.length > 10 ? s.screen_name.substring(0, 10) + '...' : s.screen_name}
+                                                        </span>
+                                                    ))
+                                                ) : (
+                                                    <span className="text-on-surface-variant">—</span>
+                                                )}
+                                            </div>
                                         </td>
-                                        <td className="py-2 px-3 text-center font-caption text-caption text-on-background">{row.duration ? `${row.duration}s` : '—'}</td>
+                                        <td className="py-2 px-3 text-center font-caption text-caption text-on-background">
+                                            {getDurationInDays(row.start_date, row.end_date)}
+                                        </td>
                                         <td className="py-2 px-3 text-center font-caption text-caption text-on-surface-variant whitespace-nowrap">
                                             {row.file_size ? `${row.file_size} MB` : '—'}
                                         </td>
