@@ -6,7 +6,7 @@ import axiosClient from '../../core/api/axiosClient';
 import { ENDPOINTS } from '../../core/api/endpoints';
 import useToastStore from '../../store/useToastStore';
 
-import { useScreens } from '../../hooks/api/useScreens';
+import { useScreens, useScreenAvailability } from '../../hooks/api/useScreens';
 
 const S = {
     primary: '#004ac6', primaryContainer: '#2563eb', surfaceContainerLowest: '#ffffff',
@@ -23,6 +23,10 @@ const ScreenDetailPage = () => {
     
     const { data: screens = [], isLoading: loading } = useScreens();
     const screen = screens.find(s => String(s.screen_id) === String(id));
+
+    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+    const { data: availabilityData, isLoading: loadingAvailability } = useScreenAvailability(id, selectedDate);
+    const availability = availabilityData?.data || [];
 
     useEffect(() => {
         if (!loading && !screen) {
@@ -187,34 +191,52 @@ const ScreenDetailPage = () => {
 
                     {/* Available Schedule (Mocked) */}
                     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
-                        <div className="p-5 border-b border-gray-100 bg-gray-50/50">
-                            <h3 className="font-bold text-gray-800 text-lg m-0 mb-1">جدول عمل الشاشة ومواعيد الذروة</h3>
-                            <p className="text-xs text-gray-500 m-0">ساعات العمل والأوقات التي يكون فيها السعر مضاعفاً</p>
+                        <div className="p-5 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
+                            <div>
+                                <h3 className="font-bold text-gray-800 text-lg m-0 mb-1">جدول عمل الشاشة ومواعيد الذروة</h3>
+                                <p className="text-xs text-gray-500 m-0">ساعات العمل والأوقات التي يكون فيها السعر مضاعفاً</p>
+                            </div>
+                            <div>
+                                <input 
+                                    type="date" 
+                                    value={selectedDate}
+                                    onChange={(e) => setSelectedDate(e.target.value)}
+                                    className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                />
+                            </div>
                         </div>
                         <div className="p-5">
-                            <div className="flex items-center gap-3 mb-4 p-3 rounded-lg bg-blue-50/50 border border-blue-100">
-                                <Clock className="w-5 h-5 text-blue-600" />
-                                <div>
-                                    <h4 className="text-sm font-bold text-gray-800">ساعات التشغيل اليومية</h4>
-                                    <p className="text-xs text-gray-500">من 08:00 صباحاً إلى 12:00 منتصف الليل</p>
+                            {loadingAvailability ? (
+                                <div className="flex justify-center p-8">
+                                    <RefreshCw className="w-6 h-6 animate-spin text-blue-500" />
                                 </div>
-                            </div>
-                            
-                            <h4 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
-                                <Star className="w-4 h-4 text-orange-400" /> ساعات الذروة (Peak Hours)
-                            </h4>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                {[
-                                    { time: '16:00 - 18:00', x: '1.5x' },
-                                    { time: '18:00 - 20:00', x: '2.0x' },
-                                    { time: '20:00 - 22:00', x: '2.5x' }
-                                ].map((slot, i) => (
-                                    <div key={i} className="border border-orange-200 bg-orange-50 rounded-xl p-3 text-center">
-                                        <div className="text-xs font-bold text-orange-800 mb-1" dir="ltr">{slot.time}</div>
-                                        <div className="text-sm font-black text-orange-600">مضاعف {slot.x}</div>
-                                    </div>
-                                ))}
-                            </div>
+                            ) : (
+                                <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                                    {availability.map((slot, i) => {
+                                        const bookedPercentage = ((3600 - slot.available_seconds) / 3600) * 100;
+                                        const isPeak = slot.is_peak;
+                                        return (
+                                            <div key={i} className={`flex flex-col md:flex-row md:items-center gap-3 p-3 rounded-xl border ${slot.is_full ? 'border-red-200 bg-red-50/30' : 'border-gray-100 bg-white'} shadow-sm`}>
+                                                <div className="flex items-center justify-between md:w-32 flex-shrink-0">
+                                                    <span className="font-bold text-gray-800" dir="ltr">{slot.hour}</span>
+                                                    {isPeak && <span className="bg-orange-100 text-orange-700 px-2 py-0.5 rounded text-xs font-bold flex items-center gap-1"><Star className="w-3 h-3" /> ذروة x{slot.price_multiplier}</span>}
+                                                </div>
+                                                <div className="flex-1">
+                                                    <div className="flex justify-between text-xs mb-1">
+                                                        <span className="text-gray-600 font-bold">المحجوز: {Math.round(3600 - slot.available_seconds)} ثانية</span>
+                                                        <span className={slot.available_seconds > 0 ? 'text-green-600 font-bold' : 'text-red-600 font-bold'}>
+                                                            المتبقي: {Math.round(slot.available_seconds)} ثانية
+                                                        </span>
+                                                    </div>
+                                                    <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden flex">
+                                                        <div className={`h-2.5 rounded-full ${slot.is_full ? 'bg-red-500' : 'bg-blue-500'}`} style={{ width: `${bookedPercentage}%` }}></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
                         </div>
                     </motion.div>
                 </div>

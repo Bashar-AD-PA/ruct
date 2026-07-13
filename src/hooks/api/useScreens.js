@@ -85,3 +85,15 @@ export const useScreenPricing = () => {
     },
   });
 };
+
+export const useScreenAvailability = (screenId, date) => {
+  return useQuery({
+    queryKey: ['screenAvailability', screenId, date],
+    queryFn: async () => {
+      const res = await axiosClient.get(`${ENDPOINTS.SCREENS.AVAILABILITY(screenId)}?date=${date}`);
+      return res.data;
+    },
+    enabled: !!screenId && !!date,
+  });
+};
+
