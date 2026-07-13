@@ -214,6 +214,11 @@ const OwnerEarningsPage = () => {
                         margin: 0 !important;
                         padding: 0 !important;
                     }
+                    * {
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
+                        color-adjust: exact !important;
+                    }
                     .hide-on-print {
                         display: none !important;
                     }
