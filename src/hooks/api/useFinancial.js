@@ -15,6 +15,8 @@ export const useLedger = (filters = {}) => {
       const res = await axiosClient.get(`${ENDPOINTS.FINANCIAL.LEDGER}${queryString}`);
       return res.data?.data || res.data || {};
     },
+    keepPreviousData: true,
+    placeholderData: (previousData) => previousData,
   });
 };
 

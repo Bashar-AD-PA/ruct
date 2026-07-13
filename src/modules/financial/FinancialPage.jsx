@@ -12,7 +12,7 @@ import { useLedger, useRecordPayment, useApprovePayout, useRejectPayout } from '
 const FinancialPage = () => {
     const queryClient = useQueryClient();
     const [dateFilters, setDateFilters] = useState({ start_date: '', end_date: '' });
-    const { data: ledgerData, isLoading: loading } = useLedger(dateFilters);
+    const { data: ledgerData, isLoading, isFetching } = useLedger(dateFilters);
     const { mutateAsync: recordPayment } = useRecordPayment();
     const { mutateAsync: approvePayout, isPending: isApproving } = useApprovePayout();
     const { mutateAsync: rejectPayout, isPending: isRejecting } = useRejectPayout();
@@ -219,7 +219,8 @@ const FinancialPage = () => {
         }
     ];
 
-    if (loading) return (
+    // Show full page loader only on initial load when there's no data at all
+    if (isLoading && !ledgerData) return (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-center flex-1 w-full py-20" dir="rtl">
             <DynamicPageLoader 
                 messages={[
@@ -429,7 +430,7 @@ const FinancialPage = () => {
                         <DataTable 
                             columns={columns} 
                             data={filteredTransactions} 
-                            loading={false} 
+                            loading={isFetching} 
                         />
                     </div>
                 )}
