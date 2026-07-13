@@ -20,6 +20,33 @@ export const useLedger = (filters = {}) => {
   });
 };
 
+export const useArchiveLedger = () => {
+  const queryClient = useQueryClient();
+  const addToast = useToastStore(state => state.addToast);
+
+  return useMutation({
+    mutationFn: async (payload) => {
+      const res = await axiosClient.post('/financial/archive', payload);
+      return res.data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['ledger'] });
+      addToast({ title: 'نجاح', message: data.message, type: 'success' });
+      // Trigger download if URL exists
+      if (data.download_url) {
+        window.open(data.download_url, '_blank');
+      }
+    },
+    onError: (error) => {
+      addToast({
+        title: 'خطأ',
+        message: error.response?.data?.message || 'حدث خطأ أثناء أرشفة السجلات',
+        type: 'error'
+      });
+    }
+  });
+};
+
 export const useApprovePayment = () => {
   const queryClient = useQueryClient();
   const addToast = useToastStore(state => state.addToast);

@@ -7,7 +7,7 @@ import DynamicPageLoader from '../../shared/components/DynamicPageLoader';
 import Modal from '../../shared/components/Modal';
 import { useQueryClient } from '@tanstack/react-query';
 import echo from '../../core/api/echo';
-import { useLedger, useRecordPayment, useApprovePayout, useRejectPayout } from '../../hooks/api/useFinancial';
+import { useLedger, useRecordPayment, useApprovePayout, useRejectPayout, useArchiveLedger } from '../../hooks/api/useFinancial';
 
 const FinancialPage = () => {
     const queryClient = useQueryClient();
@@ -26,6 +26,10 @@ const FinancialPage = () => {
     const [formData, setFormData] = useState({ amount: '', reference_number: '', payment_method: 'bank_transfer' });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isAmountVisible, setIsAmountVisible] = useState(true);
+
+    const [isArchiveModalOpen, setIsArchiveModalOpen] = useState(false);
+    const [archiveMonths, setArchiveMonths] = useState('6');
+    const { mutateAsync: archiveLedger, isPending: isArchiving } = useArchiveLedger();
 
     useEffect(() => {
         const channel = echo.private('admin.ledger');
@@ -72,6 +76,13 @@ const FinancialPage = () => {
             await rejectPayout({ id: reviewModalData.ledger_id, reason: reviewForm.reason });
             setReviewModalData(null);
             setReviewForm({ reference_number: '', reason: '' });
+        } catch (error) {}
+    };
+
+    const handleArchive = async () => {
+        try {
+            await archiveLedger({ months: parseInt(archiveMonths) });
+            setIsArchiveModalOpen(false);
         } catch (error) {}
     };
 
@@ -404,6 +415,11 @@ const FinancialPage = () => {
                             onClick={handlePrintPlatformReport}
                             className="p-2 text-white bg-[#1c5b8e] hover:bg-[#14355d] rounded-lg transition-colors border border-[#1c5b8e] flex items-center justify-center shadow-sm" title="طباعة تقرير أرباح المنصة">
                             <span className="material-symbols-outlined text-[20px]">print</span>
+                        </button>
+                        <button 
+                            onClick={() => setIsArchiveModalOpen(true)}
+                            className="p-2 text-error hover:bg-error-container rounded-lg transition-colors border border-error/30 flex items-center justify-center" title="مسح وأرشفة السجلات">
+                            <span className="material-symbols-outlined text-[20px]">delete_sweep</span>
                         </button>
                     </div>
                     </div>
@@ -752,6 +768,59 @@ const FinancialPage = () => {
                         </div>
                     </div>
                 </div>
+
+                {/* Archive Modal */}
+                <Modal isOpen={isArchiveModalOpen} onClose={() => setIsArchiveModalOpen(false)} title="تنظيف وأرشفة السجلات">
+                    <div className="space-y-4" dir="rtl">
+                        <div className="bg-warning-container text-on-warning-container p-4 rounded-xl flex items-start gap-3">
+                            <span className="material-symbols-outlined shrink-0">warning</span>
+                            <div className="text-sm">
+                                <p className="font-bold mb-1">تنبيه هام جداً</p>
+                                <p>هذه العملية ستقوم بـ:</p>
+                                <ul className="list-disc list-inside mt-2 space-y-1">
+                                    <li>إنشاء ملف Excel (CSV) كنسخة احتياطية وتنزيله لك.</li>
+                                    <li>مسح جميع تفاصيل المعاملات القديمة نهائياً.</li>
+                                    <li>استبدالها برصيد إجمالي مجمّع (رصيد مرحل) للحفاظ على المجاميع الكلية دون خلل.</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-on-surface mb-2">اختر مدة السجلات المراد مسحها وأرشفتها</label>
+                            <select 
+                                value={archiveMonths}
+                                onChange={(e) => setArchiveMonths(e.target.value)}
+                                className="w-full bg-surface-container-highest border border-outline-variant rounded-xl p-3 outline-none"
+                            >
+                                <option value="3">السجلات الأقدم من 3 أشهر</option>
+                                <option value="6">السجلات الأقدم من 6 أشهر</option>
+                                <option value="12">السجلات الأقدم من سنة كاملة</option>
+                                <option value="24">السجلات الأقدم من سنتين</option>
+                            </select>
+                        </div>
+
+                        <div className="flex gap-3 pt-4 border-t border-outline-variant">
+                            <button 
+                                onClick={handleArchive}
+                                disabled={isArchiving}
+                                className="flex-1 bg-error text-white py-2.5 rounded-xl font-bold hover:bg-error/90 transition-colors flex justify-center items-center gap-2 disabled:opacity-70"
+                            >
+                                {isArchiving ? (
+                                    <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                                ) : (
+                                    <span className="material-symbols-outlined text-[20px]">delete_sweep</span>
+                                )}
+                                أرشفة ومسح الآن
+                            </button>
+                            <button 
+                                onClick={() => setIsArchiveModalOpen(false)}
+                                className="flex-1 bg-surface-container-high text-on-surface py-2.5 rounded-xl font-bold hover:bg-surface-container-highest transition-colors"
+                            >
+                                إلغاء
+                            </button>
+                        </div>
+                    </div>
+                </Modal>
 
                 {/* Footer Bar */}
                 <div className="w-full bg-[#14355d] text-white py-4 px-16 flex justify-between items-center mt-auto">
