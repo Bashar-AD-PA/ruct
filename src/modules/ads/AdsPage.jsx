@@ -329,13 +329,13 @@ const AdsPage = () => {
                                         <td className="py-2 px-3 text-center" dir="ltr">
                                             <div className="flex flex-col items-center">
                                                 <span className="font-caption text-caption text-on-surface-variant whitespace-nowrap">{row.start_date || '—'}</span>
-                                                <span className="text-[10px] text-outline mt-0.5">{formatTime(row.starts_at)}</span>
+                                                <span className="text-[10px] text-outline mt-0.5">{formatTime(row.schedules?.[0]?.start_time)}</span>
                                             </div>
                                         </td>
                                         <td className="py-2 px-3 text-center" dir="ltr">
                                             <div className="flex flex-col items-center">
                                                 <span className="font-caption text-caption text-on-surface-variant whitespace-nowrap">{row.end_date || '—'}</span>
-                                                <span className="text-[10px] text-outline mt-0.5">{formatTime(row.expires_at)}</span>
+                                                <span className="text-[10px] text-outline mt-0.5">{formatTime(row.schedules?.[0]?.end_time)}</span>
                                             </div>
                                         </td>
                                         <td className="py-2 px-3">
@@ -521,7 +521,7 @@ const AdsPage = () => {
                                         تاريخ الانطلاق
                                     </span>
                                     <span className="font-body-lg text-body-lg text-on-background font-bold block pl-8" dir="ltr">
-                                        {detailsModal.ad.start_date || '—'} <span className="text-sm font-normal text-outline ml-1">{formatTime(detailsModal.ad.starts_at)}</span>
+                                        {detailsModal.ad.start_date || '—'} <span className="text-sm font-normal text-outline ml-1">{formatTime(detailsModal.ad.schedules?.[0]?.start_time)}</span>
                                     </span>
                                 </div>
                                 <div className="space-y-2 border-r border-outline-variant pr-4">
@@ -532,7 +532,7 @@ const AdsPage = () => {
                                         تاريخ التوقف
                                     </span>
                                     <span className="font-body-lg text-body-lg text-on-background font-bold block pl-8" dir="ltr">
-                                        {detailsModal.ad.end_date || '—'} <span className="text-sm font-normal text-outline ml-1">{formatTime(detailsModal.ad.expires_at)}</span>
+                                        {detailsModal.ad.end_date || '—'} <span className="text-sm font-normal text-outline ml-1">{formatTime(detailsModal.ad.schedules?.[0]?.end_time)}</span>
                                     </span>
                                 </div>
                             </div>
