@@ -215,11 +215,23 @@ const ScreenDetailPage = () => {
                                     {availability.map((slot, i) => {
                                         const bookedPercentage = ((3600 - slot.available_seconds) / 3600) * 100;
                                         const isPeak = slot.is_peak;
+
+                                        // تحويل الصيغة من 24 إلى 12 ساعة مع كتابة "من كذا إلى كذا"
+                                        const startHour = parseInt(slot.hour.split(':')[0], 10);
+                                        const endHour = (startHour + 1) % 24;
+                                        
+                                        const formatAMPM = (h) => {
+                                            const ampm = h >= 12 ? 'مساءً' : 'صباحاً';
+                                            const h12 = h % 12 || 12;
+                                            return `${String(h12).padStart(2, '0')}:00 ${ampm}`;
+                                        };
+                                        const timeLabel = `من ${formatAMPM(startHour)} إلى ${formatAMPM(endHour)}`;
+
                                         return (
                                             <div key={i} className={`flex flex-col md:flex-row md:items-center gap-3 p-3 rounded-xl border ${slot.is_full ? 'border-red-200 bg-red-50/30' : 'border-gray-100 bg-white'} shadow-sm`}>
-                                                <div className="flex items-center justify-between md:w-32 flex-shrink-0">
-                                                    <span className="font-bold text-gray-800" dir="ltr">{slot.hour}</span>
-                                                    {isPeak && <span className="bg-orange-100 text-orange-700 px-2 py-0.5 rounded text-xs font-bold flex items-center gap-1"><Star className="w-3 h-3" /> ذروة x{slot.price_multiplier}</span>}
+                                                <div className="flex flex-col justify-center md:w-56 flex-shrink-0">
+                                                    <span className="font-bold text-gray-800 text-sm" dir="rtl">{timeLabel}</span>
+                                                    {isPeak && <span className="mt-1 w-fit bg-orange-100 text-orange-700 px-2 py-0.5 rounded text-xs font-bold flex items-center gap-1"><Star className="w-3 h-3" /> ذروة x{slot.price_multiplier}</span>}
                                                 </div>
                                                 <div className="flex-1">
                                                     <div className="flex justify-between text-xs mb-1">
