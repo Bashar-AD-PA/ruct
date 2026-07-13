@@ -232,7 +232,7 @@ const FinancialPage = () => {
     );
 
     return (
-        <div className="w-full font-[IBM_Plex_Sans_Arabic] pb-20 relative" dir="rtl">
+        <div className="w-full font-[IBM_Plex_Sans_Arabic] pb-20" dir="rtl">
             <style>
                 {`
                 @media screen {
