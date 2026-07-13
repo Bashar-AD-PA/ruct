@@ -106,6 +106,15 @@ const FinancialPage = () => {
         document.body.removeChild(link);
     };
 
+    const handlePrintPlatformReport = () => {
+        window.print();
+    };
+
+    const platformTransactions = Array.isArray(data.transactions) 
+        ? data.transactions.filter(t => t.transaction_type === 'platform_fee' && t.status === 'completed') 
+        : [];
+    const totalPlatformProfit = data.platform_profit || 0;
+
     const transactions = Array.isArray(data.transactions) ? data.transactions : Object.values(data.transactions || {});
     const filteredTransactions = transactions.filter(t => activeFilter === 'all' || t.status === activeFilter);
     
@@ -223,7 +232,37 @@ const FinancialPage = () => {
     );
 
     return (
-        <div className="w-full font-[IBM_Plex_Sans_Arabic] pb-20" dir="rtl">
+        <div className="w-full font-[IBM_Plex_Sans_Arabic] pb-20 relative" dir="rtl">
+            <style>
+                {`
+                @media screen {
+                    .print-area { display: none !important; }
+                }
+                @media print {
+                    @page { size: A4; margin: 0; }
+                    body * { visibility: hidden; }
+                    .print-area, .print-area * { visibility: visible !important; }
+                    .print-area {
+                        position: absolute;
+                        left: 0;
+                        top: 0;
+                        width: 100%;
+                        display: flex !important;
+                        background-color: white !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                    }
+                    * {
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
+                        color-adjust: exact !important;
+                    }
+                    .hide-on-print {
+                        display: none !important;
+                    }
+                }
+                `}
+            </style>
             {/* Page Header */}
             <div className="mb-lg flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div>
@@ -329,6 +368,11 @@ const FinancialPage = () => {
                             onClick={handleExportCSV}
                             className="p-2 text-on-surface-variant hover:bg-surface-container rounded-lg transition-colors border border-outline-variant flex items-center justify-center" title="تصدير بصيغة CSV">
                             <span className="material-symbols-outlined text-[20px]">download</span>
+                        </button>
+                        <button 
+                            onClick={handlePrintPlatformReport}
+                            className="p-2 text-white bg-[#1c5b8e] hover:bg-[#14355d] rounded-lg transition-colors border border-[#1c5b8e] flex items-center justify-center shadow-sm" title="طباعة تقرير أرباح المنصة">
+                            <span className="material-symbols-outlined text-[20px]">print</span>
                         </button>
                     </div>
                 </div>
@@ -583,6 +627,108 @@ const FinancialPage = () => {
                     </div>
                 )}
             </Modal>
+
+            {/* ── PRINTABLE PLATFORM REPORT TEMPLATE ── */}
+            <div className="print-area bg-white overflow-hidden font-sans" dir="rtl" style={{ minHeight: '100vh', flexDirection: 'column' }}>
+                {/* Top Header Polygon */}
+                <div className="w-full bg-[#1c5b8e] text-white flex justify-between items-stretch" style={{ height: '140px' }}>
+                    <div className="flex-1 flex items-center justify-start px-12 bg-[#1c5b8e]">
+                        <div className="text-center">
+                            <img src="/Main_app_logo.png" alt="SabaPost Logo" className="h-16 object-contain mb-2 brightness-0 invert mx-auto" />
+                            <p className="font-bold text-lg">سبأ بوست - SabaPost</p>
+                            <p className="text-sm opacity-80">نظام إدارة الإعلانات الرقمية</p>
+                        </div>
+                    </div>
+                    
+                    <div className="w-48 bg-[#102a43]" style={{ clipPath: 'polygon(0 0, 100% 0, 75% 100%, 25% 100%)' }}></div>
+
+                    <div className="flex-1 flex items-center justify-end px-12 bg-[#1c5b8e]">
+                        <h1 className="text-5xl font-black tracking-tight" style={{ color: '#ffffff' }}>أرباح المنصة</h1>
+                    </div>
+                </div>
+
+                {/* Metadata Section */}
+                <div className="flex justify-between items-start px-16 py-10">
+                    <div className="flex-1 text-right space-y-2">
+                        <p className="text-xl font-bold text-gray-800">تقرير صادر إلى:</p>
+                        <h2 className="text-3xl font-black text-gray-900">إدارة المنصة (SabaPost)</h2>
+                        <p className="text-gray-600 font-medium">مُصدر تقارير معتمد</p>
+                    </div>
+                    
+                    <div className="flex-1 flex justify-end" dir="rtl">
+                        <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-3 text-right">
+                            <span className="font-bold text-gray-900">تاريخ الإصدار:</span>
+                            <span className="text-gray-700">{new Date().toLocaleDateString('ar-SA')}</span>
+
+                            <span className="font-bold text-gray-900">الوقت:</span>
+                            <span className="text-gray-700" dir="ltr">{new Date().toLocaleTimeString('ar-SA')}</span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Table */}
+                <div className="px-16 flex-1 mb-10">
+                    <table className="w-full text-right text-sm border-collapse">
+                        <thead className="bg-[#1c5b8e] text-white font-bold text-lg">
+                            <tr>
+                                <th className="py-4 px-4 text-center w-16">رقم</th>
+                                <th className="py-4 px-4">التاريخ</th>
+                                <th className="py-4 px-4">نوع الإيراد</th>
+                                <th className="py-4 px-4">البيان (رقم الإعلان / الشاشة)</th>
+                                <th className="py-4 px-4 text-left">قيمة العمولة (الربح)</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200 border-b-2 border-[#1c5b8e]">
+                            {platformTransactions.map((trx, idx) => (
+                                <tr key={trx.ledger_id} className={idx % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
+                                    <td className="py-4 px-4 text-center font-bold text-gray-700">{String(idx + 1).padStart(2, '0')}</td>
+                                    <td className="py-4 px-4 text-gray-700">{new Date(trx.created_at).toLocaleString('ar-EG')}</td>
+                                    <td className="py-4 px-4 font-bold text-gray-900">عمولة منصة</td>
+                                    <td className="py-4 px-4 text-gray-600">
+                                        إعلان: {trx.advertisement?.title || 'غير محدد'} | شاشة: {trx.screen?.screen_name || 'غير محدد'}
+                                    </td>
+                                    <td className="py-4 px-4 text-left font-bold text-green-600" dir="ltr">
+                                        +${parseFloat(trx.amount).toFixed(2)}
+                                    </td>
+                                </tr>
+                            ))}
+                            {platformTransactions.length === 0 && (
+                                <tr>
+                                    <td colSpan="5" className="py-8 text-center text-gray-500 font-medium">لا توجد أرباح مسجلة للمنصة حتى الآن</td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+
+                    {/* Totals Section */}
+                    <div className="flex justify-end mt-6">
+                        <div className="w-1/3">
+                            <div className="flex justify-between py-3 px-4 bg-[#1c5b8e] text-white rounded-b-lg mt-1">
+                                <span className="font-bold text-lg">إجمالي أرباح المنصة الصافية</span>
+                                <span className="font-bold text-lg">${parseFloat(totalPlatformProfit).toFixed(2)}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {/* Conditions and Info */}
+                    <div className="mt-16 grid grid-cols-2 gap-8 items-end w-full">
+                        <div className="text-right">
+                            <h4 className="font-bold text-gray-900 text-lg mb-2">معلومات إضافية:</h4>
+                            <p className="text-gray-600 text-sm leading-relaxed">
+                                هذا التقرير يمثل العوائد الصافية للمنصة المستقطعة من الحملات الإعلانية كعمولة تشغيل بناءً على نسبة العمولة المحددة في إعدادات النظام. التقرير آلي ولا يحتاج إلى توقيع.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Footer Bar */}
+                <div className="w-full bg-[#14355d] text-white py-4 px-16 flex justify-between items-center mt-auto">
+                    <div className="flex items-center gap-2">
+                        <span>🌐</span>
+                        <span dir="ltr">www.sabapost.com.sa</span>
+                    </div>
+                </div>
+            </div>
         </div>
     );
 };
