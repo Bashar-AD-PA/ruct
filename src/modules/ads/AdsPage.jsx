@@ -10,6 +10,7 @@ import usePermission from '../../hooks/usePermission';
 import useToastStore from '../../store/useToastStore';
 import StripePaymentModal from './components/StripePaymentModal';
 import ReviewAdModal from './components/ReviewAdModal';
+import AdInvoiceModal from './components/AdInvoiceModal';
 import { useAds, useUpdateAdStatus, useDeleteAd } from '../../hooks/api/useAds';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -33,6 +34,7 @@ const AdsPage = () => {
     const [deleteTarget, setDeleteTarget] = useState(null);
     const [approveModal, setApproveModal] = useState({ open: false, ad: null, action: '' });
     const [detailsModal, setDetailsModal] = useState({ open: false, ad: null });
+    const [invoiceModal, setInvoiceModal] = useState({ open: false, ad: null });
     const [stripeModal, setStripeModal] = useState({ open: false, ad: null });
     const [reviewModal, setReviewModal] = useState({ open: false, ad: null });
     const [rejectReason, setRejectReason] = useState('');
@@ -346,6 +348,12 @@ const AdsPage = () => {
                                                     <Eye className="w-[18px] h-[18px] transition-transform group-hover/btn:scale-110" />
                                                 </button>
 
+                                                {/* فاتورة (Invoice) */}
+                                                <button onClick={(e) => { e.stopPropagation(); setInvoiceModal({ open: true, ad: row }) }}
+                                                    className="w-9 h-9 flex-shrink-0 rounded-xl border border-outline-variant flex items-center justify-center text-on-surface-variant hover:text-blue-700 hover:bg-blue-100 hover:border-blue-500 transition-all bg-surface shadow-sm group/btn" title="عرض الفاتورة">
+                                                    <Layers className="w-[18px] h-[18px] transition-transform group-hover/btn:scale-110" />
+                                                </button>
+
                                                 {/* أوامر الرقابة (المراجعة المركزية بدلاً من القبول/الرفض المباشر) */}
                                                 {can('approve_ads') && row.status === 'Pending' && (
                                                     <button onClick={(e) => { e.stopPropagation(); setReviewModal({ open: true, ad: row }) }}
@@ -597,6 +605,12 @@ const AdsPage = () => {
                     setApproveModal({ open: true, ad: reviewModal.ad, action: 'Rejected' });
                     setReviewModal({ open: false, ad: null });
                 }}
+            />
+
+            <AdInvoiceModal
+                open={invoiceModal.open}
+                onClose={() => setInvoiceModal({ open: false, ad: null })}
+                ad={invoiceModal.ad}
             />
         </div>
     );
